@@ -225,8 +225,9 @@ classifications = {
     "cd02989": "OTHER",
     "SUPERFAMILY": "OTHER",
     "Pfam": "OTHER",
-    "Gene3D": "OTHER"
+    "Gene3D": "OTHER",
 }
+
 
 class Annotation:
     name = ""
@@ -244,16 +245,18 @@ class Annotation:
 
     def __lt__(self, other):
         return self.start < other.start
-    
+
+
 class Sequence:
     name = ""
     length = 0
     annotations = []
+
     def __init__(self, name, length):
         self.name = name
         self.length = length
         self.annotations = []
-    
+
     def merged_annotations(self):
         """
         Merge overlapping annotations of the same classification.
@@ -265,18 +268,27 @@ class Sequence:
                 merged.append(annotation)
             else:
                 last = merged[-1]
-                if last.classification == annotation.classification and last.end >= annotation.start:
+                if (
+                    last.classification == annotation.classification
+                    and last.end >= annotation.start
+                ):
                     last.end = annotation.end
                 else:
                     merged.append(annotation)
         return merged
-    
+
     def annotation_string(self):
         """
         Return a string representation of the annotations.
         """
         merged = self.merged_annotations()
-        return ",".join([f"{annotation.classification}:{annotation.start}-{annotation.end}" for annotation in merged])
+        return ",".join(
+            [
+                f"{annotation.classification}:{annotation.start}-{annotation.end}"
+                for annotation in merged
+            ]
+        )
+
 
 def parse_hmmer_table(hmmerfile, evalue_threshold):
     sequences = {}
@@ -302,7 +314,9 @@ def parse_hmmer_table(hmmerfile, evalue_threshold):
                 start = int(line[17])
                 end = int(line[18])
 
-                annotation = Annotation(annotation_name, classification, start, end, evalue)
+                annotation = Annotation(
+                    annotation_name, classification, start, end, evalue
+                )
 
                 if sequence_name in sequences:
                     sequences[sequence_name].annotations.append(annotation)
