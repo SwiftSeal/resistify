@@ -289,9 +289,7 @@ class Sequence:
             ]
         )
 
-
-def parse_hmmer_table(hmmerfile, evalue_threshold):
-    sequences = {}
+def parse_hmmer_table(hmmerfile, sequences, evalue_threshold):
     with open(hmmerfile, "r") as file:
         for line in file:
             if line.startswith("#"):
@@ -311,8 +309,14 @@ def parse_hmmer_table(hmmerfile, evalue_threshold):
                 sequence_name = line[0]
                 length = int(line[2])
                 classification = classifications[annotation_name]
-                start = int(line[17])
-                end = int(line[18])
+
+                # not worried about annotation direction for now, so if the end is less than the start, swap them
+                if int(line[17]) < int(line[18]):
+                    start = int(line[17])
+                    end = int(line[18])
+                else:
+                    start = int(line[18])
+                    end = int(line[17])
 
                 annotation = Annotation(
                     annotation_name, classification, start, end, evalue
