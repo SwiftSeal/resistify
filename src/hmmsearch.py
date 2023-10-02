@@ -137,7 +137,6 @@ def get_interproscan_data():
     shutil.rmtree(interproscan_dir)
 
 
-
 #run_hmmsearch('sample.fasta', 'pfam')
 #run_hmmsearch('sample.fasta', 'superfamily')
 #run_hmmsearch('sample.fasta', 'smart')
