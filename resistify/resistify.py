@@ -1,7 +1,6 @@
 import argparse
 from .annotations import Annotation, Sequence, classifications, parse_hmmer_table
 
-
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Parse HMMER output to generate a table of annotations."
@@ -21,3 +20,6 @@ def main():
     for sequence_name in sequences:
         sequence = sequences[sequence_name]
         print(f"{sequence.name}\t{sequence.length}\t{sequence.annotation_string()}")
+
+if __name__ == "__main__":
+    main()
