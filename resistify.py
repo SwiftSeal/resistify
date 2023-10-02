@@ -1,6 +1,9 @@
+#!/usr/bin/env python3
+
 import argparse
 import sys
 import logging
+import os
 from resistify.annotations import (
     Sequence,
     Annotation,
@@ -10,11 +13,19 @@ from resistify.annotations import (
 from resistify.hmmsearch import hmmsearch
 
 database_paths = {
-    "pfam": "data/pfam.hmm",
-    "superfamily": "data/superfamily.hmm",
-    "smart": "data/smartsmart.hmm",
-    "gene3d": "data/gene3d.hmm",
+    "pfam": "resistify/data/pfam.hmm",
+    "superfamily": "resistify/data/superfamily.hmm",
+    "smart": "resistify/data/smart.hmm",
+    "gene3d": "resistify/data/gene3d.hmm",
 }
+
+def check_database_paths(database_paths):
+    for source in database_paths:
+        if os.path.exists(database_paths[source]):
+            logging.info(f"😊 Database file for {source} found at {database_paths[source]}")
+        else:
+            logging.error(f"😞 Database file for {source} does not exist at {database_paths[source]}")
+            sys.exit(1)
 
 
 def parse_args():
@@ -29,7 +40,7 @@ def parse_args():
     search.add_argument("fasta", help="Protein sequences to search")
     # search.add_argument("--db", help = " Path to HMM databases", type = str, default = "./resistify/data")
     search.add_argument(
-        "-e", "--evalue", help="E-value threshold", type=float, default=1e-5
+        "-e", "--evalue", help="E-value threshold", type=str, default="0.00001"
     )
 
     annotate = subparsers.add_parser(
@@ -37,7 +48,7 @@ def parse_args():
     )
     annotate.add_argument("input", nargs="+", type=str, help="HMMER output files")
     annotate.add_argument(
-        "-e", "--evalue", help="E-value threshold", type=float, default=1e-5
+        "-e", "--evalue", help="E-value threshold", type=str, default="0.00001"
     )
 
     return parser.parse_args()
@@ -47,16 +58,16 @@ def main():
     args = parse_args()
 
     if args.verbose:
-        logging.basicConfig(level=logging.INFO, stream=sys.stderr)
+        logging.basicConfig(level=logging.DEBUG, stream=sys.stderr, format="%(asctime)s - %(message)s")
     else:
-        logging.basicConfig(level=logging.WARNING, stream=sys.stderr)
+        logging.basicConfig(level=logging.INFO, stream=sys.stderr)
 
     if args.command == "search":
-        for file in args.fasta:
-            hmmsearch(file, "pfam", database_paths["pfam"], args.evalue)
-            hmmsearch(file, "superfamily", database_paths["superfamily"], args.evalue)
-            hmmsearch(file, "smart", database_paths["smart"], args.evalue)
-            hmmsearch(file, "gene3d", database_paths["gene3d"], args.evalue)
+        check_database_paths(database_paths)
+        hmmsearch(args.fasta, "gene3d", database_paths["gene3d"], args.evalue)
+        hmmsearch(args.fasta, "superfamily", database_paths["superfamily"], args.evalue)
+        #hmmsearch(args.fasta, "pfam", database_paths["pfam"], args.evalue)
+        #hmmsearch(args.fasta, "smart", database_paths["smart"], args.evalue)
     elif args.command == "annotate":
         sequences = {}
         for file in args.input:
@@ -65,7 +76,7 @@ def main():
             sequence = sequences[sequence_name]
             print(f"{sequence.name}\t{sequence.length}\t{sequence.annotation_string()}")
     else:
-        logging.error("No command specified! Try resistify.py -h for help.")
+        logging.error("🙄 No command specified! Try resistify.py -h for help.")
     """
     sequences = parse_hmmer_table(args.input, args.evalue)
 

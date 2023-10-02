@@ -7,9 +7,6 @@ import logging
 
 
 def hmmsearch(input_fasta, source, database_path, e_value="0.00001", num_cpu="2"):
-    if source not in database_paths:
-        logging.error(f"Error: {source} not found in database list")
-        return
 
     cmd = [
         "hmmsearch",
@@ -35,6 +32,7 @@ def hmmsearch(input_fasta, source, database_path, e_value="0.00001", num_cpu="2"
             stderr=subprocess.PIPE,
             universal_newlines=True,
         )
+        logging.info(f"hmmsearch completed successfully. Results saved to {source}.txt")
     except subprocess.CalledProcessError as e:
         logging.error(f"Error running hmmsearch: {e.stdout}")
 
@@ -46,7 +44,6 @@ def hmmsearch(input_fasta, source, database_path, e_value="0.00001", num_cpu="2"
     elif source == "gene3d":
         logging.info("Fixing gene3d accession names...")
         fix_gene3d_accessions(source + ".txt")
-    logging.info(f"hmmsearch completed successfully. Results saved to {source}.txt")
 
 
 def fix_superfamily_accessions(superfamily_file):
@@ -54,10 +51,10 @@ def fix_superfamily_accessions(superfamily_file):
     Superfamily accession names are not formatted correctly for resistify.
     This function overwrites the superfamily_file with the correct accession names.
     """
-    with open("superfamily_file", "r") as file:
+    with open(superfamily_file, "r") as file:
         lines = file.readlines()
 
-    with open("superfamily_file", "w") as file:
+    with open(superfamily_file, "w") as file:
         for line in lines:
             if line.startswith("#"):
                 continue
