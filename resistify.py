@@ -1,5 +1,5 @@
 import argparse
-from .annotations import Annotation, Sequence, classifications, parse_hmmer_table
+from resistify.annotations import Annotation, Sequence, classifications, parse_hmmer_table
 
 def parse_args():
     parser = argparse.ArgumentParser(
