@@ -1,3 +1,5 @@
+import logging
+
 classifications = {
     "SSF46785": "Winged-helix",
     "G3DSA:1.10.10.10": "Winged-helix",

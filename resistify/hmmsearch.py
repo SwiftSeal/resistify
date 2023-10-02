@@ -3,22 +3,13 @@ import os
 import requests
 import tarfile
 import shutil
-
-
-database_paths = {
-    "pfam": "data/pfam.hmm",
-    "superfamily": "data/superfamily.hmm",
-    "smart": "data/smartsmart.hmm",
-    "gene3d": "data/gene3d.hmm"
-}
+import logging
   
-def run_hmmsearch(input_fasta, source, e_value="0.00001", num_cpu="2"):
+def hmmsearch(input_fasta, source, database_path, e_value="0.00001", num_cpu="2"):
 
     if source not in database_paths:
-        print(f"Error: {source} not found in database list")
+        logging.error(f"Error: {source} not found in database list")
         return
-    
-    hmm_database = database_paths[source]
 
     cmd = [
         'hmmsearch',
@@ -29,22 +20,27 @@ def run_hmmsearch(input_fasta, source, e_value="0.00001", num_cpu="2"):
         num_cpu,
         '--domtblout',
         source+'.txt',
-        hmm_database,
+        database_path,
         input_fasta
     ]
 
+    logging.debug(f'Running hmmsearch with command: {cmd}')
+
+    logging.info(f'Running hmmsearch for {source}...')
     try:
         subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-        print(f'hmmsearch completed successfully. Results saved to {source}.txt')
     except subprocess.CalledProcessError as e:
-        print(f'Error running hmmsearch: {e.stdout}')
+        logging.error(f'Error running hmmsearch: {e.stdout}')
 
     # superfamily and gene3d don't have properly formatted accession names.
     # So if the source is either of those, we need to reformat these.
     if source == "superfamily":
+        logging.info("Fixing superfamily accession names...")
         fix_superfamily_accessions(source+'.txt')
     elif source == "gene3d":
+        logging.info("Fixing gene3d accession names...")
         fix_gene3d_accessions(source+'.txt')
+    logging.info(f'hmmsearch completed successfully. Results saved to {source}.txt')
     
 def fix_superfamily_accessions(superfamily_file):
     """
@@ -135,9 +131,3 @@ def get_interproscan_data():
     # Clean up temporary files and directories
     os.remove(tar_file_path)
     shutil.rmtree(interproscan_dir)
-
-
-#run_hmmsearch('sample.fasta', 'pfam')
-#run_hmmsearch('sample.fasta', 'superfamily')
-#run_hmmsearch('sample.fasta', 'smart')
-#run_hmmsearch('sample.fasta', 'gene3d')
