@@ -291,6 +291,7 @@ class Sequence:
             ]
         )
 
+
 def parse_hmmer_table(hmmerfile, sequences, evalue_threshold):
     with open(hmmerfile, "r") as file:
         for line in file:
