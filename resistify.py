@@ -18,6 +18,7 @@ database_paths = {
     "superfamily": "resistify/data/superfamily.hmm",
     "smart": "resistify/data/smart.hmm",
     "gene3d": "resistify/data/gene3d.hmm",
+    "cjid": "resistify/data/abe3069_Data_S1.hmm",
 }
 
 def check_database_paths(database_paths):
@@ -39,7 +40,6 @@ def parse_args():
         "search", help="Search a protein sequence against a database of HMMs"
     )
     search.add_argument("fasta", help="Protein sequences to search")
-    search.add_argument("outdir", help="Directory to save HMMER output files")
     search.add_argument(
         "-e", "--evalue", help="E-value threshold", type=str, default="0.00001"
     )
@@ -66,14 +66,14 @@ def main():
     if args.command == "search":
         check_database_paths(database_paths)
 
-        with multiprocessing.Pool(4) as pool:
+        with multiprocessing.Pool(5) as pool:
             pool.starmap(hmmsearch, [
                 (args.fasta, "gene3d", database_paths["gene3d"], args.evalue),
                 (args.fasta, "superfamily", database_paths["superfamily"], args.evalue),
                 (args.fasta, "pfam", database_paths["pfam"], args.evalue),
                 (args.fasta, "smart", database_paths["smart"], args.evalue),
+                (args.fasta, "cjid", database_paths["cjid"], args.evalue)
             ])
-        
     elif args.command == "annotate":
         sequences = {}
         for file in args.input:
@@ -83,13 +83,6 @@ def main():
             print(f"{sequence.name}\t{sequence.length}\t{sequence.annotation_string()}")
     else:
         logging.error("😞 No command specified! Try resistify.py -h for help.")
-    """
-    sequences = parse_hmmer_table(args.input, args.evalue)
-
-    for sequence_name in sequences:
-        sequence = sequences[sequence_name]
-        print(f"{sequence.name}\t{sequence.length}\t{sequence.annotation_string()}")
-    """
 
 
 if __name__ == "__main__":

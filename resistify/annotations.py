@@ -293,17 +293,16 @@ class Sequence:
 
 
 def parse_hmmer_table(hmmerfile, sequences, evalue_threshold):
+    evalue_threshold = float(evalue_threshold)
     with open(hmmerfile, "r") as file:
         for line in file:
-            if line.startswith("#"):
-                continue
-            else:
+            if not line.startswith("#"):
                 line = line.strip()
-                # hmmer uses stupid whitespace instead of tabs
-                line = line.split()
+                # in future users may want to use their own annotation files, but work with merged tab-delimited for now
+                line = line.split("\t")
 
                 # need to remove the "." suffix from the annotation name
-                annotation_name = line[4].split(".")[0]
+                annotation_name = line[4]
                 evalue = float(line[6])
 
                 if annotation_name not in classifications or evalue > evalue_threshold:

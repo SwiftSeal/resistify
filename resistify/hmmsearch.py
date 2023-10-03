@@ -4,9 +4,14 @@ import requests
 import tarfile
 import shutil
 import logging
+import tempfile
 
 
 def hmmsearch(input_fasta, source, database_path, e_value="0.00001", num_cpu="2"):
+
+    # create a temporary file to store the hmmsearch --domtblout output
+    with tempfile.NamedTemporaryFile(mode="w") as tmp:
+        tmp_file = tmp.name
 
     cmd = [
         "hmmsearch",
@@ -16,7 +21,7 @@ def hmmsearch(input_fasta, source, database_path, e_value="0.00001", num_cpu="2"
         "--cpu",
         num_cpu,
         "--domtblout",
-        source + ".txt",
+        tmp_file,
         database_path,
         input_fasta,
     ]
@@ -32,43 +37,56 @@ def hmmsearch(input_fasta, source, database_path, e_value="0.00001", num_cpu="2"
             stderr=subprocess.PIPE,
             universal_newlines=True,
         )
-        logging.info(f"😊 hmmsearch completed successfully. Results saved to {source}.txt")
+        logging.info(f"😊 {source} hmmsearch completed successfully...")
     except subprocess.CalledProcessError as e:
-        logging.error(f"😞 Error running hmmsearch: {e.stdout}")
+        logging.error(f"😞 Error running hmmsearch. Stdout of hmmsearch: {e.stdout}")
 
     # superfamily and gene3d don't have properly formatted accession names.
     # So if the source is either of those, we need to reformat these.
     if source == "superfamily":
         logging.info("😊 Fixing superfamily accession names...")
-        fix_superfamily_accessions(source + ".txt")
+        print_superfamily_accessions(tmp_file)
     elif source == "gene3d":
         logging.info("😊 Fixing gene3d accession names...")
-        fix_gene3d_accessions(source + ".txt")
+        print_gene3d_accessions(tmp_file)
+    elif source == "pfam":
+        logging.info("😊 Fixing pfam accession names...")
+        print_pfam_accessions(tmp_file)
+    elif source == "smart":
+        # Don't need to do anything to smart hmmsearch output, just remove whitespace and headers
+        with open(tmp_file, "r") as file:
+            for line in file:
+                if not line.startswith("#"):
+                    line = line.split()
+                    print("\t".join(line))
+    elif source == "cjid":
+        # Rename accession to "CJID"
+        with open(tmp_file, "r") as file:
+            for line in file:
+                if not line.startswith("#"):
+                    line = line.split()
+                    line[4] = "CJID"
+                    print("\t".join(line))
 
 
-def fix_superfamily_accessions(superfamily_file):
+def print_superfamily_accessions(superfamily_file):
     """
     Superfamily accession names are not formatted correctly for resistify.
-    This function overwrites the superfamily_file with the correct accession names.
+    This function fixes the accession names and prints them to stdout.
     """
     with open(superfamily_file, "r") as file:
-        lines = file.readlines()
-
-    with open(superfamily_file, "w") as file:
-        for line in lines:
-            if line.startswith("#"):
-                continue
-            else:
+        for line in file:
+            if not line.startswith("#"):
                 line = line.split()
-                line[3] = "SSF" + line[3]
-                line = "\t".join(line)
-                file.write(line + "\n")
+                # Accession not provided, but just append SSF
+                line[4] = "SSF" + line[3]
+                print("\t".join(line))
 
 
-def fix_gene3d_accessions(gene3d_file, model_to_family_map="./resistify/data/gene3d.tsv"):
+def print_gene3d_accessions(gene3d_file, model_to_family_map="./resistify/data/gene3d.tsv"):
     """
     Gene3D accession names are not formatted correctly for resistify.
-    This function overwrites the gene3d_file with the correct accession names.
+    This function fixes the accession names and prints them to stdout.
     To do this, the model_to_family_map.tsv file provided by interproscan is used.
     """
     model_to_family_map_dict = {}
@@ -78,26 +96,23 @@ def fix_gene3d_accessions(gene3d_file, model_to_family_map="./resistify/data/gen
             model_to_family_map_dict[line[0]] = line[1]
 
     with open(gene3d_file, "r") as file:
-        lines = file.readlines()
-
-    with open(gene3d_file, "w") as file:
-        for line in lines:
-            if line.startswith("#"):
-                continue
-            else:
+        for line in file:
+            if not line.startswith("#"):
                 line = line.split()
-
                 key = line[3].split("-")[0]
-
                 if key not in model_to_family_map_dict:
                     logging.warning(f"🤔 {key} not found in gene3d model to family map!")
                     continue
+                line[4] = "G3DSA:" + model_to_family_map_dict[key]
+                print("\t".join(line))
 
-                line[3] = "G3DSA:" + model_to_family_map_dict[key]
-
-                line = "\t".join(line)
-                file.write(line + "\n")
-
+def print_pfam_accessions(pfam_file):
+    with open(pfam_file, "r") as file:
+        for line in file:
+            if not line.startswith("#"):
+                line = line.split()
+                line[4] = line[4].split(".")[0]
+                print("\t".join(line))
 
 def get_interproscan_data():
     # Define URLs and paths
