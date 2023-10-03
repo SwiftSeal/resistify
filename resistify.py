@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import multiprocessing
 import sys
 import logging
 import os
@@ -38,7 +39,7 @@ def parse_args():
         "search", help="Search a protein sequence against a database of HMMs"
     )
     search.add_argument("fasta", help="Protein sequences to search")
-    # search.add_argument("--db", help = " Path to HMM databases", type = str, default = "./resistify/data")
+    search.add_argument("outdir", help="Directory to save HMMER output files")
     search.add_argument(
         "-e", "--evalue", help="E-value threshold", type=str, default="0.00001"
     )
@@ -60,14 +61,19 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG, stream=sys.stderr, format="%(asctime)s - %(message)s")
     else:
-        logging.basicConfig(level=logging.INFO, stream=sys.stderr)
+        logging.basicConfig(level=logging.INFO, stream=sys.stderr, format="%(asctime)s - %(message)s")
 
     if args.command == "search":
         check_database_paths(database_paths)
-        hmmsearch(args.fasta, "gene3d", database_paths["gene3d"], args.evalue)
-        hmmsearch(args.fasta, "superfamily", database_paths["superfamily"], args.evalue)
-        #hmmsearch(args.fasta, "pfam", database_paths["pfam"], args.evalue)
-        #hmmsearch(args.fasta, "smart", database_paths["smart"], args.evalue)
+
+        with multiprocessing.Pool(4) as pool:
+            pool.starmap(hmmsearch, [
+                (args.fasta, "gene3d", database_paths["gene3d"], args.evalue),
+                (args.fasta, "superfamily", database_paths["superfamily"], args.evalue),
+                (args.fasta, "pfam", database_paths["pfam"], args.evalue),
+                (args.fasta, "smart", database_paths["smart"], args.evalue),
+            ])
+        
     elif args.command == "annotate":
         sequences = {}
         for file in args.input:
@@ -76,7 +82,7 @@ def main():
             sequence = sequences[sequence_name]
             print(f"{sequence.name}\t{sequence.length}\t{sequence.annotation_string()}")
     else:
-        logging.error("🙄 No command specified! Try resistify.py -h for help.")
+        logging.error("😞 No command specified! Try resistify.py -h for help.")
     """
     sequences = parse_hmmer_table(args.input, args.evalue)
 

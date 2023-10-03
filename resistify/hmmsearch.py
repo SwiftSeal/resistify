@@ -23,7 +23,7 @@ def hmmsearch(input_fasta, source, database_path, e_value="0.00001", num_cpu="2"
 
     logging.debug(f"Running hmmsearch with command: {cmd}")
 
-    logging.info(f"Running hmmsearch for {source}...")
+    logging.info(f"😊 Running hmmsearch for {source}...")
     try:
         subprocess.run(
             cmd,
@@ -32,17 +32,17 @@ def hmmsearch(input_fasta, source, database_path, e_value="0.00001", num_cpu="2"
             stderr=subprocess.PIPE,
             universal_newlines=True,
         )
-        logging.info(f"hmmsearch completed successfully. Results saved to {source}.txt")
+        logging.info(f"😊 hmmsearch completed successfully. Results saved to {source}.txt")
     except subprocess.CalledProcessError as e:
-        logging.error(f"Error running hmmsearch: {e.stdout}")
+        logging.error(f"😞 Error running hmmsearch: {e.stdout}")
 
     # superfamily and gene3d don't have properly formatted accession names.
     # So if the source is either of those, we need to reformat these.
     if source == "superfamily":
-        logging.info("Fixing superfamily accession names...")
+        logging.info("😊 Fixing superfamily accession names...")
         fix_superfamily_accessions(source + ".txt")
     elif source == "gene3d":
-        logging.info("Fixing gene3d accession names...")
+        logging.info("😊 Fixing gene3d accession names...")
         fix_gene3d_accessions(source + ".txt")
 
 
@@ -65,7 +65,7 @@ def fix_superfamily_accessions(superfamily_file):
                 file.write(line + "\n")
 
 
-def fix_gene3d_accessions(gene3d_file, model_to_family_map="data/gene3d.tsv"):
+def fix_gene3d_accessions(gene3d_file, model_to_family_map="./resistify/data/gene3d.tsv"):
     """
     Gene3D accession names are not formatted correctly for resistify.
     This function overwrites the gene3d_file with the correct accession names.
@@ -90,7 +90,7 @@ def fix_gene3d_accessions(gene3d_file, model_to_family_map="data/gene3d.tsv"):
                 key = line[3].split("-")[0]
 
                 if key not in model_to_family_map_dict:
-                    print(f"Warning: {key} not found in gene3d model to family map.")
+                    logging.warning(f"🤔 {key} not found in gene3d model to family map!")
                     continue
 
                 line[3] = "G3DSA:" + model_to_family_map_dict[key]
