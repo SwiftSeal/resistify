@@ -8,7 +8,6 @@ import tempfile
 
 
 def hmmsearch(input_fasta, source, database_path, e_value="0.00001", num_cpu="2"):
-
     # create a temporary file to store the hmmsearch --domtblout output
     with tempfile.NamedTemporaryFile(mode="w") as tmp:
         tmp_file = tmp.name
@@ -83,7 +82,9 @@ def print_superfamily_accessions(superfamily_file):
                 print("\t".join(line))
 
 
-def print_gene3d_accessions(gene3d_file, model_to_family_map="./resistify/data/gene3d.tsv"):
+def print_gene3d_accessions(
+    gene3d_file, model_to_family_map="./resistify/data/gene3d.tsv"
+):
     """
     Gene3D accession names are not formatted correctly for resistify.
     This function fixes the accession names and prints them to stdout.
@@ -106,6 +107,7 @@ def print_gene3d_accessions(gene3d_file, model_to_family_map="./resistify/data/g
                 line[4] = "G3DSA:" + model_to_family_map_dict[key]
                 print("\t".join(line))
 
+
 def print_pfam_accessions(pfam_file):
     with open(pfam_file, "r") as file:
         for line in file:
@@ -113,6 +115,7 @@ def print_pfam_accessions(pfam_file):
                 line = line.split()
                 line[4] = line[4].split(".")[0]
                 print("\t".join(line))
+
 
 def get_interproscan_data():
     # Define URLs and paths

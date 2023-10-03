@@ -21,12 +21,17 @@ database_paths = {
     "cjid": "resistify/data/abe3069_Data_S1.hmm",
 }
 
+
 def check_database_paths(database_paths):
     for source in database_paths:
         if os.path.exists(database_paths[source]):
-            logging.info(f"😊 Database file for {source} found at {database_paths[source]}")
+            logging.info(
+                f"😊 Database file for {source} found at {database_paths[source]}"
+            )
         else:
-            logging.error(f"😞 Database file for {source} does not exist at {database_paths[source]}")
+            logging.error(
+                f"😞 Database file for {source} does not exist at {database_paths[source]}"
+            )
             sys.exit(1)
 
 
@@ -59,21 +64,33 @@ def main():
     args = parse_args()
 
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG, stream=sys.stderr, format="%(asctime)s - %(message)s")
+        logging.basicConfig(
+            level=logging.DEBUG, stream=sys.stderr, format="%(asctime)s - %(message)s"
+        )
     else:
-        logging.basicConfig(level=logging.INFO, stream=sys.stderr, format="%(asctime)s - %(message)s")
+        logging.basicConfig(
+            level=logging.INFO, stream=sys.stderr, format="%(asctime)s - %(message)s"
+        )
 
     if args.command == "search":
         check_database_paths(database_paths)
 
         with multiprocessing.Pool(5) as pool:
-            pool.starmap(hmmsearch, [
-                (args.fasta, "gene3d", database_paths["gene3d"], args.evalue),
-                (args.fasta, "superfamily", database_paths["superfamily"], args.evalue),
-                (args.fasta, "pfam", database_paths["pfam"], args.evalue),
-                (args.fasta, "smart", database_paths["smart"], args.evalue),
-                (args.fasta, "cjid", database_paths["cjid"], args.evalue)
-            ])
+            pool.starmap(
+                hmmsearch,
+                [
+                    (args.fasta, "gene3d", database_paths["gene3d"], args.evalue),
+                    (
+                        args.fasta,
+                        "superfamily",
+                        database_paths["superfamily"],
+                        args.evalue,
+                    ),
+                    (args.fasta, "pfam", database_paths["pfam"], args.evalue),
+                    (args.fasta, "smart", database_paths["smart"], args.evalue),
+                    (args.fasta, "cjid", database_paths["cjid"], args.evalue),
+                ],
+            )
     elif args.command == "annotate":
         sequences = {}
         for file in args.input:
