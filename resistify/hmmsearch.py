@@ -19,7 +19,7 @@ def hmmsearch(input_fasta, source, database_path, e_value="0.00001", num_cpu="2"
         e_value,
         "--cpu",
         num_cpu,
-        "--domtblout",
+        "--tblout",
         tmp_file,
         database_path,
         input_fasta,
@@ -40,8 +40,9 @@ def hmmsearch(input_fasta, source, database_path, e_value="0.00001", num_cpu="2"
     except subprocess.CalledProcessError as e:
         logging.error(f"😞 Error running hmmsearch. Stdout of hmmsearch: {e.stdout}")
 
-    # superfamily and gene3d don't have properly formatted accession names.
-    # So if the source is either of those, we need to reformat these.
+    return (source, tmp_file)
+
+    """
     if source == "superfamily":
         logging.info("😊 Fixing superfamily accession names...")
         print_superfamily_accessions(tmp_file)
@@ -66,6 +67,32 @@ def hmmsearch(input_fasta, source, database_path, e_value="0.00001", num_cpu="2"
                     line = line.split()
                     line[4] = "CJID"
                     print("\t".join(line))
+    """
+
+def print_fixed_accession(result):
+    with open(result[1]) as file:
+        for line in file:
+            if not line.startswith("#"):
+                line = line.split()
+                if result[0] == "superfamily":
+                    # Accession not provided, but just append SSF
+                    line[4] = "SSF" + line[3]
+                elif result[0] == "gene3d":
+                    # To do this, the model_to_family_map.tsv file provided by interproscan is used.
+                    model_to_family_map_dict = {}
+                    with open("./resistify/data/gene3d.tsv", "r") as file:
+                        for line in file:
+                            line = line.split("\t")
+                            model_to_family_map_dict[line[0]] = line[1]
+                    key = line[3].split("-")[0]
+                    if key not in model_to_family_map_dict:
+                        logging.warning(f"🤔 {key} not found in gene3d model to family map!")
+                        continue
+                    line[4] = "G3DSA:" + model_to_family_map_dict[key]
+                elif result[0] == "pfam":
+                    line[4] = line[4].split(".")[0]
+                print("\t".join(line))
+
 
 
 def print_superfamily_accessions(superfamily_file):

@@ -11,7 +11,7 @@ from resistify.annotations import (
     parse_hmmer_table,
     classifications,
 )
-from resistify.hmmsearch import hmmsearch
+from resistify.hmmsearch import hmmsearch, print_fixed_accession
 
 database_paths = {
     "pfam": "resistify/data/pfam.hmm",
@@ -59,7 +59,6 @@ def parse_args():
 
     return parser.parse_args()
 
-
 def main():
     args = parse_args()
 
@@ -76,7 +75,7 @@ def main():
         check_database_paths(database_paths)
 
         with multiprocessing.Pool(5) as pool:
-            pool.starmap(
+            results = pool.starmap(
                 hmmsearch,
                 [
                     (args.fasta, "gene3d", database_paths["gene3d"], args.evalue),
@@ -91,6 +90,11 @@ def main():
                     (args.fasta, "cjid", database_paths["cjid"], args.evalue),
                 ],
             )
+
+        for result in results:
+            print_fixed_accession(result)
+
+
     elif args.command == "annotate":
         sequences = {}
         for file in args.input:
