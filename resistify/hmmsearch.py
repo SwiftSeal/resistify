@@ -19,7 +19,7 @@ def hmmsearch(input_fasta, source, database_path, e_value="0.00001", num_cpu="2"
         e_value,
         "--cpu",
         num_cpu,
-        "--tblout",
+        "--domtblout",
         tmp_file,
         database_path,
         input_fasta,
@@ -79,11 +79,7 @@ def print_fixed_accession(result):
                     line[4] = "SSF" + line[3]
                 elif result[0] == "gene3d":
                     # To do this, the model_to_family_map.tsv file provided by interproscan is used.
-                    model_to_family_map_dict = {}
-                    with open("./resistify/data/gene3d.tsv", "r") as file:
-                        for line in file:
-                            line = line.split("\t")
-                            model_to_family_map_dict[line[0]] = line[1]
+                    model_to_family_map_dict = parse_gene3d_table("./resistify/data/gene3d.tsv")
                     key = line[3].split("-")[0]
                     if key not in model_to_family_map_dict:
                         logging.warning(f"🤔 {key} not found in gene3d model to family map!")
@@ -93,7 +89,14 @@ def print_fixed_accession(result):
                     line[4] = line[4].split(".")[0]
                 print("\t".join(line))
 
-
+def parse_gene3d_table(gene3d_file):
+    model_to_family_map_dict = {}
+    with open(gene3d_file, "r") as file:
+        for line in file:
+            line = line.split()
+            model_to_family_map_dict[line[0]] = line[1]
+    return model_to_family_map_dict
+        
 
 def print_superfamily_accessions(superfamily_file):
     """
