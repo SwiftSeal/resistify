@@ -252,31 +252,40 @@ class Annotation:
 class Sequence:
     name = ""
     length = 0
-    annotations = []
+    annotations = {}
 
     def __init__(self, name, length):
         self.name = name
         self.length = length
         self.annotations = []
 
+    def append(self, annotation):
+        if annotation.classification not in self.annotations:
+            self.annotations[annotation.classification] = list(annotation)
+        else:
+            self.annotations[annotation.classification] = self.annotations[
+                annotation.classification
+            ].append(annotation)
+        
+
     def merged_annotations(self):
         """
         Merge overlapping annotations of the same classification.
         """
-        merged = []
-        self.annotations = sorted(self.annotations, key=lambda x: x.start)
-        for annotation in self.annotations:
-            if len(merged) == 0:
-                merged.append(annotation)
-            else:
-                last = merged[-1]
-                if (
-                    last.classification == annotation.classification
-                    and last.end >= annotation.start
-                ):
-                    last.end = annotation.end
+        merged = {}
+        for classification in self.annotations:
+            annotations = self.annotations[classification]
+            annotations.sort(lambda x: x.start)
+            merged[classification] = []
+            for annotation in annotations:
+                if len(merged[classification]) == 0:
+                    merged[classification].append(annotation)
                 else:
-                    merged.append(annotation)
+                    last_annotation = merged[classification][-1]
+                    if annotation.start <= last_annotation.end:
+                        last_annotation.end = max(annotation.end, last_annotation.end)
+                    else:
+                        merged[classification].append(annotation)
         return merged
 
     def annotation_string(self):
@@ -324,10 +333,5 @@ def parse_hmmer_table(hmmerfile, sequences, evalue_threshold):
                     annotation_name, classification, start, end, evalue
                 )
 
-                if sequence_name in sequences:
-                    sequences[sequence_name].annotations.append(annotation)
-                else:
-                    sequence = Sequence(sequence_name, length)
-                    sequence.annotations.append(annotation)
-                    sequences[sequence_name] = sequence
+                sequences[sequence_name].append(annotation)
     return sequences
