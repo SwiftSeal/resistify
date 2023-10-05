@@ -257,36 +257,20 @@ class Sequence:
     def __init__(self, name, length):
         self.name = name
         self.length = length
-        self.annotations = []
+        self.annotations = {
+            "CC": [],
+            "TIR": [],
+            "NBARC": [],
+            "LRR": [],
+            # implement rest in future
+            }
 
     def append(self, annotation):
-        if annotation.classification not in self.annotations:
-            self.annotations[annotation.classification] = list(annotation)
+        if annotation.classification in self.annotations.keys():
+            self.annotations[annotation.classification].append(annotation)
         else:
-            self.annotations[annotation.classification] = self.annotations[
-                annotation.classification
-            ].append(annotation)
-        
-
-    def merged_annotations(self):
-        """
-        Merge overlapping annotations of the same classification.
-        """
-        merged = {}
-        for classification in self.annotations:
-            annotations = self.annotations[classification]
-            annotations.sort(lambda x: x.start)
-            merged[classification] = []
-            for annotation in annotations:
-                if len(merged[classification]) == 0:
-                    merged[classification].append(annotation)
-                else:
-                    last_annotation = merged[classification][-1]
-                    if annotation.start <= last_annotation.end:
-                        last_annotation.end = max(annotation.end, last_annotation.end)
-                    else:
-                        merged[classification].append(annotation)
-        return merged
+            # do nothing for now
+            pass
 
     def annotation_string(self):
         """
@@ -299,6 +283,32 @@ class Sequence:
                 for annotation in merged
             ]
         )
+    
+def merge_annotations(Sequence):
+    """
+    Merge overlapping annotations for each classification.
+    Return a new Sequence object.
+    """
+    merged_annotations = {}
+
+    for classification in Sequence.annotations:
+        merged_annotations[classification] = []
+        annotations = Sequence.annotations[classification]
+
+        # sort annotations by start position
+        annotations.sort(key = lambda x: x.start)
+
+        if len(annotations) == 0:
+            continue
+        merged_annotations[classification].append(annotations[0])
+        for annotation in annotations[1:]:
+            if annotation.start <= merged_annotations[classification][-1].end:
+                if annotation.end > merged_annotations[classification][-1].end:
+                    merged_annotations[classification][-1].end = annotation.end
+            else:
+                merged_annotations[classification].append(annotation)
+
+    return merged_annotations
 
 
 def parse_hmmer_table(hmmerfile, sequences, evalue_threshold):
@@ -312,13 +322,13 @@ def parse_hmmer_table(hmmerfile, sequences, evalue_threshold):
 
                 # need to remove the "." suffix from the annotation name
                 annotation_name = line[4]
-                evalue = float(line[6])
+                # Don't use 6th index, use the 11th! This is the c value, it is the per-domain evalue rather than global
+                evalue = float(line[11])
 
                 if annotation_name not in classifications or evalue > evalue_threshold:
                     continue
 
                 sequence_name = line[0]
-                length = int(line[2])
                 classification = classifications[annotation_name]
 
                 # not worried about annotation direction for now, so if the end is less than the start, swap them
@@ -333,5 +343,8 @@ def parse_hmmer_table(hmmerfile, sequences, evalue_threshold):
                     annotation_name, classification, start, end, evalue
                 )
 
-                sequences[sequence_name].append(annotation)
+                if sequence_name not in sequences:
+                    sequences[sequence_name] = Sequence(sequence_name, int(line[2]))
+                else:
+                    sequences[sequence_name].append(annotation)
     return sequences

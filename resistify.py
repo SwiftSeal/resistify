@@ -5,13 +5,8 @@ import multiprocessing
 import sys
 import logging
 import os
-from resistify.annotations import (
-    Sequence,
-    Annotation,
-    parse_hmmer_table,
-    classifications,
-)
-from resistify.hmmsearch import hmmsearch, print_fixed_accession
+from resistify.annotations import *
+from resistify.hmmsearch import *
 
 database_paths = {
     "pfam": "resistify/data/pfam.hmm",
@@ -99,9 +94,18 @@ def main():
         sequences = {}
         for file in args.input:
             sequences = parse_hmmer_table(file, sequences, args.evalue)
-        for sequence_name in sequences:
-            sequence = sequences[sequence_name]
-            print(f"{sequence.name}\t{sequence.length}\t{sequence.annotation_string()}")
+        
+        for sequence in sequences:
+            print(sequence)
+            annotations = merge_annotations(sequences[sequence])
+            
+            # collapse all annotations into a single list
+            result = []
+            for classification in annotations:
+                result.extend(annotations[classification])
+            
+            for r in result:
+                print(f"{r.name}\t{r.classification}\t{r.start}\t{r.end}")
     else:
         logging.error("😞 No command specified! Try resistify.py -h for help.")
 
