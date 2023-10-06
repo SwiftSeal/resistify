@@ -32,27 +32,28 @@ def check_database_paths(database_paths):
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Parse HMMER output to generate a table of annotations."
+        description="""
+        Resistify is a tool for predicting resistance genes in plant genomes.
+        Domains are predicted using hmmsearch against multiple databases which are classified as common resistance gene related domains.
+        Sequences are then classified based on the presence and order of these domains.
+        """
     )
     parser.add_argument("--verbose", help="Verbose output", action="store_true")
-    subparsers = parser.add_subparsers(help="sub-command help", dest="command")
-    search = subparsers.add_parser(
-        "search", help="Search a protein sequence against a database of HMMs"
-    )
-    search.add_argument("fasta", help="Protein sequences to search")
-    search.add_argument(
-        "-e", "--evalue", help="E-value threshold", type=str, default="0.00001"
-    )
-
-    annotate = subparsers.add_parser(
-        "annotate", help="Generate a table of annotations from HMMER output"
-    )
-    annotate.add_argument("input", nargs="+", type=str, help="HMMER output files")
-    annotate.add_argument(
-        "-e", "--evalue", help="E-value threshold", type=str, default="0.00001"
-    )
+    parser.add_argument("--evalue", help="E-value threshold", default="0.00001")
+    parser.add_argument("input", help="Input FASTA file")
+    parser.add_argument("outdir", help="Output directory")
 
     return parser.parse_args()
+
+def create_output_directory(outdir):
+    try:
+        expanded_outdir = os.path.expanduser(os.path.expandvars(outdir))
+        os.makedirs(expanded_outdir, exist_ok=True)
+        logging.info(f"😊 Output directory created at {expanded_outdir}")
+        return expanded_outdir
+    except OSError as e:
+        logging.error(f"😞 Error creating output directory: {e}")
+        sys.exit(1)
 
 def main():
     args = parse_args()
@@ -66,46 +67,36 @@ def main():
             level=logging.INFO, stream=sys.stderr, format="%(asctime)s - %(message)s"
         )
 
-    if args.command == "search":
-        check_database_paths(database_paths)
+    check_database_paths(database_paths)
 
-        with multiprocessing.Pool(5) as pool:
-            results = pool.starmap(
-                hmmsearch,
-                [
-                    (args.fasta, "gene3d", database_paths["gene3d"], args.evalue),
-                    (
-                        args.fasta,
-                        "superfamily",
-                        database_paths["superfamily"],
-                        args.evalue,
-                    ),
-                    (args.fasta, "pfam", database_paths["pfam"], args.evalue),
-                    (args.fasta, "smart", database_paths["smart"], args.evalue),
-                    (args.fasta, "cjid", database_paths["cjid"], args.evalue),
-                ],
-            )
+    results_dir = create_output_directory(args.outdir)
 
-        for result in results:
-            print_fixed_accession(result)
+    with multiprocessing.Pool(5) as pool:
+        results = pool.starmap(
+            hmmsearch,
+            [
+                (args.fasta, "gene3d", database_paths["gene3d"], args.evalue),
+                (
+                    args.fasta,
+                    "superfamily",
+                    database_paths["superfamily"],
+                    args.evalue,
+                ),
+                (args.fasta, "pfam", database_paths["pfam"], args.evalue),
+                (args.fasta, "smart", database_paths["smart"], args.evalue),
+                (args.fasta, "cjid", database_paths["cjid"], args.evalue),
+            ],
+        )
 
+    results_file = save_fixed_accession(results, results_dir)
 
-    elif args.command == "annotate":
-        sequences = {}
-        for file in args.input:
-            sequences = parse_hmmer_table(file, sequences, args.evalue)
-        
-        for sequence in sequences:
-            print(sequence)
-            annotations = merge_annotations(sequences[sequence])
+    sequences = parse_hmmer_table(results_file)
+    
+    for sequence_id in sequences:
+        sequence = sequences[sequence_id]
+        annotations = merge_and_sort(sequence.annotations)
+        print(f"{sequence_id}\t{annotation_string(annotations)}")
             
-            # collapse all annotations into a single list
-            result = []
-            for classification in annotations:
-                result.extend(annotations[classification])
-            
-            for r in result:
-                print(f"{r.name}\t{r.classification}\t{r.start}\t{r.end}")
     else:
         logging.error("😞 No command specified! Try resistify.py -h for help.")
 

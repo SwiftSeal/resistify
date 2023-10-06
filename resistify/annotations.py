@@ -271,48 +271,54 @@ class Sequence:
         else:
             # do nothing for now
             pass
-
-    def annotation_string(self):
-        """
-        Return a string representation of the annotations.
-        """
-        merged = self.merged_annotations()
-        return ",".join(
-            [
-                f"{annotation.classification}:{annotation.start}-{annotation.end}"
-                for annotation in merged
-            ]
-        )
-    
-def merge_annotations(Sequence):
+        
+def merge_and_sort(annotations):
     """
-    Merge overlapping annotations for each classification.
-    Return a new Sequence object.
+    Merge overlapping annotations for each classification and return a sorted list of annotations.
     """
     merged_annotations = {}
-
-    for classification in Sequence.annotations:
+    for classification in annotations:
         merged_annotations[classification] = []
-        annotations = Sequence.annotations[classification]
-
-        # sort annotations by start position
-        annotations.sort(key = lambda x: x.start)
-
-        if len(annotations) == 0:
+        # get annotations for this classification
+        classification_annotations = annotations[classification]
+        if len(classification_annotations) == 0:
             continue
-        merged_annotations[classification].append(annotations[0])
-        for annotation in annotations[1:]:
+        # sort classification annotations by start position
+        classification_annotations.sort(key = lambda x: x.start)
+        # add first annotation to merged annotations
+        merged_annotations[classification].append(classification_annotations[0])
+        # merge annotation if it overlaps with the last merged annotation
+        # otherwise add it to the list of merged annotations
+        for annotation in classification_annotations[1:]:
             if annotation.start <= merged_annotations[classification][-1].end:
                 if annotation.end > merged_annotations[classification][-1].end:
                     merged_annotations[classification][-1].end = annotation.end
             else:
                 merged_annotations[classification].append(annotation)
 
-    return merged_annotations
+    # collapse merged annotations into a single list
+    collapsed_annotations = []
+    for classification in merged_annotations:
+        collapsed_annotations += merged_annotations[classification]
+
+    # sort collapsed annotations by start position
+    collapsed_annotations.sort(key = lambda x: x.start)
+    return collapsed_annotations
+
+def annotation_string(annotations):
+    """
+    Return a string representation of a list of annotations.
+    """
+    annotation_strings = []
+    for annotation in annotations:
+        annotation_strings.append(f"{annotation.classification}")
+
+    return "-".join(annotation_strings)
 
 
-def parse_hmmer_table(hmmerfile, sequences, evalue_threshold):
-    evalue_threshold = float(evalue_threshold)
+def parse_hmmer_table(hmmerfile):
+    sequences = {}
+    evalue_threshold = 1e-5
     with open(hmmerfile, "r") as file:
         for line in file:
             if not line.startswith("#"):
