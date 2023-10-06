@@ -263,7 +263,7 @@ class Sequence:
             "NBARC": [],
             "LRR": [],
             # implement rest in future
-            }
+        }
 
     def append(self, annotation):
         if annotation.classification in self.annotations.keys():
@@ -271,7 +271,8 @@ class Sequence:
         else:
             # do nothing for now
             pass
-        
+
+
 def merge_and_sort(annotations):
     """
     Merge overlapping annotations for each classification and return a sorted list of annotations.
@@ -284,7 +285,7 @@ def merge_and_sort(annotations):
         if len(classification_annotations) == 0:
             continue
         # sort classification annotations by start position
-        classification_annotations.sort(key = lambda x: x.start)
+        classification_annotations.sort(key=lambda x: x.start)
         # add first annotation to merged annotations
         merged_annotations[classification].append(classification_annotations[0])
         # merge annotation if it overlaps with the last merged annotation
@@ -302,8 +303,9 @@ def merge_and_sort(annotations):
         collapsed_annotations += merged_annotations[classification]
 
     # sort collapsed annotations by start position
-    collapsed_annotations.sort(key = lambda x: x.start)
+    collapsed_annotations.sort(key=lambda x: x.start)
     return collapsed_annotations
+
 
 def annotation_string(annotations):
     """

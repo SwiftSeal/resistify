@@ -45,6 +45,7 @@ def parse_args():
 
     return parser.parse_args()
 
+
 def create_output_directory(outdir):
     try:
         expanded_outdir = os.path.expanduser(os.path.expandvars(outdir))
@@ -54,6 +55,7 @@ def create_output_directory(outdir):
     except OSError as e:
         logging.error(f"😞 Error creating output directory: {e}")
         sys.exit(1)
+
 
 def main():
     args = parse_args()
@@ -91,12 +93,12 @@ def main():
     results_file = save_fixed_accession(results, results_dir)
 
     sequences = parse_hmmer_table(results_file)
-    
+
     for sequence_id in sequences:
         sequence = sequences[sequence_id]
         annotations = merge_and_sort(sequence.annotations)
         print(f"{sequence_id}\t{annotation_string(annotations)}")
-            
+
     else:
         logging.error("😞 No command specified! Try resistify.py -h for help.")
 

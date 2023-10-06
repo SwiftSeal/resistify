@@ -43,6 +43,7 @@ def hmmsearch(input_fasta, source, database_path, e_value="0.00001", num_cpu="2"
 
     return (source, tmp_file)
 
+
 def save_fixed_accession(results, results_dir):
     # create temporary file to store the unsorted output
     tmp = tempfile.NamedTemporaryFile(mode="w")
@@ -59,10 +60,14 @@ def save_fixed_accession(results, results_dir):
                     elif result[0] == "gene3d":
                         # Load model to family map if not already loaded
                         if model_to_family_map_dict is None:
-                            model_to_family_map_dict = parse_gene3d_table("./resistify/data/gene3d.tsv")
+                            model_to_family_map_dict = parse_gene3d_table(
+                                "./resistify/data/gene3d.tsv"
+                            )
                         key = line[3].split("-")[0]
                         if key not in model_to_family_map_dict:
-                            logging.warning(f"🤔 {key} not found in gene3d model to family map!")
+                            logging.warning(
+                                f"🤔 {key} not found in gene3d model to family map!"
+                            )
                             continue
                         line[4] = "G3DSA:" + model_to_family_map_dict[key]
                     elif result[0] == "pfam":
@@ -78,8 +83,9 @@ def save_fixed_accession(results, results_dir):
         with open(os.path.join(results_dir, "hmmsearch_result.tsv"), "w") as out:
             writer = csv.writer(out, delimiter="\t")
             writer.writerows(sorted_reader)
-    
+
     return os.path.join(results_dir, "hmmsearch_result.tsv")
+
 
 def parse_gene3d_table(gene3d_file):
     model_to_family_map_dict = {}
@@ -88,7 +94,7 @@ def parse_gene3d_table(gene3d_file):
             line = line.split()
             model_to_family_map_dict[line[0]] = line[1]
     return model_to_family_map_dict
-        
+
 
 def get_interproscan_data():
     # Define URLs and paths
