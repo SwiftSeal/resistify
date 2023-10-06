@@ -1,4 +1,5 @@
 import logging
+import csv
 
 classifications = {
     "SSF46785": "Winged-helix",
@@ -251,12 +252,10 @@ class Annotation:
 
 class Sequence:
     name = ""
-    length = 0
     annotations = {}
 
-    def __init__(self, name, length):
+    def __init__(self, name):
         self.name = name
-        self.length = length
         self.annotations = {
             "CC": [],
             "TIR": [],
@@ -322,37 +321,33 @@ def parse_hmmer_table(hmmerfile):
     sequences = {}
     evalue_threshold = 1e-5
     with open(hmmerfile, "r") as file:
-        for line in file:
-            if not line.startswith("#"):
-                line = line.strip()
-                # in future users may want to use their own annotation files, but work with merged tab-delimited for now
-                line = line.split("\t")
+        table_reader = csv.DictReader(file, delimiter="\t", )
+        for row in table_reader:
+            # in future users may want to use their own annotation files, but work with merged tab-delimited for now
 
-                # need to remove the "." suffix from the annotation name
-                annotation_name = line[4]
-                # Don't use 6th index, use the 11th! This is the c value, it is the per-domain evalue rather than global
-                evalue = float(line[11])
+            # need to remove the "." suffix from the annotation name
+            # Don't use 6th index, use the 11th! This is the c value, it is the per-domain evalue rather than global
 
-                if annotation_name not in classifications or evalue > evalue_threshold:
-                    continue
+            if row["accession"] not in classifications or float(row["evalue"]) > evalue_threshold:
+                continue
 
-                sequence_name = line[0]
-                classification = classifications[annotation_name]
+            sequence_name = row["sequence"]
+            classification = classifications[row["accession"]]
 
-                # not worried about annotation direction for now, so if the end is less than the start, swap them
-                if int(line[17]) < int(line[18]):
-                    start = int(line[17])
-                    end = int(line[18])
-                else:
-                    start = int(line[18])
-                    end = int(line[17])
+            # not worried about annotation direction for now, so if the end is less than the start, swap them
+            if int(row["start"]) < int(row["end"]):
+                start = int(row["start"])
+                end = int(row["end"])
+            else:
+                start = int(row["end"])
+                end = int(row["start"])
 
-                annotation = Annotation(
-                    annotation_name, classification, start, end, evalue
-                )
+            annotation = Annotation(
+                row["accession"], classification, start, end, float(row["evalue"])
+            )
 
-                if sequence_name not in sequences:
-                    sequences[sequence_name] = Sequence(sequence_name, int(line[2]))
-                else:
-                    sequences[sequence_name].append(annotation)
+            if sequence_name not in sequences:
+                sequences[sequence_name] = Sequence(sequence_name)
+            else:
+                sequences[sequence_name].append(annotation)
     return sequences

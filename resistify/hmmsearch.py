@@ -54,9 +54,13 @@ def save_fixed_accession(results, results_dir):
             for line in file:
                 if not line.startswith("#"):
                     line = line.split()
+                    sequence = line[0]
+                    start = line[17]
+                    end = line[18]
+                    evalue = line[11]
                     if result[0] == "superfamily":
                         # Accession not provided, but just append SSF
-                        line[4] = "SSF" + line[3]
+                        accession = "SSF" + line[3]
                     elif result[0] == "gene3d":
                         # Load model to family map if not already loaded
                         if model_to_family_map_dict is None:
@@ -69,12 +73,18 @@ def save_fixed_accession(results, results_dir):
                                 f"🤔 {key} not found in gene3d model to family map!"
                             )
                             continue
-                        line[4] = "G3DSA:" + model_to_family_map_dict[key]
+                        accession = "G3DSA:" + model_to_family_map_dict[key]
                     elif result[0] == "pfam":
-                        line[4] = line[4].split(".")[0]
+                        accession = line[4].split(".")[0]
                     # Write the line to the temporary file
-                    tmp.write("\t".join(line) + "\n")
-    tmp.close()
+                    elif result[0] == "smart":
+                        accession = line[4]
+                    elif result[0] == "cjid":
+                        accession = "CJID"
+                    tmp.write(
+                        f"{sequence}\t{accession}\t{start}\t{end}\t{evalue}\n"
+                    )
+                    
     # Sort the temporary file and save it to the results directory
     logging.info(f"😊 Saving hmmsearch results...")
     with open(tmp.name, "r") as file:
@@ -82,6 +92,7 @@ def save_fixed_accession(results, results_dir):
         sorted_reader = sorted(reader, key=lambda row: row[0])
         with open(os.path.join(results_dir, "hmmsearch_result.tsv"), "w") as out:
             writer = csv.writer(out, delimiter="\t")
+            writer.writerow(["sequence", "accession", "start", "end", "evalue"])
             writer.writerows(sorted_reader)
 
     return os.path.join(results_dir, "hmmsearch_result.tsv")

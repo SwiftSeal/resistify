@@ -77,16 +77,16 @@ def main():
         results = pool.starmap(
             hmmsearch,
             [
-                (args.fasta, "gene3d", database_paths["gene3d"], args.evalue),
+                (args.input, "gene3d", database_paths["gene3d"], args.evalue),
                 (
-                    args.fasta,
+                    args.input,
                     "superfamily",
                     database_paths["superfamily"],
                     args.evalue,
                 ),
-                (args.fasta, "pfam", database_paths["pfam"], args.evalue),
-                (args.fasta, "smart", database_paths["smart"], args.evalue),
-                (args.fasta, "cjid", database_paths["cjid"], args.evalue),
+                (args.input, "pfam", database_paths["pfam"], args.evalue),
+                (args.input, "smart", database_paths["smart"], args.evalue),
+                (args.input, "cjid", database_paths["cjid"], args.evalue),
             ],
         )
 
@@ -98,9 +98,6 @@ def main():
         sequence = sequences[sequence_id]
         annotations = merge_and_sort(sequence.annotations)
         print(f"{sequence_id}\t{annotation_string(annotations)}")
-
-    else:
-        logging.error("😞 No command specified! Try resistify.py -h for help.")
 
 
 if __name__ == "__main__":
