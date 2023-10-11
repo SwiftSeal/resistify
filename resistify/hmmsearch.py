@@ -1,15 +1,12 @@
 import subprocess
 import os
 import csv
-#import requests
-#import tarfile
-#import shutil
+import sys
 import logging
-#import tempfile
 
 
 def hmmsearch(
-    input_fasta, temp_dir, source, database_path, e_value="0.00001", num_cpu="2"
+    input_fasta, temp_dir, database_path, source, e_value="0.00001", num_cpu="2"
 ):
     output_file = os.path.join(temp_dir.name, f"{source}_hmmsearch.out")
     database_file = os.path.join(database_path, f"{source}.hmm")
@@ -39,11 +36,12 @@ def hmmsearch(
         logging.info(f"😊 {source} hmmsearch completed successfully...")
     except subprocess.CalledProcessError as e:
         logging.error(f"😞 Error running hmmsearch. Stdout of hmmsearch: {e.stdout}")
+        sys.exit(1)
 
     return (source, output_file)
 
 
-def save_fixed_accession(results, temp_dir, results_dir):
+def save_fixed_accession(results, temp_dir, database_path, results_dir):
     fixed_file = open(os.path.join(temp_dir.name, "fixed.tsv"), "w")
     for result in results:
         logging.info(f"😊 Fixing {result[0]} accession names...")
@@ -63,7 +61,7 @@ def save_fixed_accession(results, temp_dir, results_dir):
                         # Load model to family map if not already loaded
                         if model_to_family_map_dict is None:
                             model_to_family_map_dict = parse_gene3d_table(
-                                "./resistify/data/gene3d.tsv"
+                                os.path.join(database_path, "gene3d.tsv")
                             )
                         key = line[3].split("-")[0]
                         if key not in model_to_family_map_dict:

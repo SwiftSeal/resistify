@@ -24,7 +24,7 @@ def check_database(database_path):
         if os.path.exists(os.path.join(database_path, file)):
             logging.info(f"😊 Database file {file} exists")
         else:
-            logging.error(f"😞 Database file {file}} does not exist")
+            logging.error(f"😞 Database file {file} does not exist")
             sys.exit(1)
 
 
@@ -64,12 +64,11 @@ def parse_fasta(path):
     return sequence_data
 
 
-def save_fasta(sequence_data, path):
+def save_fasta(sequences, path):
     with open(path, "w") as file:
-        for sequence_id in sequence_data:
-            sequence = sequence_data[sequence_id]
-            file.write(f">{sequence_id}\n")
-            file.write(f"{sequence.sequence}\n")
+        for sequence in sequences:
+            file.write(f">{sequence}\n")
+            file.write(f"{sequences[sequence]}\n")
     return path
 
 
@@ -115,7 +114,6 @@ def main():
                     temp_dir,
                     database_path,
                     "superfamily",
-                    database_paths["superfamily"],
                     args.evalue,
                 ),
                 (input_fasta, temp_dir, database_path, "pfam", args.evalue),
@@ -125,7 +123,7 @@ def main():
         )
 
     # fix accession names, merge and sort results into a single table
-    results_file = save_fixed_accession(results, temp_dir, results_dir)
+    results_file = save_fixed_accession(results, temp_dir, database_path, results_dir)
 
     sequence_annotations = parse_hmmer_table(results_file)
 
