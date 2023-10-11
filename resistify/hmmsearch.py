@@ -1,11 +1,11 @@
 import subprocess
 import os
 import csv
-import requests
-import tarfile
-import shutil
+#import requests
+#import tarfile
+#import shutil
 import logging
-import tempfile
+#import tempfile
 
 
 def hmmsearch(
@@ -108,7 +108,7 @@ def parse_gene3d_table(gene3d_file):
             model_to_family_map_dict[line[0]] = line[1]
     return model_to_family_map_dict
 
-
+"""
 def get_interproscan_data():
     # Define URLs and paths
     base_url = "https://ftp.ebi.ac.uk/pub/software/unix/iprscan/5/5.64-96.0/"
@@ -147,3 +147,4 @@ def get_interproscan_data():
     # Clean up temporary files and directories
     os.remove(tar_file_path)
     shutil.rmtree(interproscan_dir)
+"""

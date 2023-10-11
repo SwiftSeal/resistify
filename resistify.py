@@ -20,11 +20,11 @@ def check_database(database_path):
         logging.error(f"😞 Database directory does not exist at {database_path}")
         sys.exit(1)
 
-    for source in database_paths:
-        if os.path.exists(os.path.join(database_path, database_paths[source])):
-            logging.info(f"😊 Database file for {source} exists")
+    for file in database_files:
+        if os.path.exists(os.path.join(database_path, file)):
+            logging.info(f"😊 Database file {file} exists")
         else:
-            logging.error(f"😞 Database file for {source} does not exist")
+            logging.error(f"😞 Database file {file}} does not exist")
             sys.exit(1)
 
 
