@@ -9,7 +9,7 @@ from resistify.annotations import *
 from resistify.hmmsearch import *
 from resistify.nlrexpress import *
 
-database_files = ["pfam.hmm", "superfamily.hmm", "smart.hmm", "gene3d.hmm", "gene3d.tsv" "cjid.hmm"]
+database_files = ["pfam.hmm", "superfamily.hmm", "smart.hmm", "gene3d.hmm", "gene3d.tsv", "cjid.hmm"]
 
 
 def check_database(database_path):
@@ -125,10 +125,10 @@ def main():
     # fix accession names, merge and sort results into a single table
     results_file = save_fixed_accession(results, temp_dir, database_path, results_dir)
 
-    sequences = parse_hmmer_table(sequence, results_file)
+    sequences = parse_hmmer_table(sequences, results_file)
 
     for sequence in sequences:
-        annotations = merge_and_sort(sequence.annotations)
+        annotations = merge_and_sort(sequences[sequence].annotations)
         print(f"{sequence}\t{annotation_string(annotations)}")
 
     # TODO subset sequences based on annotations prior to motif prediction
@@ -145,6 +145,9 @@ def main():
     sequences = prepare_jackhmmer_data(
         sequences, jackhmmer_iteration_1, jackhmmer_iteration_2
     )
+
+    # close the temporary directory
+    temp_dir.cleanup()
 
     for predictor in motif_models.keys():
         result = predict_motif(sequences, predictor)
