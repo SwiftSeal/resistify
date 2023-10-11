@@ -250,7 +250,7 @@ class Annotation:
         return self.start < other.start
 
 
-class Sequence:
+class SequenceAnnotation:
     name = ""
     annotations = {}
 
@@ -318,7 +318,7 @@ def annotation_string(annotations):
 
 
 def parse_hmmer_table(hmmerfile):
-    sequences = {}
+    sequence_annotations = {}
     evalue_threshold = 1e-5
     with open(hmmerfile, "r") as file:
         table_reader = csv.DictReader(file, delimiter="\t", )
@@ -346,8 +346,8 @@ def parse_hmmer_table(hmmerfile):
                 row["accession"], classification, start, end, float(row["evalue"])
             )
 
-            if sequence_name not in sequences:
-                sequences[sequence_name] = Sequence(sequence_name)
+            if sequence_name not in sequence_annotations:
+                sequence_annotations[sequence_name] = SequenceAnnotation(sequence_name)
             else:
-                sequences[sequence_name].append(annotation)
-    return sequences
+                sequence_annotations[sequence_name].append(annotation)
+    return sequence_annotations

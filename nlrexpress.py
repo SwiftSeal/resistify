@@ -5,7 +5,6 @@ import numpy as np
 from sklearn.neural_network import MLPClassifier
 import pickle
 from Bio import SeqIO
-from time import sleep
 import pickle
 from sklearn.neural_network import MLPClassifier
 
@@ -80,6 +79,7 @@ class ModuleData:
             predictorNames.append(predictorName)
 
         return cls(modelsPath=modelsPath, predictors=predictors, predictorsNames=predictorNames)
+
 
 
 def parse_jackhmmer(file, iteration = False) -> dict:
@@ -211,6 +211,7 @@ for predictor in nbs_express.predictors:
                 value = round(result[result_index][1], 4)
                 if value > 0.8:
                     print(sequence, i, predictor, value)
+                result_index += 1
 
 """
 countpos = {predictor: 0 for predictor in results}

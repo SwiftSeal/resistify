@@ -8,10 +8,10 @@ import logging
 import tempfile
 
 
-def hmmsearch(input_fasta, source, database_path, e_value="0.00001", num_cpu="2"):
-    # create a temporary file to store the hmmsearch --domtblout output
-    with tempfile.NamedTemporaryFile(mode="w") as tmp:
-        tmp_file = tmp.name
+def hmmsearch(input_fasta, temp_dir, source, database_path, e_value="0.00001", num_cpu="2"):
+
+    output_file = os.path.join(temp_dir.name, f"{source}_hmmsearch.out")
+    database_file = os.path.join(database_path, f"{source}.hmm")
 
     cmd = [
         "hmmsearch",
@@ -21,12 +21,10 @@ def hmmsearch(input_fasta, source, database_path, e_value="0.00001", num_cpu="2"
         "--cpu",
         num_cpu,
         "--domtblout",
-        tmp_file,
-        database_path,
+        output_file,
+        database_file,
         input_fasta,
     ]
-
-    logging.debug(f"Running hmmsearch with command: {cmd}")
 
     logging.info(f"😊 Running hmmsearch for {source}...")
     try:
@@ -41,17 +39,16 @@ def hmmsearch(input_fasta, source, database_path, e_value="0.00001", num_cpu="2"
     except subprocess.CalledProcessError as e:
         logging.error(f"😞 Error running hmmsearch. Stdout of hmmsearch: {e.stdout}")
 
-    return (source, tmp_file)
+    return (source, output_file)
 
 
-def save_fixed_accession(results, results_dir):
-    # create temporary file to store the unsorted output
-    tmp = tempfile.NamedTemporaryFile(mode="w")
+def save_fixed_accession(results, temp_dir, results_dir):
+    fixed_file = open(os.path.join(temp_dir.name, "fixed.tsv"), "w")
     for result in results:
         logging.info(f"😊 Fixing {result[0]} accession names...")
         model_to_family_map_dict = None
-        with open(result[1]) as file:
-            for line in file:
+        with open(result[1]) as infile:
+            for line in infile:
                 if not line.startswith("#"):
                     line = line.split()
                     sequence = line[0]
@@ -81,21 +78,25 @@ def save_fixed_accession(results, results_dir):
                         accession = line[4]
                     elif result[0] == "cjid":
                         accession = "CJID"
-                    tmp.write(
+                    fixed_file.write(
                         f"{sequence}\t{accession}\t{start}\t{end}\t{evalue}\n"
                     )
+
+    fixed_file.close()
+
+    outfile = os.path.join(results_dir, "hmmsearch_result.tsv")
                     
     # Sort the temporary file and save it to the results directory
     logging.info(f"😊 Saving hmmsearch results...")
-    with open(tmp.name, "r") as file:
-        reader = csv.reader(file, delimiter="\t")
+    with open(fixed_file) as infile:
+        reader = csv.reader(infile, delimiter="\t")
         sorted_reader = sorted(reader, key=lambda row: row[0])
-        with open(os.path.join(results_dir, "hmmsearch_result.tsv"), "w") as out:
+        with open(outfile, "w") as out:
             writer = csv.writer(out, delimiter="\t")
             writer.writerow(["sequence", "accession", "start", "end", "evalue"])
             writer.writerows(sorted_reader)
 
-    return os.path.join(results_dir, "hmmsearch_result.tsv")
+    return outfile
 
 
 def parse_gene3d_table(gene3d_file):
