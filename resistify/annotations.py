@@ -321,14 +321,20 @@ def parse_hmmer_table(hmmerfile):
     sequence_annotations = {}
     evalue_threshold = 1e-5
     with open(hmmerfile, "r") as file:
-        table_reader = csv.DictReader(file, delimiter="\t", )
+        table_reader = csv.DictReader(
+            file,
+            delimiter="\t",
+        )
         for row in table_reader:
             # in future users may want to use their own annotation files, but work with merged tab-delimited for now
 
             # need to remove the "." suffix from the annotation name
             # Don't use 6th index, use the 11th! This is the c value, it is the per-domain evalue rather than global
 
-            if row["accession"] not in classifications or float(row["evalue"]) > evalue_threshold:
+            if (
+                row["accession"] not in classifications
+                or float(row["evalue"]) > evalue_threshold
+            ):
                 continue
 
             sequence_name = row["sequence"]

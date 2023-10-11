@@ -8,8 +8,9 @@ import logging
 import tempfile
 
 
-def hmmsearch(input_fasta, temp_dir, source, database_path, e_value="0.00001", num_cpu="2"):
-
+def hmmsearch(
+    input_fasta, temp_dir, source, database_path, e_value="0.00001", num_cpu="2"
+):
     output_file = os.path.join(temp_dir.name, f"{source}_hmmsearch.out")
     database_file = os.path.join(database_path, f"{source}.hmm")
 
@@ -85,7 +86,7 @@ def save_fixed_accession(results, temp_dir, results_dir):
     fixed_file.close()
 
     outfile = os.path.join(results_dir, "hmmsearch_result.tsv")
-                    
+
     # Sort the temporary file and save it to the results directory
     logging.info(f"😊 Saving hmmsearch results...")
     with open(fixed_file) as infile:

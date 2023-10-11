@@ -11,6 +11,7 @@ from resistify.nlrexpress import *
 
 database_files = ["pfam.hmm", "superfamily.hmm", "smart.hmm", "gene3d.hmm", "cjid.hmm"]
 
+
 def check_database(database_path):
     # check if database_path exists
     if os.path.exists(database_path):
@@ -21,13 +22,9 @@ def check_database(database_path):
 
     for source in database_paths:
         if os.path.exists(os.path.join(database_path, database_paths[source])):
-            logging.info(
-                f"😊 Database file for {source} exists"
-            )
+            logging.info(f"😊 Database file for {source} exists")
         else:
-            logging.error(
-                f"😞 Database file for {source} does not exist"
-            )
+            logging.error(f"😞 Database file for {source} does not exist")
             sys.exit(1)
 
 
@@ -58,12 +55,14 @@ def create_output_directory(outdir):
         logging.error(f"😞 Error creating output directory: {e}")
         sys.exit(1)
 
+
 def parse_fasta(path):
     sequence_data = {}
     with open(path) as file:
         for record in SeqIO.parse(file, "fasta"):
             sequence_data[record.id] = record.seq
     return sequence_data
+
 
 def save_fasta(sequence_data, path):
     with open(path, "w") as file:
@@ -90,7 +89,9 @@ def main():
         database_path = args.database_path
     else:
         # default to the database directory in the same directory as resistify.py
-        database_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
+        database_path = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "data"
+        )
 
     check_database(database_path)
 
@@ -139,10 +140,16 @@ def main():
 
     os.path.join(temp_dir, "jackhmmer-1.hmm")
 
-    jackhmmer_iteration_1 = parse_jackhmmer(os.path.join(temp_dir, "jackhmmer-1.hmm"), iteration = False)
-    jackhmmer_iteration_2 = parse_jackhmmer(os.path.join(temp_dir, "jackhmmer-2.hmm"), iteration = True)
+    jackhmmer_iteration_1 = parse_jackhmmer(
+        os.path.join(temp_dir, "jackhmmer-1.hmm"), iteration=False
+    )
+    jackhmmer_iteration_2 = parse_jackhmmer(
+        os.path.join(temp_dir, "jackhmmer-2.hmm"), iteration=True
+    )
 
-    input_data = generateInputFile(sequences, jackhmmer_iteration_1, jackhmmer_iteration_2)
+    input_data = generateInputFile(
+        sequences, jackhmmer_iteration_1, jackhmmer_iteration_2
+    )
 
     for predictor in motif_models.keys():
         result = predict_motif(sequences, input_data, predictor)
@@ -157,6 +164,7 @@ def main():
                     if value > 0.8:
                         print(sequence, i, predictor, value)
                     result_index += 1
+
 
 if __name__ == "__main__":
     main()

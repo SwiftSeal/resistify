@@ -28,16 +28,17 @@ motif_span_lengths = {
 }
 
 motif_models = {
-        'VG': 'models/MLP_NBS_VG.pkl',
-        'P-loop': 'models/MLP_NBS_P-loop.pkl',
-        'RNSB-A': 'models/MLP_NBS_RNSB-A.pkl',
-        'RNSB-B': 'models/MLP_NBS_RNSB-B.pkl',
-        'RNSB-C': 'models/MLP_NBS_RNSB-C.pkl',
-        'RNSB-D': 'models/MLP_NBS_RNSB-D.pkl',
-        'Walker-B': 'models/MLP_NBS_Walker-B.pkl',
-        'GLPL': 'models/MLP_NBS_GLPL.pkl',
-        'MHD': 'models/MLP_NBS_MHD.pkl'
-    }
+    "VG": "models/MLP_NBS_VG.pkl",
+    "P-loop": "models/MLP_NBS_P-loop.pkl",
+    "RNSB-A": "models/MLP_NBS_RNSB-A.pkl",
+    "RNSB-B": "models/MLP_NBS_RNSB-B.pkl",
+    "RNSB-C": "models/MLP_NBS_RNSB-C.pkl",
+    "RNSB-D": "models/MLP_NBS_RNSB-D.pkl",
+    "Walker-B": "models/MLP_NBS_Walker-B.pkl",
+    "GLPL": "models/MLP_NBS_GLPL.pkl",
+    "MHD": "models/MLP_NBS_MHD.pkl",
+}
+
 
 def jackhmmer(input_fasta, temp_dir, database_path):
     """
@@ -49,7 +50,7 @@ def jackhmmer(input_fasta, temp_dir, database_path):
         "--cpu",
         "6",
         "-N",
-        "2", # number of iterations
+        "2",  # number of iterations
         "-E",
         "1e-5",
         "--domE",
@@ -73,12 +74,33 @@ def jackhmmer(input_fasta, temp_dir, database_path):
     except subprocess.CalledProcessError as e:
         logging.error(f"😞 Error running jackhmmer. Stdout of jackhmmer: {e.stdout}")
         sys.exit(1)
-    
 
-def parse_jackhmmer(file, iteration = False):
+
+def parse_jackhmmer(file, iteration=False):
     hmm_dict = {}
 
-    header1 = ["A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N", "P", "Q", "R", "S", "T", "V", "W", "Y"]
+    header1 = [
+        "A",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G",
+        "H",
+        "I",
+        "K",
+        "L",
+        "M",
+        "N",
+        "P",
+        "Q",
+        "R",
+        "S",
+        "T",
+        "V",
+        "W",
+        "Y",
+    ]
 
     with open(file) as f:
         i = 1
@@ -115,8 +137,9 @@ def parse_jackhmmer(file, iteration = False):
                 value_dict = dict(zip(header1, line[1:21]))
                 hmm_dict[name].append(value_dict)
                 i += 3
-    
+
     return hmm_dict
+
 
 def parse_fasta(file):
     """
@@ -131,6 +154,7 @@ def parse_fasta(file):
 
     return seq_dict
 
+
 def generateInputFile(sequences, hmm_it1, hmm_it2):
     data = {}
 
@@ -144,17 +168,18 @@ def generateInputFile(sequences, hmm_it1, hmm_it2):
         for i, aa in enumerate(seq):
             # add a blank list for this amino acid
             data[name].append([])
-            for k, (key, val) in enumerate( hmm_it1[name][i].items() ):
+            for k, (key, val) in enumerate(hmm_it1[name][i].items()):
                 data[name][-1].append(val)
 
             if name in hmm_it2:
-                for k, (key, val) in enumerate( hmm_it2[name][i].items() ):
+                for k, (key, val) in enumerate(hmm_it2[name][i].items()):
                     data[name][-1].append(val)
             else:
-                for k, (key, val) in enumerate( hmm_it1[name][i].items() ):
+                for k, (key, val) in enumerate(hmm_it1[name][i].items()):
                     data[name][-1].append(val)
 
     return data
+
 
 def generate_matrix(sequences, input_data, predictor):
     logging.info(f"😊 Generating matrix for {predictor}...")
@@ -176,11 +201,12 @@ def generate_matrix(sequences, input_data, predictor):
     matrix = np.array(matrix, dtype=float)
     return matrix
 
+
 def predict_motif(sequences, input_data, predictor):
     # create a matrix for the predictors motif size
     matrix = generate_matrix(sequences, input_data, predictor)
     # load the model from model dictionary
-    model = pickle.load(open(motif_models[predictor], 'rb'))
+    model = pickle.load(open(motif_models[predictor], "rb"))
     # run the prediction
     result = model.predict_proba(matrix)
 
