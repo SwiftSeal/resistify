@@ -87,7 +87,7 @@ def save_fixed_accession(results, temp_dir, database_path, results_dir):
 
     # Sort the temporary file and save it to the results directory
     logging.info(f"😊 Saving hmmsearch results...")
-    with open(fixed_file) as infile:
+    with open(os.path.join(temp_dir.name, "fixed.tsv")) as infile:
         reader = csv.reader(infile, delimiter="\t")
         sorted_reader = sorted(reader, key=lambda row: row[0])
         with open(outfile, "w") as out:

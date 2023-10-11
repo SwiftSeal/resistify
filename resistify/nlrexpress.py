@@ -155,42 +155,42 @@ def parse_fasta(file):
     return seq_dict
 
 
-def generateInputFile(sequences, hmm_it1, hmm_it2):
-    data = {}
-
-    for name in sequences:
+def prepare_jackhmmer_data(sequences, hmm_it1, hmm_it2):
+    for sequence in sequences:
         # get the dna sequence
-        seq = sequences[name]
+        seq = sequences[sequence].sequence
         # make blank list for this sequence
-        data[name] = []
+        jackhmmer_data = []
 
         # for each amino acid in the sequence
         for i, aa in enumerate(seq):
             # add a blank list for this amino acid
-            data[name].append([])
-            for k, (key, val) in enumerate(hmm_it1[name][i].items()):
-                data[name][-1].append(val)
+            jackhmmer_data.append([])
+            for k, (key, val) in enumerate(hmm_it1[sequence][i].items()):
+                jackhmmer_data[-1].append(val)
 
-            if name in hmm_it2:
-                for k, (key, val) in enumerate(hmm_it2[name][i].items()):
-                    data[name][-1].append(val)
+            if sequence in hmm_it2:
+                for k, (key, val) in enumerate(hmm_it2[sequence][i].items()):
+                    jackhmmer_data[-1].append(val)
             else:
-                for k, (key, val) in enumerate(hmm_it1[name][i].items()):
-                    data[name][-1].append(val)
+                for k, (key, val) in enumerate(hmm_it1[sequence][i].items()):
+                    jackhmmer_data[-1].append(val)
 
-    return data
+        sequences[sequence].jackhmmer_data = jackhmmer_data
 
+    return sequences
 
-def generate_matrix(sequences, input_data, predictor):
+def predict_motif(sequences, predictor):
+    # create a matrix for the predictors motif size
     logging.info(f"😊 Generating matrix for {predictor}...")
     matrix = []
     motif_size = motif_span_lengths[predictor]
     for sequence in sequences:
-        sequence_length = len(sequences[sequence])
+        sequence_length = len(sequences[sequence].sequence)
         for i in range(sequence_length):
             # make sure we are within the sequence bounds
             if i >= 5 and i < sequence_length - (motif_size + 5):
-                features = input_data[sequence]
+                features = sequences[sequence].jackhmmer_data
 
                 matrix.append([])
 
@@ -199,12 +199,6 @@ def generate_matrix(sequences, input_data, predictor):
                     matrix[-1] += features[i + j]
 
     matrix = np.array(matrix, dtype=float)
-    return matrix
-
-
-def predict_motif(sequences, input_data, predictor):
-    # create a matrix for the predictors motif size
-    matrix = generate_matrix(sequences, input_data, predictor)
     # load the model from model dictionary
     model = pickle.load(open(motif_models[predictor], "rb"))
     # run the prediction

@@ -9,7 +9,7 @@ from resistify.annotations import *
 from resistify.hmmsearch import *
 from resistify.nlrexpress import *
 
-database_files = ["pfam.hmm", "superfamily.hmm", "smart.hmm", "gene3d.hmm", "cjid.hmm"]
+database_files = ["pfam.hmm", "superfamily.hmm", "smart.hmm", "gene3d.hmm", "gene3d.tsv" "cjid.hmm"]
 
 
 def check_database(database_path):
@@ -57,18 +57,18 @@ def create_output_directory(outdir):
 
 
 def parse_fasta(path):
-    sequence_data = {}
+    sequences = {}
     with open(path) as file:
         for record in SeqIO.parse(file, "fasta"):
-            sequence_data[record.id] = record.seq
-    return sequence_data
+            sequences[record.id] = Sequence(record.id, record.seq)
+    return sequences
 
 
 def save_fasta(sequences, path):
     with open(path, "w") as file:
         for sequence in sequences:
             file.write(f">{sequence}\n")
-            file.write(f"{sequences[sequence]}\n")
+            file.write(f"{sequences[sequence].sequence}\n")
     return path
 
 
@@ -125,37 +125,34 @@ def main():
     # fix accession names, merge and sort results into a single table
     results_file = save_fixed_accession(results, temp_dir, database_path, results_dir)
 
-    sequence_annotations = parse_hmmer_table(results_file)
+    sequences = parse_hmmer_table(sequence, results_file)
 
-    for sequence_id in sequence_annotations:
-        sequence = sequence_annotations[sequence_id]
+    for sequence in sequences:
         annotations = merge_and_sort(sequence.annotations)
-        print(f"{sequence_id}\t{annotation_string(annotations)}")
+        print(f"{sequence}\t{annotation_string(annotations)}")
 
     # TODO subset sequences based on annotations prior to motif prediction
 
     jackhmmer(input_fasta, temp_dir, "targetDB.fasta")
 
-    os.path.join(temp_dir, "jackhmmer-1.hmm")
-
     jackhmmer_iteration_1 = parse_jackhmmer(
-        os.path.join(temp_dir, "jackhmmer-1.hmm"), iteration=False
+        os.path.join(temp_dir.name, "jackhmmer-1.hmm"), iteration=False
     )
     jackhmmer_iteration_2 = parse_jackhmmer(
-        os.path.join(temp_dir, "jackhmmer-2.hmm"), iteration=True
+        os.path.join(temp_dir.name, "jackhmmer-2.hmm"), iteration=True
     )
 
-    input_data = generateInputFile(
+    sequences = prepare_jackhmmer_data(
         sequences, jackhmmer_iteration_1, jackhmmer_iteration_2
     )
 
     for predictor in motif_models.keys():
-        result = predict_motif(sequences, input_data, predictor)
+        result = predict_motif(sequences, predictor)
 
         result_index = 0
         for sequence in sequences:
-            sequence_length = len(sequences[sequence])
-            for i in range(len(sequences[sequence])):
+            sequence_length = len(sequences[sequence].sequence)
+            for i in range(len(sequences[sequence].sequence)):
                 # make sure we are within the sequence bounds
                 if i >= 5 and i < sequence_length - (motif_span_lengths[predictor] + 5):
                     value = round(result[result_index][1], 4)

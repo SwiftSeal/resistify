@@ -1,5 +1,6 @@
 import logging
 import csv
+import sys
 
 classifications = {
     "SSF46785": "Winged-helix",
@@ -231,6 +232,50 @@ classifications = {
     "Gene3D": "OTHER",
 }
 
+class Sequence:
+    name = str
+    sequence = str
+    domain_string = str
+    annotations = {}
+    motifs = {}
+
+    def __init__(self, name, sequence):
+        self.name = name
+        self.sequence = sequence
+        self.domain_string = ""
+        self.annotations = {
+            "CC": [],
+            "TIR": [],
+            "NBARC": [],
+            "LRR": [],
+            }
+        self.motifs = {
+            "VG": [],
+            "P-loop": [],
+            "RNSB-A": [],
+            "Walker-B": [],
+            "RNSB-B": [],
+            "RNSB-C": [],
+            "RNSB-D": [],
+            "GLPL": [],
+            "MHD": [],
+            "LxxLxL": [],
+        }
+
+    def append_annotation(self, annotation):
+        if annotation.classification in self.annotations.keys():
+            self.annotations[annotation.classification].append(annotation)
+        else:
+            # do nothing for now
+            pass
+    
+    def append_motif(self, motif):
+        if motif.classification in self.motifs.keys():
+            self.motifs[motif.classification].append(motif)
+        else:
+            # do nothing for now
+            pass
+
 
 class Annotation:
     name = ""
@@ -317,8 +362,7 @@ def annotation_string(annotations):
     return "-".join(annotation_strings)
 
 
-def parse_hmmer_table(hmmerfile):
-    sequence_annotations = {}
+def parse_hmmer_table(sequences, hmmerfile):
     evalue_threshold = 1e-5
     with open(hmmerfile, "r") as file:
         table_reader = csv.DictReader(
@@ -351,9 +395,11 @@ def parse_hmmer_table(hmmerfile):
             annotation = Annotation(
                 row["accession"], classification, start, end, float(row["evalue"])
             )
-
-            if sequence_name not in sequence_annotations:
-                sequence_annotations[sequence_name] = SequenceAnnotation(sequence_name)
-            else:
-                sequence_annotations[sequence_name].append(annotation)
-    return sequence_annotations
+            
+            try:
+                sequences[sequence_name].append_annotation(annotation)
+            except KeyError:
+                logging.error(f"😢 Tried to add annotation to non-existent sequence {sequence_name}.")
+                sys.exit(1)
+            
+    return sequences
