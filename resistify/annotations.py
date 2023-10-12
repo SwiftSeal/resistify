@@ -322,6 +322,16 @@ class Annotation:
 
     def __lt__(self, other):
         return self.start < other.start
+    
+class Motif:
+    predictor = str
+    probability = float
+    position = int
+
+    def __init__(self, predictor, probability, position):
+        self.predictor = predictor
+        self.probability = probability
+        self.position = position
 
 
 def merge_and_sort(annotations):

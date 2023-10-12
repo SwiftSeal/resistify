@@ -61,7 +61,7 @@ def jackhmmer(input_fasta, temp_dir, database_path):
         "--chkhmm",
         temp_dir.name + "/jackhmmer",
         input_fasta,
-        database_path,
+        database_file,
     ]
 
     logging.info(f"😊 Running jackhmmer...")
@@ -207,4 +207,15 @@ def predict_motif(sequences, predictor):
     # run the prediction
     result = model.predict_proba(matrix)
 
-    return result
+    # iterate through sequences and pull out any predictions with a probability > 0.8
+    result_index = 0
+    for sequence in sequences:
+        sequence_length = len(sequences[sequence].sequence)
+        for i in range(len(sequences[sequence].sequence)):
+            # make sure we are within the sequence bounds
+            if i >= 5 and i < sequence_length - (motif_span_lengths[predictor] + 5):
+                value = round(result[result_index][1], 4)
+                if value > 0.8:
+                    motif = Motif(predictor, value, i)
+                    sequences[sequence].append_motif(motif)
+                result_index += 1
