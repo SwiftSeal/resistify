@@ -133,7 +133,7 @@ def main():
 
     # TODO subset sequences based on annotations prior to motif prediction
 
-    jackhmmer(input_fasta, temp_dir, "targetDB.fasta")
+    jackhmmer(input_fasta, temp_dir, database_path)
 
     jackhmmer_iteration_1 = parse_jackhmmer(
         os.path.join(temp_dir.name, "jackhmmer-1.hmm"), iteration=False

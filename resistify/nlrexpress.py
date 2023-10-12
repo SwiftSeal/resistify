@@ -6,6 +6,7 @@ import pickle
 from Bio import SeqIO
 import tempfile
 import logging
+import os
 
 motif_span_lengths = {
     "extEDVID": 12,
@@ -44,6 +45,8 @@ def jackhmmer(input_fasta, temp_dir, database_path):
     """
     Run jackhmmer on the input fasta file against the database_path.
     """
+
+    database_file = os.path.join(database_path, "nlrexpress.fasta")
 
     cmd = [
         "jackhmmer",
