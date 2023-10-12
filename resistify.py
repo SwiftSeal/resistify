@@ -131,8 +131,6 @@ def main():
         sequences[sequence].merge_annotations()
         print(sequence, sequences[sequence].annotation_string())
 
-    # TODO subset sequences based on annotations prior to motif prediction
-
     jackhmmer(input_fasta, temp_dir, database_path)
 
     jackhmmer_iteration_1 = parse_jackhmmer(
@@ -149,19 +147,18 @@ def main():
     # close the temporary directory
     temp_dir.cleanup()
 
+    # predict and add motifs to sequences
+    # perhaps move all of this into a function rather than iterating
     for predictor in motif_models.keys():
-        result = predict_motif(sequences, predictor)
+        predict_motif(sequences, predictor)
 
-        result_index = 0
-        for sequence in sequences:
-            sequence_length = len(sequences[sequence].sequence)
-            for i in range(len(sequences[sequence].sequence)):
-                # make sure we are within the sequence bounds
-                if i >= 5 and i < sequence_length - (motif_span_lengths[predictor] + 5):
-                    value = round(result[result_index][1], 4)
-                    if value > 0.8:
-                        print(sequence, i, predictor, value)
-                    result_index += 1
+    # print a table of the result
+    for sequence in sequences:
+        sequence_string = sequences[sequence].annotation_string()
+        lrrs = sequences[sequence].motifs["LxxLxL"]
+        print(sequence, sequence_string, len(lrrs))
+
+    
 
 
 if __name__ == "__main__":
