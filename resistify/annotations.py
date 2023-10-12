@@ -232,6 +232,7 @@ classifications = {
     "Gene3D": "OTHER",
 }
 
+
 class Sequence:
     name = str
     sequence = str
@@ -249,7 +250,7 @@ class Sequence:
             "TIR": [],
             "NBARC": [],
             "LRR": [],
-            }
+        }
         self.motifs = {
             "extEDVID": [],
             "VG": [],
@@ -270,14 +271,14 @@ class Sequence:
         else:
             # do nothing for now
             pass
-    
+
     def append_motif(self, motif):
         if motif.classification in self.motifs.keys():
             self.motifs[motif.classification].append(motif)
         else:
             # do nothing for now
             pass
-    
+
     def merge_annotations(self):
         for classification in self.annotations:
             # skip if empty
@@ -299,26 +300,35 @@ class Sequence:
         merges all primary annotations (CC, TIR, NBARC, LRR) into a single string
         """
         # merge all annotations into a single list
-        annotation_list = [annotation for sublist in self.annotations.values() for annotation in sublist]
+        annotation_list = [
+            annotation
+            for sublist in self.annotations.values()
+            for annotation in sublist
+        ]
         # sort the list by start position
         annotation_list.sort(key=lambda x: x.start)
         # create a string representation of the annotations
-        annotation_string = "-".join([annotation.classification for annotation in annotation_list])
+        annotation_string = "-".join(
+            [annotation.classification for annotation in annotation_list]
+        )
         return annotation_string
-    
-    def nbarc_end(self):
+
+    def downstream_lrr(self):
         """
-        Returns the end position of the last NBARC in the sequence
+        Return a list of lrr motifs downstream the end of the last NBARC domain.
         """
-        # get all NBARC annotations
-        nbarc_annotations = self.annotations["NBARC"]
-        # sort by start position
-        nbarc_annotations.sort(key=lambda x: x.start)
-        # return the end position of the last NBARC
-        return nbarc_annotations[-1].end
-
-
-
+        # get the end of the last NBARC domain
+        try:
+            last_nbarc_end = self.annotations["NBARC"][-1].end
+        except IndexError:
+            return []
+        # get all lrr motifs downstream of the last NBARC domain
+        downstream_lrrs = [
+            lrr
+            for lrr in self.motifs["LxxLxL"]
+            if lrr.position > last_nbarc_end
+        ]
+        return downstream_lrrs
 
 
 class Annotation:
@@ -337,7 +347,8 @@ class Annotation:
 
     def __lt__(self, other):
         return self.start < other.start
-    
+
+
 class Motif:
     classification = str
     probability = float
@@ -431,7 +442,9 @@ def parse_hmmer_table(sequences, hmmerfile):
             try:
                 sequences[sequence_name].append_annotation(annotation)
             except KeyError:
-                logging.error(f"😢 Tried to add annotation to non-existent sequence {sequence_name}.")
+                logging.error(
+                    f"😢 Tried to add annotation to non-existent sequence {sequence_name}."
+                )
                 sys.exit(1)
-            
+
     return sequences

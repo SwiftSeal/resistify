@@ -9,7 +9,14 @@ from resistify.annotations import *
 from resistify.hmmsearch import *
 from resistify.nlrexpress import *
 
-database_files = ["pfam.hmm", "superfamily.hmm", "smart.hmm", "gene3d.hmm", "gene3d.tsv", "cjid.hmm"]
+database_files = [
+    "pfam.hmm",
+    "superfamily.hmm",
+    "smart.hmm",
+    "gene3d.hmm",
+    "gene3d.tsv",
+    "cjid.hmm",
+]
 
 
 def check_database(database_path):
@@ -154,8 +161,8 @@ def main():
     # print a table of the result
     for sequence in sequences:
         sequence_string = sequences[sequence].annotation_string()
-        lrrs = sequences[sequence].motifs["LxxLxL"]
-        print(sequence, sequence_string, len(lrrs))
+        downstream_lrrs = len(sequences[sequence].downstream_lrr())
+        print(sequence, sequence_string, sequences, downstream_lrrs)
 
 
 if __name__ == "__main__":

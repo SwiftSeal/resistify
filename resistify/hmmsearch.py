@@ -106,6 +106,7 @@ def parse_gene3d_table(gene3d_file):
             model_to_family_map_dict[line[0]] = line[1]
     return model_to_family_map_dict
 
+
 """
 def get_interproscan_data():
     # Define URLs and paths

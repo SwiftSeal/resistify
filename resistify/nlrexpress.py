@@ -186,6 +186,7 @@ def prepare_jackhmmer_data(sequences, hmm_it1, hmm_it2):
 
     return sequences
 
+
 def predict_motif(sequences, predictor):
     # create a matrix for the predictors motif size
     logging.info(f"😊 Generating matrix for {predictor}...")
