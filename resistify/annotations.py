@@ -275,6 +275,35 @@ class Sequence:
         else:
             # do nothing for now
             pass
+    
+    def merge_annotations(self):
+        for classification in self.annotations:
+            # skip if empty
+            if len(self.annotations[classification]) == 0:
+                continue
+            merged_classifications = []
+            self.annotations[classification].sort(key=lambda x: x.start)
+            merged_classifications.append(self.annotations[classification][0])
+            for annotation in self.annotations[classification][1:]:
+                if annotation.start <= merged_classifications[-1].end:
+                    if annotation.end > merged_classifications[-1].end:
+                        merged_classifications[-1].end = annotation.end
+                else:
+                    merged_classifications.append(annotation)
+            self.annotations[classification] = merged_classifications
+
+    def annotation_string(self):
+        """
+        merges all primary annotations (CC, TIR, NBARC, LRR) into a single string
+        """
+        # merge all annotations into a single list
+        annotation_list = [annotation for sublist in self.annotations.values() for annotation in sublist]
+        # sort the list by start position
+        annotation_list.sort(key=lambda x: x.start)
+        # create a string representation of the annotations
+        annotation_string = "-".join([annotation.classification for annotation in annotation_list])
+        return annotation_string
+
 
 
 class Annotation:
@@ -293,28 +322,6 @@ class Annotation:
 
     def __lt__(self, other):
         return self.start < other.start
-
-
-class SequenceAnnotation:
-    name = ""
-    annotations = {}
-
-    def __init__(self, name):
-        self.name = name
-        self.annotations = {
-            "CC": [],
-            "TIR": [],
-            "NBARC": [],
-            "LRR": [],
-            # implement rest in future
-        }
-
-    def append(self, annotation):
-        if annotation.classification in self.annotations.keys():
-            self.annotations[annotation.classification].append(annotation)
-        else:
-            # do nothing for now
-            pass
 
 
 def merge_and_sort(annotations):
@@ -395,7 +402,7 @@ def parse_hmmer_table(sequences, hmmerfile):
             annotation = Annotation(
                 row["accession"], classification, start, end, float(row["evalue"])
             )
-            
+
             try:
                 sequences[sequence_name].append_annotation(annotation)
             except KeyError:

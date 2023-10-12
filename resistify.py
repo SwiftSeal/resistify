@@ -128,8 +128,8 @@ def main():
     sequences = parse_hmmer_table(sequences, results_file)
 
     for sequence in sequences:
-        annotations = merge_and_sort(sequences[sequence].annotations)
-        print(f"{sequence}\t{annotation_string(annotations)}")
+        sequences[sequence].merge_annotations()
+        print(sequence, sequences[sequence].annotation_string())
 
     # TODO subset sequences based on annotations prior to motif prediction
 
