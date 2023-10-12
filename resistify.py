@@ -129,7 +129,6 @@ def main():
 
     for sequence in sequences:
         sequences[sequence].merge_annotations()
-        print(sequence, sequences[sequence].annotation_string())
 
     jackhmmer(input_fasta, temp_dir, database_path)
 

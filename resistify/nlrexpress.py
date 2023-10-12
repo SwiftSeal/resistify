@@ -7,6 +7,7 @@ from Bio import SeqIO
 import tempfile
 import logging
 import os
+from resistify.annotations import Motif
 
 motif_span_lengths = {
     "extEDVID": 12,
@@ -29,6 +30,7 @@ motif_span_lengths = {
 }
 
 motif_models = {
+    "extEDVID": "models/MLP_CC_extEDVID.pkl",
     "VG": "models/MLP_NBS_VG.pkl",
     "P-loop": "models/MLP_NBS_P-loop.pkl",
     "RNSB-A": "models/MLP_NBS_RNSB-A.pkl",
@@ -38,6 +40,7 @@ motif_models = {
     "Walker-B": "models/MLP_NBS_Walker-B.pkl",
     "GLPL": "models/MLP_NBS_GLPL.pkl",
     "MHD": "models/MLP_NBS_MHD.pkl",
+    "LxxLxL": "models/MLP_LRR_LxxLxL.pkl",
 }
 
 

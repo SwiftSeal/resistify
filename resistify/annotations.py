@@ -250,6 +250,7 @@ class Sequence:
             "LRR": [],
             }
         self.motifs = {
+            "extEDVID": [],
             "VG": [],
             "P-loop": [],
             "RNSB-A": [],
@@ -324,12 +325,12 @@ class Annotation:
         return self.start < other.start
     
 class Motif:
-    predictor = str
+    classification = str
     probability = float
     position = int
 
-    def __init__(self, predictor, probability, position):
-        self.predictor = predictor
+    def __init__(self, classification, probability, position):
+        self.classification = classification
         self.probability = probability
         self.position = position
 
