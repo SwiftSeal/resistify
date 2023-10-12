@@ -208,6 +208,7 @@ def predict_motif(sequences, predictor):
     # load the model from model dictionary
     model = pickle.load(open(motif_models[predictor], "rb"))
     # run the prediction
+    logging.info(f"😊 Predicting {predictor} motifs...")
     result = model.predict_proba(matrix)
 
     # iterate through sequences and pull out any predictions with a probability > 0.8

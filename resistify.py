@@ -157,8 +157,6 @@ def main():
         lrrs = sequences[sequence].motifs["LxxLxL"]
         print(sequence, sequence_string, len(lrrs))
 
-    
-
 
 if __name__ == "__main__":
     main()

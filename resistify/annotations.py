@@ -245,6 +245,7 @@ class Sequence:
         self.domain_string = ""
         self.annotations = {
             "CC": [],
+            "RPW8": [],
             "TIR": [],
             "NBARC": [],
             "LRR": [],
@@ -304,6 +305,19 @@ class Sequence:
         # create a string representation of the annotations
         annotation_string = "-".join([annotation.classification for annotation in annotation_list])
         return annotation_string
+    
+    def nbarc_end(self):
+        """
+        Returns the end position of the last NBARC in the sequence
+        """
+        # get all NBARC annotations
+        nbarc_annotations = self.annotations["NBARC"]
+        # sort by start position
+        nbarc_annotations.sort(key=lambda x: x.start)
+        # return the end position of the last NBARC
+        return nbarc_annotations[-1].end
+
+
 
 
 
