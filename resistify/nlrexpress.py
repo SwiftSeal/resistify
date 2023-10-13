@@ -44,7 +44,7 @@ motif_models = {
 }
 
 
-def jackhmmer(input_fasta, temp_dir, database_path):
+def jackhmmer(input_fasta, sequences, temp_dir, database_path):
     """
     Run jackhmmer on the input fasta file against the database_path.
     """
@@ -53,8 +53,6 @@ def jackhmmer(input_fasta, temp_dir, database_path):
 
     cmd = [
         "jackhmmer",
-        "--cpu",
-        "6",
         "-N",
         "2",  # number of iterations
         "-E",
@@ -80,6 +78,17 @@ def jackhmmer(input_fasta, temp_dir, database_path):
     except subprocess.CalledProcessError as e:
         logging.error(f"😞 Error running jackhmmer. Stdout of jackhmmer: {e.stdout}")
         sys.exit(1)
+
+    jackhmmer_iteration_1 = parse_jackhmmer(
+        os.path.join(temp_dir.name, "jackhmmer-1.hmm"), iteration=False
+    )
+    jackhmmer_iteration_2 = parse_jackhmmer(
+        os.path.join(temp_dir.name, "jackhmmer-2.hmm"), iteration=True
+    )
+
+    sequences = prepare_jackhmmer_data(
+        sequences, jackhmmer_iteration_1, jackhmmer_iteration_2
+    )
 
 
 def parse_jackhmmer(file, iteration=False):

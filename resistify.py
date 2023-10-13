@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-import multiprocessing
+import tempfile
 import sys
 import logging
 import os
@@ -24,6 +24,7 @@ def main():
         )
 
     hmmer_db = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data/nlrdb.hmm")
+    jackhmmer_db = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data/nlrexpress.fasta")
 
     results_dir = create_output_directory(args.outdir)
 
@@ -33,28 +34,20 @@ def main():
     temp_dir = tempfile.TemporaryDirectory()
 
     # save the fasta with stripped headers
-    input_fasta = save_fasta(sequences, os.path.join(temp_dir.name, "input.fasta"))
+    hmmer_input = save_fasta(sequences, os.path.join(temp_dir.name, "hmmer_input.fa"))
 
-    sequences = hmmsearch(input_fasta, sequences, temp_dir, hmmer_db)
+    sequences = hmmsearch(hmmer_input, sequences, temp_dir, hmmer_db)
 
     for sequence in sequences:
         sequences[sequence].merge_annotations()
         sequences[sequence].classify()
+        print(sequence, sequences[sequence].classification)
 
-
-    """
-    jackhmmer(input_fasta, temp_dir, database_path)
-
-    jackhmmer_iteration_1 = parse_jackhmmer(
-        os.path.join(temp_dir.name, "jackhmmer-1.hmm"), iteration=False
-    )
-    jackhmmer_iteration_2 = parse_jackhmmer(
-        os.path.join(temp_dir.name, "jackhmmer-2.hmm"), iteration=True
-    )
-
-    sequences = prepare_jackhmmer_data(
-        sequences, jackhmmer_iteration_1, jackhmmer_iteration_2
-    )
+    # save only sequences with a classification
+    classified = [sequence for sequence in sequences if sequences[sequence].classification is not None]
+    jackhmmer_input = save_fasta(sequences, os.path.join(temp_dir, "jackhmmer_input.fa"), classified)
+    
+    sequence = jackhmmer(jackhmmer_input, sequences, temp_dir, jackhmmer_db)
 
     # close the temporary directory
     temp_dir.cleanup()
