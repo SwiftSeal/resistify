@@ -45,7 +45,7 @@ def main():
 
     # save only sequences with a classification
     classified = [sequence for sequence in sequences if sequences[sequence].classification is not None]
-    jackhmmer_input = save_fasta(sequences, os.path.join(temp_dir, "jackhmmer_input.fa"), classified)
+    jackhmmer_input = save_fasta(sequences, os.path.join(temp_dir.name, "jackhmmer_input.fa"), classified)
     
     sequence = jackhmmer(jackhmmer_input, sequences, temp_dir, jackhmmer_db)
 
@@ -56,12 +56,6 @@ def main():
     # perhaps move all of this into a function rather than iterating
     for predictor in motif_models.keys():
         predict_motif(sequences, predictor)
-
-    # print a table of the result
-    for sequence in sequences:
-        sequence_string = sequences[sequence].annotation_string()
-        downstream_lrrs = len(sequences[sequence].downstream_lrr())
-        print(sequence, sequence_string, downstream_lrrs)
 
 
 if __name__ == "__main__":

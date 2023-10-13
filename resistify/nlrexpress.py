@@ -44,12 +44,10 @@ motif_models = {
 }
 
 
-def jackhmmer(input_fasta, sequences, temp_dir, database_path):
+def jackhmmer(input_fasta, sequences, temp_dir, database_file):
     """
     Run jackhmmer on the input fasta file against the database_path.
     """
-
-    database_file = os.path.join(database_path, "nlrexpress.fasta")
 
     cmd = [
         "jackhmmer",
@@ -172,6 +170,10 @@ def parse_fasta(file):
 
 def prepare_jackhmmer_data(sequences, hmm_it1, hmm_it2):
     for sequence in sequences:
+        # check if this sequence is in the jackhmmer output
+        if sequence not in hmm_it1:
+            sequences[sequence].jackhmmer_data = None
+            continue
         # get the dna sequence
         seq = sequences[sequence].sequence
         # make blank list for this sequence
@@ -202,6 +204,8 @@ def predict_motif(sequences, predictor):
     matrix = []
     motif_size = motif_span_lengths[predictor]
     for sequence in sequences:
+        if sequences[sequence].jackhmmer_data is None:
+            continue
         sequence_length = len(sequences[sequence].sequence)
         for i in range(sequence_length):
             # make sure we are within the sequence bounds
