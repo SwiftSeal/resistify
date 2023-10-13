@@ -10,9 +10,26 @@ class Sequence:
         self.sequence = sequence
         self.classification = None
         self.annotations = []
+        self.motifs = {
+            "extEDVID": [],
+            "VG": [],
+            "P-loop": [],
+            "RNSB-A": [],
+            "Walker-B": [],
+            "RNSB-B": [],
+            "RNSB-C": [],
+            "RNSB-D": [],
+            "GLPL": [],
+            "MHD": [],
+            "LxxLxL": [],
+        }
+
 
     def add_annotation(self, annotation):
         self.annotations.append(annotation)
+
+    def add_motif(self, motif):
+        self.motifs[motif.type].append(motif)
     
     def merge_annotations(self):
         merged_annotations = []
@@ -59,3 +76,13 @@ class Annotation:
         self.domain = domain
         self.start = start
         self.end = end
+
+class Motif:
+    classification = str
+    probability = float
+    position = int
+
+    def __init__(self, classification, probability, position):
+        self.classification = classification
+        self.probability = probability
+        self.position = position

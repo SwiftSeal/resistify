@@ -62,7 +62,6 @@ def main():
         sequence_string = sequences[sequence].annotation_string()
         downstream_lrrs = len(sequences[sequence].downstream_lrr())
         print(sequence, sequence_string, downstream_lrrs)
-    """
 
 
 if __name__ == "__main__":
