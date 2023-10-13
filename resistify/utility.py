@@ -39,21 +39,10 @@ def parse_fasta(path):
     return sequences
 
 
-def save_fasta(sequences, path, subset=None):
-    """
-    Save a dictionary of sequences to a FASTA file.
-    Can optionally save only a subset of the sequences.
-    """
-    if subset is None:
-        with open(path, "w") as file:
-            for sequence in sequences:
-                file.write(f">{sequence}\n")
-                file.write(f"{sequences[sequence].sequence}\n")
-    else:
-        subset_sequences = {key: sequences[key] for key in subset}
-        with open(path, "w") as file:
-            for sequence in subset_sequences:
-                file.write(f">{sequence}\n")
-                file.write(f"{subset_sequences[sequence].sequence}\n")
+def save_fasta(sequences, path):
+    with open(path, "w") as file:
+        for sequence in sequences:
+            file.write(f">{sequence}\n")
+            file.write(f"{sequences[sequence].sequence}\n")
     return path
 

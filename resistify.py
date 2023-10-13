@@ -43,8 +43,13 @@ def main():
         sequences[sequence].classify()
         print(sequence, sequences[sequence].classification)
 
-    # save only sequences with a classification
-    classified_sequences = [sequence for sequence in sequences if sequences[sequence].classification is not None]
+    # subset sequences based on classification
+    classified_sequences = {
+        sequence: sequences[sequence]
+        for sequence in sequences
+        if sequences[sequence].classification is not None
+    }
+    
     jackhmmer_input = save_fasta(classified_sequences, os.path.join(temp_dir.name, "jackhmmer_input.fa"))
     
     sequence = jackhmmer(jackhmmer_input, classified_sequences, temp_dir, jackhmmer_db)
