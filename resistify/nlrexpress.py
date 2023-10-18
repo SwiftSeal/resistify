@@ -30,17 +30,17 @@ motif_span_lengths = {
 }
 
 motif_models = {
-    "extEDVID": "models/MLP_CC_extEDVID.pkl",
-    "VG": "models/MLP_NBS_VG.pkl",
-    "P-loop": "models/MLP_NBS_P-loop.pkl",
-    "RNSB-A": "models/MLP_NBS_RNSB-A.pkl",
-    "RNSB-B": "models/MLP_NBS_RNSB-B.pkl",
-    "RNSB-C": "models/MLP_NBS_RNSB-C.pkl",
-    "RNSB-D": "models/MLP_NBS_RNSB-D.pkl",
-    "Walker-B": "models/MLP_NBS_Walker-B.pkl",
-    "GLPL": "models/MLP_NBS_GLPL.pkl",
-    "MHD": "models/MLP_NBS_MHD.pkl",
-    "LxxLxL": "models/MLP_LRR_LxxLxL.pkl",
+    "extEDVID": "data/MLP_CC_extEDVID.pkl",
+    "VG": "data/MLP_NBS_VG.pkl",
+    "P-loop": "data/MLP_NBS_P-loop.pkl",
+    "RNSB-A": "data/MLP_NBS_RNSB-A.pkl",
+    "RNSB-B": "data/MLP_NBS_RNSB-B.pkl",
+    "RNSB-C": "data/MLP_NBS_RNSB-C.pkl",
+    "RNSB-D": "data/MLP_NBS_RNSB-D.pkl",
+    "Walker-B": "data/MLP_NBS_Walker-B.pkl",
+    "GLPL": "data/MLP_NBS_GLPL.pkl",
+    "MHD": "data/MLP_NBS_MHD.pkl",
+    "LxxLxL": "data/MLP_LRR_LxxLxL.pkl",
 }
 
 
@@ -51,8 +51,11 @@ def jackhmmer(input_fasta, sequences, temp_dir, database_file):
 
     cmd = [
         "jackhmmer",
+        "--noali",
         "-N",
         "2",  # number of iterations
+        "--cpu",
+        "4",
         "-E",
         "1e-5",
         "--domE",
@@ -87,6 +90,8 @@ def jackhmmer(input_fasta, sequences, temp_dir, database_file):
     sequences = prepare_jackhmmer_data(
         sequences, jackhmmer_iteration_1, jackhmmer_iteration_2
     )
+
+    return sequences
 
 
 def parse_jackhmmer(file, iteration=False):
@@ -228,6 +233,5 @@ def predict_motif(sequences, predictor):
             if i >= 5 and i < sequence_length - (motif_span_lengths[predictor] + 5):
                 value = round(result[result_index][1], 4)
                 if value > 0.8:
-                    motif = Motif(predictor, value, i)
-                    sequences[sequence].append_motif(motif)
+                    sequences[sequence].add_motif(Motif(predictor, value, i))
                 result_index += 1

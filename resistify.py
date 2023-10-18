@@ -41,7 +41,6 @@ def main():
     for sequence in sequences:
         sequences[sequence].merge_annotations()
         sequences[sequence].classify()
-        print(sequence, sequences[sequence].classification)
 
     # subset sequences based on classification
     classified_sequences = {
@@ -49,10 +48,12 @@ def main():
         for sequence in sequences
         if sequences[sequence].classification is not None
     }
+
+    logging.info(f"😊 {len(classified_sequences)} sequences classified as potential NLRs!")
     
     jackhmmer_input = save_fasta(classified_sequences, os.path.join(temp_dir.name, "jackhmmer_input.fa"))
     
-    sequence = jackhmmer(jackhmmer_input, classified_sequences, temp_dir, jackhmmer_db)
+    classified_sequences = jackhmmer(jackhmmer_input, classified_sequences, temp_dir, jackhmmer_db)
 
     # close the temporary directory
     temp_dir.cleanup()
@@ -61,6 +62,13 @@ def main():
     # perhaps move all of this into a function rather than iterating
     for predictor in motif_models.keys():
         predict_motif(classified_sequences, predictor)
+
+    for sequence in classified_sequences:
+        classified_sequences[sequence].reclassify()
+    
+    result_table(classified_sequences, results_dir)
+    domain_table(classified_sequences, results_dir)
+    motif_table(classified_sequences, results_dir)
 
 
 if __name__ == "__main__":

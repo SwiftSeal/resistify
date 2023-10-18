@@ -46,3 +46,58 @@ def save_fasta(sequences, path):
             file.write(f"{sequences[sequence].sequence}\n")
     return path
 
+def result_table(sequences, results_dir):
+
+    with open(os.path.join(results_dir, "results.tsv"), "w") as file:
+        file.write("Sequence\tLength\tClassification\tFunctionality\n")
+        for sequence in sequences:
+
+            nbarc_motifs = ["VG", "P-loop", "RNSB-A", "Walker-B", "RNSB-B", "RNSB-C", "RNSB-D", "GLPL", "MHD"]
+
+            count = 0
+            for motif in nbarc_motifs:
+                if len(sequences[sequence].motifs[motif]) > 0:
+                    count += 1
+            
+            if count == 9:
+                functionality = "Likely"
+            else:
+                functionality = "Unlikely"
+
+
+            file.write(
+                f"{sequence}\t{len(sequences[sequence].sequence)}\t{sequences[sequence].classification}\t{functionality}\n"
+            )
+
+def domain_table(sequences, results_dir):
+    with open(os.path.join(results_dir, "domains.tsv"), "w") as file:
+        file.write("Sequence\tDomain\tStart\tEnd\n")
+        for sequence in sequences:
+            for annotation in sequences[sequence].annotations:
+                file.write(
+                    f"{sequence}\t{annotation.domain}\t{annotation.start}\t{annotation.end}\n"
+                )
+
+def motif_table(sequences, results_dir):
+    with open(os.path.join(results_dir, "motifs.tsv"), "w") as file:
+        file.write("Sequence\tMotif\tPosition\tProbability\n")
+        for sequence in sequences:
+            for motif in sequences[sequence].motifs:
+                for item in sequences[sequence].motifs[motif]:
+                    file.write(
+                        f"{sequence}\t{motif}\t{item.position}\t{item.probability}\n"
+                    )
+
+def extract_nbarc(sequences, results_dir):
+    """
+    Extract all nbarc domains of all proteins into a fasta file.
+    """
+    with open(os.path.join(results_dir, "nbarc.fasta"), "w") as file:
+        for sequence in sequences:
+            count = 1
+            for annotation in sequences[sequence].annotations:
+                if annotation.domain == "NB-ARC":
+                    file.write(f">{sequence}_{count}\n")
+                    file.write(f"{sequences[sequence].sequence[annotation.start-1:annotation.end]}\n")
+                    count += 1
+                    
