@@ -34,6 +34,7 @@ An `output_directory` will be created which will contain the results of your run
  - `results.tsv` - A table of the length, classification, and predicted functionality of each sequence
  - `motifs.tsv` - A table of all the NLRexpress motifs for each sequence
  - `domains.tsv` - A table of all the domains identified for each sequence
+ - `nbarc.fasta` - A fasta file of all the NB-ARC domains identified.
 
 ## How does it work?
 
