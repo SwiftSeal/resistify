@@ -4,8 +4,9 @@ import logging
 import os
 from resistify.annotations import Annotation
 
-def hmmsearch(input_file, sequences, temp_dir, database_file):
+def hmmsearch(input_file, sequences, temp_dir, data_dir):
 
+    hmmsearch_db = os.path.join(data_dir, "nlrdb.hmm")
     output_file = os.path.join(temp_dir.name, "hmmsearch.out")
 
     cmd = [
@@ -15,7 +16,7 @@ def hmmsearch(input_file, sequences, temp_dir, database_file):
         "0.00001",
         "--domtblout",
         output_file,
-        database_file,
+        hmmsearch_db,
         input_file,
     ]
 
@@ -30,7 +31,10 @@ def hmmsearch(input_file, sequences, temp_dir, database_file):
         )
         logging.info(f"😊 hmmsearch completed successfully...")
     except subprocess.CalledProcessError as e:
-        logging.error(f"😞 Error running hmmsearch. Stdout of hmmsearch: {e.stdout}")
+        logging.error(f"😞 Error running hmmsearch. Stderr of hmmsearch: {e.stderr}")
+        sys.exit(1)
+    except FileNotFoundError:
+        logging.error(f"😞 hmmsearch not found. Have you installed it?")
         sys.exit(1)
 
     with open(output_file) as f:

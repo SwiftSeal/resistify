@@ -30,24 +30,26 @@ motif_span_lengths = {
 }
 
 motif_models = {
-    "extEDVID": "data/MLP_CC_extEDVID.pkl",
-    "VG": "data/MLP_NBS_VG.pkl",
-    "P-loop": "data/MLP_NBS_P-loop.pkl",
-    "RNSB-A": "data/MLP_NBS_RNSB-A.pkl",
-    "RNSB-B": "data/MLP_NBS_RNSB-B.pkl",
-    "RNSB-C": "data/MLP_NBS_RNSB-C.pkl",
-    "RNSB-D": "data/MLP_NBS_RNSB-D.pkl",
-    "Walker-B": "data/MLP_NBS_Walker-B.pkl",
-    "GLPL": "data/MLP_NBS_GLPL.pkl",
-    "MHD": "data/MLP_NBS_MHD.pkl",
-    "LxxLxL": "data/MLP_LRR_LxxLxL.pkl",
+    "extEDVID": "MLP_CC_extEDVID.pkl",
+    "VG": "MLP_NBS_VG.pkl",
+    "P-loop": "MLP_NBS_P-loop.pkl",
+    "RNSB-A": "MLP_NBS_RNSB-A.pkl",
+    "RNSB-B": "MLP_NBS_RNSB-B.pkl",
+    "RNSB-C": "MLP_NBS_RNSB-C.pkl",
+    "RNSB-D": "MLP_NBS_RNSB-D.pkl",
+    "Walker-B": "MLP_NBS_Walker-B.pkl",
+    "GLPL": "MLP_NBS_GLPL.pkl",
+    "MHD": "MLP_NBS_MHD.pkl",
+    "LxxLxL": "MLP_LRR_LxxLxL.pkl",
 }
 
 
-def jackhmmer(input_fasta, sequences, temp_dir, database_file):
+def jackhmmer(input_fasta, sequences, temp_dir, data_dir):
     """
     Run jackhmmer on the input fasta file against the database_path.
     """
+
+    database_file = os.path.join(data_dir, "nlrexpress.fasta")
 
     cmd = [
         "jackhmmer",
@@ -199,7 +201,7 @@ def prepare_jackhmmer_data(sequences, hmm_it1, hmm_it2):
     return sequences
 
 
-def predict_motif(sequences, predictor):
+def predict_motif(sequences, predictor, data_dir):
     # create a matrix for the predictors motif size
     logging.info(f"😊 Generating matrix for {predictor}...")
     matrix = []
@@ -219,7 +221,10 @@ def predict_motif(sequences, predictor):
 
     matrix = np.array(matrix, dtype=float)
     # load the model from model dictionary
-    model = pickle.load(open(motif_models[predictor], "rb"))
+
+    model_path = os.path.join(data_dir, motif_models[predictor])
+
+    model = pickle.load(open(model_path, "rb"))
     # run the prediction
     logging.info(f"😊 Predicting {predictor} motifs...")
     result = model.predict_proba(matrix)
