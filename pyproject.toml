@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "resistify"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
   "biopython",
   "scikit-learn==0.24.2",
@@ -14,7 +14,7 @@ authors = [
 ]
 description = "A resistance gene annotation tool"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = "==3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",

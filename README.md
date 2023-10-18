@@ -20,8 +20,7 @@ To get started with Resistify:
 `pip install resistify`
 
 Resistify requires `biopython` and `scikit-learn==0.24.2`.
-I'll work on proper dependency management soon, but `scikit-learn` makes things pretty tricky - I'd recommend making an environment with `0.24.2` pre-installed rather than letting pip try to handle it itself!
-It also requires `hmmsearch` and `jackhmmer` - install these via conda or any other means.
+It also requires `hmmsearch` and `jackhmmer` - install these [via conda](https://anaconda.org/bioconda/hmmer) or any other means.
 A conda distribution is in progress!
 
 ## Usage
