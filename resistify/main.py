@@ -23,7 +23,7 @@ def main():
             level=logging.INFO, stream=sys.stderr, format="%(asctime)s - %(message)s"
         )
 
-    data_dir = os.path.join(os.path.dirname(__file__), '..', 'data')
+    data_dir = os.path.join(os.path.dirname(__file__), "data")
 
     results_dir = create_output_directory(args.outdir)
 
@@ -52,11 +52,17 @@ def main():
         logging.info(f"😞 No sequences classified as potential NLRs!")
         sys.exit(0)
 
-    logging.info(f"😊 {len(classified_sequences)} sequences classified as potential NLRs!")
-    
-    jackhmmer_input = save_fasta(classified_sequences, os.path.join(temp_dir.name, "jackhmmer_input.fa"))
-    
-    classified_sequences = jackhmmer(jackhmmer_input, classified_sequences, temp_dir, data_dir)
+    logging.info(
+        f"😊 {len(classified_sequences)} sequences classified as potential NLRs!"
+    )
+
+    jackhmmer_input = save_fasta(
+        classified_sequences, os.path.join(temp_dir.name, "jackhmmer_input.fa")
+    )
+
+    classified_sequences = jackhmmer(
+        jackhmmer_input, classified_sequences, temp_dir, data_dir
+    )
 
     # close the temporary directory
     temp_dir.cleanup()

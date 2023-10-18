@@ -15,13 +15,17 @@ I'm grateful to the authors of NLRexpress for the motif models used in this prog
 
 ## Installation
 
-Currently, you'll need to clone this repo to get started.
-A pip/conda alternative is in progress!
-Will make one when it's at version 0.1.
+To get started with Resistify:
+
+`pip install resistify`
+
+Resistify requires `biopython` and `scikit-learn==0.24.2`.
+It also requires `hmmsearch` and `jackhmmer` - install these via conda or any other means.
+A conda distribution is in progress!
 
 ## Usage
 
-To run resistify:
+To run Resistify:
 
 ```
 resistify <input.fa> <output_directory>

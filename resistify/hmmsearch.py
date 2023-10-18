@@ -4,8 +4,8 @@ import logging
 import os
 from resistify.annotations import Annotation
 
-def hmmsearch(input_file, sequences, temp_dir, data_dir):
 
+def hmmsearch(input_file, sequences, temp_dir, data_dir):
     hmmsearch_db = os.path.join(data_dir, "nlrdb.hmm")
     output_file = os.path.join(temp_dir.name, "hmmsearch.out")
 
@@ -61,5 +61,5 @@ def hmmsearch(input_file, sequences, temp_dir, data_dir):
                 domain = "CC"
 
             sequences[sequence].add_annotation(Annotation(domain, start, end))
-    
+
     return sequences

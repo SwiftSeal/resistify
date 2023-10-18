@@ -11,6 +11,7 @@ short_IDs = {
     "LRR": "L",
 }
 
+
 class Sequence:
     def __init__(self, sequence):
         self.sequence = sequence
@@ -30,18 +31,21 @@ class Sequence:
             "LxxLxL": [],
         }
 
-
     def add_annotation(self, annotation):
         self.annotations.append(annotation)
 
     def add_motif(self, motif):
         self.motifs[motif.classification].append(motif)
-    
+
     def merge_annotations(self):
         merged_annotations = []
         for domain in short_IDs:
             # get all annotations of this domain
-            domain_sublist = [annotation for annotation in self.annotations if annotation.domain == domain]
+            domain_sublist = [
+                annotation
+                for annotation in self.annotations
+                if annotation.domain == domain
+            ]
             # skip if there are no annotations of this domain
             if len(domain_sublist) == 0:
                 continue
@@ -59,7 +63,6 @@ class Sequence:
         merged_annotations.sort(key=lambda x: x.start)
         self.annotations = merged_annotations
 
-    
     def classify(self):
         domain_string = ""
         for annotation in self.annotations:
@@ -88,14 +91,16 @@ class Sequence:
                     break
             for motif in self.motifs["extEDVID"]:
                 if motif.position < nbarc_start:
-                    self.add_annotation(Annotation("CC", motif.position, motif.position + 1))
+                    self.add_annotation(
+                        Annotation("CC", motif.position, motif.position + 1)
+                    )
 
         if len(self.motifs["LxxLxL"]) > 3:
             sorted_lrr = sorted(self.motifs["LxxLxL"], key=lambda x: x.position)
 
             current_motif = sorted_lrr[0]
             start = current_motif.position
-            end = current_motif.position    
+            end = current_motif.position
             count = 0
             for motif in sorted_lrr[1:]:
                 if motif.position - end < LRR_GAP:
@@ -107,7 +112,7 @@ class Sequence:
                     start = motif.position
                     end = motif.position
                     count = 0
-            
+
             if count >= 4:
                 self.add_annotation(Annotation("LRR", start, end))
 
@@ -135,6 +140,7 @@ class Annotation:
         self.domain = domain
         self.start = start
         self.end = end
+
 
 class Motif:
     classification = str
