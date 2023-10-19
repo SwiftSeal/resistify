@@ -54,6 +54,10 @@ def hmmsearch(input_file, sequences, temp_dir, data_dir):
             if evalue > 0.00001:
                 continue
 
+            # MADA motif must be at the start of the sequence to be valid
+            if domain == "MADA" and start != 1:
+                continue
+
             if domain == "TIR_2":
                 domain = "TIR"
 

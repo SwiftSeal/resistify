@@ -4,10 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "resistify"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
-  "biopython",
   "scikit-learn==0.24.2",
+  "biopython",
+  "numpy < 1.23.0",
 ]
 authors = [
   { name="Moray Smith", email="moraysmith98@gmail.com" },
