@@ -1,6 +1,6 @@
 # Resistify
 
-Resistify is a lightweight program designed to classify NLRs by their protein domain architecture.
+Resistify is a lightweight and fast program designed to classify NLRs by their protein domain architecture.
 I have created this program as an alternative to several similar programmes for a couple of reasons.
  
 The first is to move away from using InterProScan as a dependency.
@@ -21,6 +21,13 @@ To get started with Resistify:
 
 Resistify requires `biopython` and `scikit-learn==0.24.2`.
 It also requires `hmmsearch` and `jackhmmer` - install these [via conda](https://anaconda.org/bioconda/hmmer) or any other means.
+I'd recommend creating an environment for it specifically, as scikit-learn dependencies are a bit busted:
+
+```
+mamba create -n resistify python==3.9 pip hmmer
+pip install resistify
+```
+
 A conda distribution is in progress!
 
 ## Usage
@@ -35,7 +42,7 @@ Your `input.fa` should contain the amino acid sequences of your proteins of inte
 Multiline and sequence description fields are allowed.
 
 An `output_directory` will be created which will contain the results of your run:
- - `results.tsv` - A table of the length, classification, and predicted functionality of each sequence
+ - `results.tsv` - A table of the length, classification, and predicted functionality of each sequence, as well as the presence of any MADA motif or CJID domain
  - `motifs.tsv` - A table of all the NLRexpress motifs for each sequence
  - `domains.tsv` - A table of all the domains identified for each sequence
  - `nbarc.fasta` - A fasta file of all the NB-ARC domains identified.
@@ -51,6 +58,8 @@ Secondly, each potential NLR sequence is scanned for CC, NB-ARC, and LRR associa
 These are used as an additional layer of evidence to reclassify each NLR by predicting LRR domains, and predicting any CC domains which may have been missed in the initial `hmmsearch` which can be less sensitive for this domain.
 The functionality of each NLR is predicted by counting the number of conserved NB-ARC motifs.
 Currently, any order is accepted (this may change in the future!).
+
+Resistify will also search for N-terminal MADA motifs and CJID domains that are common to CNLs and TNLs respectively.
 
 ## Future improvements
 

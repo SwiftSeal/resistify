@@ -9,6 +9,8 @@ short_IDs = {
     "TIR": "T",
     "NB-ARC": "N",
     "LRR": "L",
+    "MADA": "m",
+    "C-JID": "j",
 }
 
 
@@ -16,6 +18,9 @@ class Sequence:
     def __init__(self, sequence):
         self.sequence = sequence
         self.classification = None
+        self.mada = False
+        self.cjid = False
+        self.domain_string = ""
         self.annotations = []
         self.motifs = {
             "extEDVID": [],
@@ -84,6 +89,7 @@ class Sequence:
         """
         Reclassify with new LRR annotations.
         """
+        # Add CC annotation from motif if no N terminal annotation
         if self.classification == "N":
             for annotation in self.annotations:
                 if annotation.domain == "NB-ARC":
@@ -95,6 +101,7 @@ class Sequence:
                         Annotation("CC", motif.position, motif.position + 1)
                     )
 
+        # Add LRR annotation if there are more than 3 LRR motifs
         if len(self.motifs["LxxLxL"]) > 3:
             sorted_lrr = sorted(self.motifs["LxxLxL"], key=lambda x: x.position)
 
@@ -121,6 +128,14 @@ class Sequence:
         domain_string = ""
         for annotation in sorted_annotations:
             domain_string += short_IDs[annotation.domain]
+
+        self.domain_string = domain_string
+
+        # check for MADA and C-JID
+        if "m" in domain_string:
+            self.mada = True
+        if "j" in domain_string:
+            self.cjid = True
 
         # classify based on primary architecture
         if "CNL" in domain_string:
