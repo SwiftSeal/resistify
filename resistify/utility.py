@@ -51,7 +51,7 @@ def save_fasta(sequences, path):
 def result_table(sequences, results_dir):
     with open(os.path.join(results_dir, "results.tsv"), "w") as file:
         file.write(
-            "Sequence\tLength\tDomains\tClassification\tFunctionality\tMADA\tCJID\n"
+            "Sequence\tLength\tDomains\tClassification\tNBARC_motifs\tMADA\tCJID\n"
         )
         for sequence in sequences:
             nbarc_motifs = [
@@ -66,15 +66,10 @@ def result_table(sequences, results_dir):
                 "MHD",
             ]
 
-            count = 0
+            n_nbarc_motifs = 0
             for motif in nbarc_motifs:
                 if len(sequences[sequence].motifs[motif]) > 0:
-                    count += 1
-
-            if count == 9:
-                functionality = "Likely"
-            else:
-                functionality = "Unlikely"
+                    n_nbarc_motifs += 1
 
             length = len(sequences[sequence].sequence)
             classification = sequences[sequence].classification
@@ -83,7 +78,7 @@ def result_table(sequences, results_dir):
             domain_string = sequences[sequence].domain_string
 
             file.write(
-                f"{sequence}\t{length}\t{domain_string}\t{classification}\t{functionality}\t{mada}\t{cjid}\n"
+                f"{sequence}\t{length}\t{domain_string}\t{classification}\t{n_nbarc_motifs}\t{mada}\t{cjid}\n"
             )
 
 
