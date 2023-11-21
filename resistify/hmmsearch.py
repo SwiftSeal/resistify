@@ -5,7 +5,7 @@ import os
 from resistify.annotations import Annotation
 
 
-def hmmsearch(input_file, sequences, temp_dir, data_dir):
+def hmmsearch(input_file, sequences, temp_dir, data_dir, evalue):
     hmmsearch_db = os.path.join(data_dir, "nlrdb.hmm")
     output_file = os.path.join(temp_dir.name, "hmmsearch.out")
 
@@ -13,7 +13,7 @@ def hmmsearch(input_file, sequences, temp_dir, data_dir):
         "hmmsearch",
         "--noali",
         "-E",
-        "0.00001",
+        evalue,
         "--domtblout",
         output_file,
         hmmsearch_db,

@@ -1,6 +1,5 @@
 import logging
 
-LRR_GAP = 75
 DUPLICATE_GAP = 100
 
 short_IDs = {
@@ -85,7 +84,7 @@ class Sequence:
         else:
             self.classification = None
 
-    def reclassify(self):
+    def reclassify(self, lrr_gap, lrr_length):
         """
         Reclassify with new LRR annotations.
         """
@@ -102,7 +101,7 @@ class Sequence:
                     )
 
         # Add LRR annotation if there are more than 3 LRR motifs
-        if len(self.motifs["LxxLxL"]) > 3:
+        if len(self.motifs["LxxLxL"]) > lrr_length - 1:
             sorted_lrr = sorted(self.motifs["LxxLxL"], key=lambda x: x.position)
 
             current_motif = sorted_lrr[0]
@@ -110,11 +109,11 @@ class Sequence:
             end = current_motif.position
             count = 0
             for motif in sorted_lrr[1:]:
-                if motif.position - end < LRR_GAP:
+                if motif.position - end < lrr_gap:
                     end = motif.position
                     count += 1
                 else:
-                    if count >= 4:
+                    if count >= lrr_length:
                         self.add_annotation(Annotation("LRR", start, end))
                     start = motif.position
                     end = motif.position

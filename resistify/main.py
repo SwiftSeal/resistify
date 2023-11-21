@@ -35,7 +35,7 @@ def main():
     # save the fasta with stripped headers
     hmmer_input = save_fasta(sequences, os.path.join(temp_dir.name, "hmmer_input.fa"))
 
-    sequences = hmmsearch(hmmer_input, sequences, temp_dir, data_dir)
+    sequences = hmmsearch(hmmer_input, sequences, temp_dir, data_dir, args.evalue)
 
     for sequence in sequences:
         sequences[sequence].merge_annotations()
@@ -73,7 +73,7 @@ def main():
         predict_motif(classified_sequences, predictor, data_dir)
 
     for sequence in classified_sequences:
-        classified_sequences[sequence].reclassify()
+        classified_sequences[sequence].reclassify(args.lrr_gap, args.lrr_length)
 
     logging.info(f"😊 Saving results to {results_dir}...")
     result_table(classified_sequences, results_dir)
