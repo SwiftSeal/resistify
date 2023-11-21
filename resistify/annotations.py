@@ -138,6 +138,7 @@ class Sequence:
             self.cjid = True
 
         # classify based on primary architecture
+        # Does order matter?
         if "CNL" in domain_string:
             self.classification = "CNL"
         elif "RNL" in domain_string:
@@ -146,6 +147,8 @@ class Sequence:
             self.classification = "TNL"
         elif "NL" in domain_string:
             self.classification = "NL"
+        elif "CN" in domain_string:
+            self.classification = "CN"
         else:
             return
 
