@@ -41,6 +41,12 @@ motif_models = {
     "GLPL": "MLP_NBS_GLPL.pkl",
     "MHD": "MLP_NBS_MHD.pkl",
     "LxxLxL": "MLP_LRR_LxxLxL.pkl",
+    "aA": "MLP_TIR_aA.pkl",
+    "aC:": "MLP_TIR_aC.pkl",
+    "aD3:": "MLP_RPW8_aD3.pkl",
+    "bA": "MLP_TIR_bA.pkl",
+    "bC": "MLP_TIR_bC.pkl",
+    "bDaD1": "MLP_TIR_bD-aD1.pkl"
 }
 
 
