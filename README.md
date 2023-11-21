@@ -1,25 +1,15 @@
-# Resistify
+# *Resistify*
 
-Resistify is a lightweight and fast program designed to classify NLRs by their protein domain architecture.
-I have created this program as an alternative to several similar programmes for a couple of reasons.
- 
-The first is to move away from using InterProScan as a dependency.
-While InterProScan is a useful resource for annotating protein domains, it very feature-rich and can be challenging to set up on a new system.
-It's distribution isn't well supported by conda which is an additional challenge when integrating it into automated workflows.
-Resistify comes packaged with all the necessary databases so you don't have to worry about setting them up manually
-
-Secondly, I've created this to be as free of dependencies as possible.
-This allows Resistify to be easily distributed and quickly installed!
-
-I'm grateful to the authors of NLRexpress for the motif models used in this program.
+*Resistify* is a lightweight and fast program designed to classify NLRs by their protein domain architecture.
+It does not require any external databases or manual configuration.
 
 ## Installation
 
-To get started with Resistify:
+To get started with *Resistify*:
 
 `pip install resistify`
 
-Resistify requires `biopython` and `scikit-learn==0.24.2`.
+*Resistify* requires `biopython` and `scikit-learn==0.24.2`.
 It also requires `hmmsearch` and `jackhmmer` - install these [via conda](https://anaconda.org/bioconda/hmmer) or any other means.
 I'd recommend creating an environment for it specifically, as scikit-learn dependencies are a bit busted:
 
@@ -60,7 +50,3 @@ The functionality of each NLR is predicted by counting the number of conserved N
 Currently, any order is accepted (this may change in the future!).
 
 Resistify will also search for N-terminal MADA motifs and CJID domains that are common to CNLs and TNLs respectively.
-
-## Future improvements
-
-Once the core functionality is stable, I will begin integrating NLR-associated into the pipeline.
