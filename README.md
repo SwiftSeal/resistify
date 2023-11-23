@@ -1,7 +1,8 @@
-# *Resistify*
+# 🕵️ *Resistify*
 
-*Resistify* is a lightweight and fast program designed to classify NLRs by their protein domain architecture.
-It does not require any external databases or manual configuration.
+*Resistify* is a program which classifies plant NLRs by their protein domain and motif architecture.
+It is designed to be lightweight - no manual database installations or tricky dependencies here!
+
 
 ## Installation
 
@@ -22,7 +23,7 @@ A conda distribution is in progress!
 
 ## Usage
 
-To run Resistify:
+To run *Resistify*:
 
 ```
 resistify <input.fa> <output_directory>
@@ -30,6 +31,7 @@ resistify <input.fa> <output_directory>
 
 Your `input.fa` should contain the amino acid sequences of your proteins of interest.
 Multiline and sequence description fields are allowed.
+Stop codons "*" are permitted at the end of sequences - internal stop codons are not.
 
 An `output_directory` will be created which will contain the results of your run:
  - `results.tsv` - A table of the length, classification, and predicted functionality of each sequence, as well as the presence of any MADA motif or CJID domain
@@ -39,14 +41,17 @@ An `output_directory` will be created which will contain the results of your run
 
 ## How does it work?
 
-Resistify is a two step process.
+*Resistify* is a two step process.
 
 First, all sequences are searched for CC, RPW8, TIR, and NB-ARC domains.
 This is used to quickly filter out any non-NLR sequences and identify the primary architecture of each NLR.
 
-Secondly, each potential NLR sequence is scanned for CC, NB-ARC, and LRR associated motifs via the NLRexpress models.
-These are used as an additional layer of evidence to reclassify each NLR by predicting LRR domains, and predicting any CC domains which may have been missed in the initial `hmmsearch` which can be less sensitive for this domain.
-The functionality of each NLR is predicted by counting the number of conserved NB-ARC motifs.
-Currently, any order is accepted (this may change in the future!).
+Secondly, each potential NLR sequence is scanned for CC, TIR, NB-ARC, and LRR associated motifs via NLRexpress. 
+These are used as an additional layer of evidence to reclassify each NLR by predicting LRR domains, and predicting any CC or TIR domains which may have been missed in the initial `hmmsearch`.
 
-Resistify will also search for N-terminal MADA motifs and CJID domains that are common to CNLs and TNLs respectively.
+*Resistify* will also search for N-terminal MADA motifs and CJID domains that are common to CNLs and TNLs respectively.
+
+## Contributing
+
+Contributions are greatly appreciated!
+If you experience any issues running *Resistify*, please get in touch via the Issues page.
