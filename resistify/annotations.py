@@ -33,6 +33,12 @@ class Sequence:
             "GLPL": [],
             "MHD": [],
             "LxxLxL": [],
+            "aA": [],
+            "aC": [],
+            "aD3": [],
+            "bA": [],
+            "bC": [],
+            "bDaD1": []
         }
 
     def add_annotation(self, annotation):
@@ -99,20 +105,10 @@ class Sequence:
                     self.add_annotation(
                         Annotation("CC", motif.position, motif.position + 1)
                     )
-            #TIR = ["aA", "aC", "aD3", "bA", "bC", "bD-aD1"]
-            #TIR_motifs = []
-            #for motif in TIR:
-            #    for item in self.motifs[motif]:
-            #        if item.position < nbarc_start:
-            #            TIR_motifs.append(item)
-            #if len(TIR_motifs) > 3:
-            #    TIR_motifs.sort(key=lambda x: x.position)
-            #    self.add_annotation(
-            #        Annotation("TIR", TIR_motifs[0].position, TIR_motifs[-1].position)
-            #    )
-            TIR_motif_IDs = ["aA", "aC", "aD3", "bA", "bC", "bD-aD1"]
+            TIR_motif_IDs = ["aA", "aC", "aD3", "bA", "bC", "bDaD1"]
             TIR_motifs = [item for motif in TIR_motif_IDs for item in self.motifs[motif] if item.position < nbarc_start]
-            if len(TIR_motifs) > 3:
+            # TIR motifs are pretty conserved, seems okay to take 1 as sufficient evidence
+            if len(TIR_motifs) > 0:
                 TIR_motifs.sort(key=lambda x: x.position)
                 self.add_annotation(
                     Annotation("TIR", TIR_motifs[0].position, TIR_motifs[-1].position)
