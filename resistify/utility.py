@@ -40,7 +40,8 @@ def parse_fasta(path):
     sequences = {}
     with open(path) as file:
         for record in SeqIO.parse(file, "fasta"):
-            sequences[record.id] = Sequence(record.seq)
+            # need to remove asterisk, interferes with hmmsearch
+            sequences[record.id] = Sequence(record.seq.strip("*"))
     return sequences
 
 
