@@ -163,6 +163,8 @@ class Sequence:
             self.classification = "NL"
         elif "CN" in domain_string:
             self.classification = "CN"
+        elif "TN" in domain_string:
+            self.classification = "TN"
         else:
             return
 
