@@ -134,7 +134,7 @@ class Sequence:
                     end = motif.position
                     count = 0
 
-            if count >= 4:
+            if count >= 3:
                 self.add_annotation(Annotation("LRR", start, end))
 
         sorted_annotations = sorted(self.annotations, key=lambda x: x.start)
