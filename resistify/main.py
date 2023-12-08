@@ -35,52 +35,67 @@ def main():
     # save the fasta with stripped headers
     hmmer_input = save_fasta(sequences, os.path.join(temp_dir.name, "hmmer_input.fa"))
 
-    sequences = hmmsearch(hmmer_input, sequences, temp_dir, data_dir, args.evalue)
+    if args.ultra:
+        logging.info(f"😎 Running Resistify Ultra, this may take a while...")
+        classified_sequences = jackhmmer(hmmer_input, sequences, temp_dir, data_dir)
 
-    for sequence in sequences:
-        sequences[sequence].merge_annotations()
-        sequences[sequence].classify()
+        # close the temporary directory
+        temp_dir.cleanup()
 
-    # subset sequences based on classification
-    classified_sequences = {
-        sequence: sequences[sequence]
-        for sequence in sequences
-        if sequences[sequence].classification is not None
-    }
+        for predictor in motif_models.keys():
+            predict_motif(classified_sequences, predictor, data_dir)
+        
+        ultra_table(classified_sequences, results_dir)
+        motif_table(classified_sequences, results_dir)
 
-    if not classified_sequences:
-        logging.info(f"😞 No sequences classified as potential NLRs!")
-        sys.exit(0)
+        logging.info(f"😊 Thank you for using Resistify!")
+    else:
+        sequences = hmmsearch(hmmer_input, sequences, temp_dir, data_dir, args.evalue)
 
-    logging.info(
-        f"😊 {len(classified_sequences)} sequences classified as potential NLRs!"
-    )
+        for sequence in sequences:
+            sequences[sequence].merge_annotations()
+            sequences[sequence].classify()
 
-    jackhmmer_input = save_fasta(
-        classified_sequences, os.path.join(temp_dir.name, "jackhmmer_input.fa")
-    )
+        # subset sequences based on classification
+        classified_sequences = {
+            sequence: sequences[sequence]
+            for sequence in sequences
+            if sequences[sequence].classification is not None
+        }
 
-    classified_sequences = jackhmmer(
-        jackhmmer_input, classified_sequences, temp_dir, data_dir
-    )
+        if not classified_sequences:
+            logging.info(f"😞 No sequences classified as potential NLRs!")
+            sys.exit(0)
 
-    # close the temporary directory
-    temp_dir.cleanup()
+        logging.info(
+            f"😊 {len(classified_sequences)} sequences classified as potential NLRs!"
+        )
 
-    # predict and add motifs to sequences
-    # perhaps move all of this into a function rather than iterating
-    for predictor in motif_models.keys():
-        predict_motif(classified_sequences, predictor, data_dir)
+        jackhmmer_input = save_fasta(
+            classified_sequences, os.path.join(temp_dir.name, "jackhmmer_input.fa")
+        )
 
-    for sequence in classified_sequences:
-        classified_sequences[sequence].reclassify(args.lrr_gap, args.lrr_length)
+        classified_sequences = jackhmmer(
+            jackhmmer_input, classified_sequences, temp_dir, data_dir
+        )
 
-    logging.info(f"😊 Saving results to {results_dir}...")
-    result_table(classified_sequences, results_dir)
-    domain_table(classified_sequences, results_dir)
-    motif_table(classified_sequences, results_dir)
-    extract_nbarc(classified_sequences, results_dir)
-    logging.info(f"😊 Thank you for using Resistify!")
+        # close the temporary directory
+        temp_dir.cleanup()
+
+        # predict and add motifs to sequences
+        # perhaps move all of this into a function rather than iterating
+        for predictor in motif_models.keys():
+            predict_motif(classified_sequences, predictor, data_dir)
+
+        for sequence in classified_sequences:
+            classified_sequences[sequence].reclassify(args.lrr_gap, args.lrr_length)
+
+        logging.info(f"😊 Saving results to {results_dir}...")
+        result_table(classified_sequences, results_dir)
+        domain_table(classified_sequences, results_dir)
+        motif_table(classified_sequences, results_dir)
+        extract_nbarc(classified_sequences, results_dir)
+        logging.info(f"😊 Thank you for using Resistify!")
 
 
 if __name__ == "__main__":

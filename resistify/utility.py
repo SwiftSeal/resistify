@@ -4,7 +4,7 @@ import sys
 import os
 from Bio import SeqIO
 from resistify.annotations import Sequence
-
+from resistify.nlrexpress import motif_span_lengths
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -15,6 +15,7 @@ def parse_args():
         """
     )
     parser.add_argument("--verbose", help="Verbose output", action="store_true")
+    parser.add_argument("--ultra", help="Run NLRexpress over input only", action="store_true")
     parser.add_argument("--evalue", help="E-value threshold for hmmsearch. Scientific notation not accepted!", default="0.00001")
     parser.add_argument("--lrr_gap", help="Gap size for LRR annotation", default=75)
     parser.add_argument("--lrr_length", help="Minimum number of LRR motifs to be considered an LRR domain", default=4)
@@ -99,12 +100,15 @@ def domain_table(sequences, results_dir):
 
 def motif_table(sequences, results_dir):
     with open(os.path.join(results_dir, "motifs.tsv"), "w") as file:
-        file.write("Sequence\tMotif\tPosition\tProbability\n")
+        file.write("Sequence\tMotif\tPosition\tProbability\tSequence\n")
         for sequence in sequences:
             for motif in sequences[sequence].motifs:
                 for item in sequences[sequence].motifs[motif]:
+                    motif_sequence = sequences[sequence].sequence[item.position: item.position + motif_span_lengths[motif]]
+                    downstream_sequence = sequences[sequence].sequence[item.position - 5: item.position]
+                    upstream_sequence = sequences[sequence].sequence[item.position + motif_span_lengths[motif]: item.position + motif_span_lengths[motif] + 5]
                     file.write(
-                        f"{sequence}\t{motif}\t{item.position}\t{item.probability}\n"
+                        f"{sequence}\t{motif}\t{item.position}\t{item.probability}\t{downstream_sequence}\t{motif_sequence}\t{upstream_sequence}\n"
                     )
 
 
@@ -122,3 +126,38 @@ def extract_nbarc(sequences, results_dir):
                         f"{sequences[sequence].sequence[annotation.start-1:annotation.end]}\n"
                     )
                     count += 1
+
+def ultra_table(sequences, results_dir):
+    motif_translation = {
+        "extEDVID": "C",
+        "bA": "T",
+        "aA": "T",
+        "bC": "T",
+        "aC": "T",
+        "bDaD1": "T",
+        "aD3": "T",
+        "VG": "N",
+        "P-loop": "N",
+        "RNSB-A": "N",
+        "Walker-B": "N",
+        "RNSB-B": "N",
+        "RNSB-C": "N",
+        "RNSB-D": "N",
+        "GLPL": "N",
+        "MHD": "N",
+        "LxxLxL": "L",
+    }
+
+    with open(os.path.join(results_dir, "ultra.tsv"), "w") as file:
+        file.write("Sequence\tmotif_string\n")
+        for sequence in sequences:
+            #motif_string = ""
+            #for motif in sequences[sequence].motifs:
+            #    for item in sequences[sequence].motifs[motif]:
+            #        motif_string += motif_translation[motif]
+            motifs = [item for sublist in sequences[sequence].motifs.values() for item in sublist]
+            motifs.sort(key = lambda x: x.position)
+            motif_string = ""
+            for motif in motifs:
+                motif_string += motif_translation[motif.classification]
+            file.write(f"{sequence}\t{motif_string}\n")
