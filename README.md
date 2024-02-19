@@ -6,20 +6,20 @@ It is designed to be lightweight - no manual database installations or tricky de
 
 ## Installation
 
-To get started with Resistify:
+To get started with Resistify, simply run:
 
-`pip install resistify`
+`mamba install resistify`
 
 Resistify requires `biopython` and `scikit-learn==0.24.2`.
 It also requires `hmmsearch` and `jackhmmer` - install these [via conda](https://anaconda.org/bioconda/hmmer) or any other means.
 I'd recommend creating an environment for it specifically, as scikit-learn dependencies are a bit busted:
 
+Alternatively, you can use:
+
 ```
 mamba create -n resistify python==3.9 pip hmmer
 pip install resistify
 ```
-
-A conda distribution is in progress!
 
 ## Usage
 
@@ -55,3 +55,19 @@ Resistify will also search for N-terminal MADA motifs and CJID domains that are 
 
 Contributions are greatly appreciated!
 If you experience any issues running Resistify, please get in touch via the Issues page.
+
+## Citing
+
+```
+Resistify - A rapid and accurate annotation tool to identify NLRs and study their genomic organisation
+Moray Smith, John T. Jones, Ingo Hein
+bioRxiv 2024.02.14.580321; doi: https://doi.org/10.1101/2024.02.14.580321
+```
+
+You must also cite:
+
+```
+NLRexpress—A bundle of machine learning motif predictors—Reveals motif stability underlying plant Nod-like receptors diversity
+Martin Eliza C. , Spiridon Laurentiu , Goverse Aska , Petrescu Andrei-José
+Frontiers in Plant Science 2022; doi: https://doi.org/10.3389/fpls.2022.975888
+```
