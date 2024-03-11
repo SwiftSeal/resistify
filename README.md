@@ -34,7 +34,7 @@ Multiline and sequence description fields are allowed.
 Stop codons "*" are permitted at the end of sequences - internal stop codons are not.
 
 An `output_directory` will be created which will contain the results of your run:
- - `results.tsv` - A table of the length, classification, and predicted functionality of each sequence, as well as the presence of any MADA motif or CJID domain
+ - `results.tsv` - A table of the length, classification, count of NB-ARC motifs, as well as the presence of any MADA motif or CJID domain
  - `motifs.tsv` - A table of all the NLRexpress motifs for each sequence
  - `domains.tsv` - A table of all the domains identified for each sequence
  - `nbarc.fasta` - A fasta file of all the NB-ARC domains identified.
@@ -50,6 +50,15 @@ Secondly, each potential NLR sequence is scanned for CC, TIR, NB-ARC, and LRR as
 These are used as an additional layer of evidence to reclassify each NLR by predicting LRR domains, and predicting any CC or TIR domains which may have been missed in the initial `hmmsearch`.
 
 Resistify will also search for N-terminal MADA motifs and CJID domains that are common to CNLs and TNLs respectively.
+
+## A note on run time
+
+The run time of `resistify` scales linearly with the total number of NLRs present in the input sequence file.
+A file with 200 NLRs will take approximately twice as long as a file with 100 NLRs.
+This does not apply to the total number of *sequences* - an input of 50,000 sequences with 100 NLRs will run just as fast as an input of 1,000 sequences with 100 NLRs.
+The longest step of `resistify` is the two iterations of `jackhmmer` which is limited by I/O rather than the number available threads.
+You could probably gain some speed by splitting the input and running `resistify` in parallel.
+Alternatively, enjoy a longer lunch break...
 
 ## Contributing
 
