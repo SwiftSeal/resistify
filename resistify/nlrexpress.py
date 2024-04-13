@@ -91,9 +91,17 @@ def jackhmmer(input_fasta, sequences, temp_dir, data_dir):
     jackhmmer_iteration_1 = parse_jackhmmer(
         os.path.join(temp_dir.name, "jackhmmer-1.hmm"), iteration=False
     )
-    jackhmmer_iteration_2 = parse_jackhmmer(
-        os.path.join(temp_dir.name, "jackhmmer-2.hmm"), iteration=True
-    )
+
+    # check if there is a second iteration file
+    if os.path.exists(os.path.join(temp_dir.name, "jackhmmer-2.hmm")):
+        jackhmmer_iteration_2 = parse_jackhmmer(
+            os.path.join(temp_dir.name, "jackhmmer-2.hmm"), iteration=True
+        )
+    else:
+        jackhmmer_iteration_2 = parse_jackhmmer(
+            logging.info(f"😊 Second jackhmmer iteration file does not exist, setting second as first..."),
+            os.path.join(temp_dir.name, "jackhmmer-1.hmm"), iteration=True
+        )
 
     sequences = prepare_jackhmmer_data(
         sequences, jackhmmer_iteration_1, jackhmmer_iteration_2
