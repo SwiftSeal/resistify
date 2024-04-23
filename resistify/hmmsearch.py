@@ -12,7 +12,7 @@ def hmmsearch(input_file, sequences, temp_dir, data_dir, evalue):
     cmd = [
         "hmmsearch",
         "--noali",
-        "-E",
+        "-domE",
         evalue,
         "--domtblout",
         output_file,
