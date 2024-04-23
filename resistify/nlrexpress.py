@@ -4,6 +4,7 @@ import numpy as np
 from sklearn.neural_network import MLPClassifier
 import pickle
 from Bio import SeqIO
+from multiprocessing import Pool
 import tempfile
 import logging
 import os
@@ -49,14 +50,27 @@ motif_models = {
     "bDaD1": "MLP_TIR_bD-aD1.pkl"
 }
 
+def split_fasta(fasta, chunk_size, temp_dir):
+    """
+    Split a fasta file into chunks of defined size.
+    Return a list of the file paths.
+    """
+    fastas = []
+    records = list(SeqIO.parse(fasta, "fasta"))
+    records = [records[i:i + chunk_size] for i in range(0, len(records), chunk_size)]
 
-def jackhmmer(input_fasta, sequences, temp_dir, data_dir):
+    for i, record in enumerate(records):
+        with open(f"{temp_dir}/chunk_{i}.fasta", "w") as f:
+            SeqIO.write(record, f, "fasta")
+            fastas.append(f"{temp_dir}/chunk_{i}.fasta")
+
+    return fastas
+
+def jackhmmer_subprocess(fasta, data_dir, temp_dir):
     """
     Run jackhmmer on the input fasta file against the database_path.
     """
-
-    database_file = os.path.join(data_dir, "nlrexpress.fasta")
-
+    tmpdir = tempfile.gettempdir()
     cmd = [
         "jackhmmer",
         "--noali",
@@ -69,12 +83,10 @@ def jackhmmer(input_fasta, sequences, temp_dir, data_dir):
         "--domE",
         "1e-5",
         "--chkhmm",
-        temp_dir.name + "/jackhmmer",
-        input_fasta,
-        database_file,
+        fasta + ".out",
+        fasta,
+        data_dir + "/nlrexpress.fasta",
     ]
-
-    logging.info(f"😊 Running jackhmmer...")
     try:
         subprocess.run(
             cmd,
@@ -83,10 +95,38 @@ def jackhmmer(input_fasta, sequences, temp_dir, data_dir):
             stderr=subprocess.PIPE,
             universal_newlines=True,
         )
-        logging.info(f"😊 jackhmmer completed successfully...")
     except subprocess.CalledProcessError as e:
-        logging.error(f"😞 Error running jackhmmer. Stdout of jackhmmer: {e.stdout}")
+        logging.error(f"😞 Error running jackhmmer:\nStderr: {e.stderr}\nStdout:{e.stdout}")
         sys.exit(1)
+    
+
+def jackhmmer(fasta, sequences, temp_dir, data_dir, chunk_size, threads):
+    """
+    Run jackhmmer on the input fasta file against the database_path.
+    """
+
+    database_file = os.path.join(data_dir, "nlrexpress.fasta")
+
+    # split fasta into chunks
+    logging.info(f"😊 Splitting input fasta file into chunks...")
+    fastas = split_fasta(fasta, chunk_size, temp_dir)
+
+    # run jackhmmer on each chunk
+    logging.info(f"😊 Running jackhmmer on each chunk...")
+    with Pool(-(-threads//2)) as pool:
+        pool.starmap(jackhmmer_subprocess, [(f, data_dir, temp_dir.name) for f in fastas])
+
+    # merge the chunks
+    logging.info(f"😊 Merging chunks...")
+    with open(f"{temp_dir.name}/jackhmmer-1.hmm", "w") as f:
+        for fasta in fastas:
+            with open(f"{fasta}.out-1.hmm") as chunk:
+                f.write(chunk.read())
+    
+    with open(f"{temp_dir.name}/jackhmmer-2.hmm", "w") as f:
+        for fasta in fastas:
+            with open(f"{fasta}.out-2.hmm") as chunk:
+                f.write(chunk.read())
 
     jackhmmer_iteration_1 = parse_jackhmmer(
         os.path.join(temp_dir.name, "jackhmmer-1.hmm"), iteration=False
