@@ -1,5 +1,6 @@
 import subprocess
 import sys
+import shutil
 import numpy as np
 from sklearn.neural_network import MLPClassifier
 import pickle
@@ -66,11 +67,10 @@ def split_fasta(fasta, chunk_size, temp_dir):
 
     return fastas
 
-def jackhmmer_subprocess(fasta, data_dir, temp_dir):
+def jackhmmer_subprocess(fasta, temp_dir):
     """
     Run jackhmmer on the input fasta file against the database_path.
     """
-    tmpdir = tempfile.gettempdir()
     cmd = [
         "jackhmmer",
         "--noali",
@@ -85,7 +85,7 @@ def jackhmmer_subprocess(fasta, data_dir, temp_dir):
         "--chkhmm",
         fasta + ".out",
         fasta,
-        data_dir + "/nlrexpress.fasta",
+        temp_dir + "/nlrexpress.fasta",
     ]
     try:
         subprocess.run(
@@ -105,7 +105,11 @@ def jackhmmer(fasta, sequences, temp_dir, data_dir, chunk_size, threads):
     Run jackhmmer on the input fasta file against the database_path.
     """
 
-    database_file = os.path.join(data_dir, "nlrexpress.fasta")
+    # Copy database to temp_dir for speeeed
+    shutil.copy(
+        os.path.join(data_dir, "nlrexpress.fasta"),
+        f"{temp_dir.name}/nlrexpress.fasta"
+    )
 
     # split fasta into chunks
     logging.info(f"😊 Splitting input fasta file into chunks...")
@@ -114,7 +118,7 @@ def jackhmmer(fasta, sequences, temp_dir, data_dir, chunk_size, threads):
     # run jackhmmer on each chunk
     logging.info(f"😊 Running jackhmmer on each chunk...")
     with Pool(-(-threads//2)) as pool:
-        pool.starmap(jackhmmer_subprocess, [(f, data_dir, temp_dir.name) for f in fastas])
+        pool.starmap(jackhmmer_subprocess, [(f, temp_dir.name) for f in fastas])
 
     # merge the chunks
     logging.info(f"😊 Merging chunks...")
