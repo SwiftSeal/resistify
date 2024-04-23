@@ -56,14 +56,6 @@ def main():
         f"😊 {len(classified_sequences)} sequences classified as potential NLRs!"
     )
 
-    if args.quick:
-        logging.info(f"😊 Skipping jackhmmer and motif prediction...")
-        result_table(classified_sequences, results_dir)
-        domain_table(classified_sequences, results_dir)
-        extract_nbarc(classified_sequences, results_dir)
-        logging.info(f"😊 Thank you for using Resistify!")
-        sys.exit(0)
-
     jackhmmer_input = save_fasta(
         classified_sequences, os.path.join(temp_dir.name, "jackhmmer_input.fa")
     )
