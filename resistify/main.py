@@ -61,7 +61,7 @@ def main():
     )
 
     classified_sequences = jackhmmer(
-        jackhmmer_input, classified_sequences, temp_dir, data_dir
+        jackhmmer_input, classified_sequences, temp_dir, data_dir, 5, 4
     )
 
     # close the temporary directory

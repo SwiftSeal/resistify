@@ -60,9 +60,9 @@ def split_fasta(fasta, chunk_size, temp_dir):
     records = [records[i:i + chunk_size] for i in range(0, len(records), chunk_size)]
 
     for i, record in enumerate(records):
-        with open(f"{temp_dir}/chunk_{i}.fasta", "w") as f:
+        with open(f"{temp_dir.name}/chunk_{i}.fasta", "w") as f:
             SeqIO.write(record, f, "fasta")
-            fastas.append(f"{temp_dir}/chunk_{i}.fasta")
+            fastas.append(f"{temp_dir.name}/chunk_{i}.fasta")
 
     return fastas
 
