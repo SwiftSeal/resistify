@@ -12,7 +12,7 @@ def hmmsearch(input_file, sequences, temp_dir, data_dir, evalue):
     cmd = [
         "hmmsearch",
         "--noali",
-        "-domE",
+        "--domE",
         evalue,
         "--domtblout",
         output_file,
@@ -31,7 +31,7 @@ def hmmsearch(input_file, sequences, temp_dir, data_dir, evalue):
         )
         logging.info(f"😊 hmmsearch completed successfully...")
     except subprocess.CalledProcessError as e:
-        logging.error(f"😞 Error running hmmsearch. Stderr of hmmsearch: {e.stderr}")
+        logging.error(f"😞 Error running hmmsearch:\nStderr: {e.stderr}\nStdout:{e.stdout}")
         sys.exit(1)
     except FileNotFoundError:
         logging.error(f"😞 hmmsearch not found. Have you installed it?")
