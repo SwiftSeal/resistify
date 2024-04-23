@@ -15,6 +15,8 @@ def parse_args():
         """
     )
     parser.add_argument("--verbose", help="Verbose output", action="store_true")
+    parser.add_argument("--threads", help="Threads available to jackhmmer", default=2)
+    parser.add_argument("--chunksize", help="Number of sequences per split for jackhmmer", default=5)
     parser.add_argument("--evalue", help="E-value threshold for hmmsearch. Scientific notation not accepted!", default="0.00001")
     parser.add_argument("--lrr_gap", help="Gap size for LRR annotation", default=75)
     parser.add_argument("--lrr_length", help="Minimum number of LRR motifs to be considered an LRR domain", default=4)
