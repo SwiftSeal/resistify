@@ -12,6 +12,26 @@ short_IDs = {
     "C-JID": "j",
 }
 
+motif_translation = {
+    "extEDVID": "C",
+    "bA": "T",
+    "aA": "T",
+    "bC": "T",
+    "aC": "T",
+    "bDaD1": "T",
+    "aD3": "T",
+    "VG": "N",
+    "P-loop": "N",
+    "RNSB-A": "N",
+    "Walker-B": "N",
+    "RNSB-B": "N",
+    "RNSB-C": "N",
+    "RNSB-D": "N",
+    "GLPL": "N",
+    "MHD": "N",
+    "LxxLxL": "L",
+}
+
 
 class Sequence:
     def __init__(self, sequence):
@@ -102,7 +122,7 @@ class Sequence:
         
         # write motif string
         for motif in sorted_motifs:
-            motif_string += short_IDs[motif.classification]
+            self.motif_string += motif_translation[motif.classification]
 
 
         # Add CC annotation from motif if no N terminal annotation
