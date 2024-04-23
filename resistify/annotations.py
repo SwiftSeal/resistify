@@ -18,8 +18,10 @@ class Sequence:
         self.sequence = sequence
         self.classification = None
         self.mada = False
+        self.madal = False
         self.cjid = False
         self.domain_string = ""
+        self.motif_string = ""
         self.annotations = []
         self.motifs = {
             "extEDVID": [],
@@ -94,6 +96,15 @@ class Sequence:
         """
         Reclassify with new LRR annotations.
         """
+        # Create sorted motif string
+        sorted_motifs = [item for sublist in self.motifs.values() for item in sublist]
+        sorted_motifs.sort(key=lambda x: x.position)
+        
+        # write motif string
+        for motif in sorted_motifs:
+            motif_string += short_IDs[motif.classification]
+
+
         # Add CC annotation from motif if no N terminal annotation
         if self.classification == "N":
             for annotation in self.annotations:
