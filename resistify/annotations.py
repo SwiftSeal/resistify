@@ -134,7 +134,7 @@ class Sequence:
             for motif in self.motifs["extEDVID"]:
                 if motif.position < nbarc_start:
                     self.add_annotation(
-                        Annotation("CC", motif.position, motif.position + 1)
+                        Annotation("CC", motif.position, motif.position + 1, "NA")
                     )
             TIR_motif_IDs = ["aA", "aC", "aD3", "bA", "bC", "bDaD1"]
             TIR_motifs = [item for motif in TIR_motif_IDs for item in self.motifs[motif] if item.position < nbarc_start]
@@ -142,7 +142,7 @@ class Sequence:
             if len(TIR_motifs) > 0:
                 TIR_motifs.sort(key=lambda x: x.position)
                 self.add_annotation(
-                    Annotation("TIR", TIR_motifs[0].position, TIR_motifs[-1].position)
+                    Annotation("TIR", TIR_motifs[0].position, TIR_motifs[-1].position, "NA")
                 )
 
 
@@ -160,13 +160,13 @@ class Sequence:
                     count += 1
                 else:
                     if count >= lrr_length:
-                        self.add_annotation(Annotation("LRR", start, end))
+                        self.add_annotation(Annotation("LRR", start, end, "NA"))
                     start = motif.position
                     end = motif.position
                     count = 0
 
             if count >= 3:
-                self.add_annotation(Annotation("LRR", start, end))
+                self.add_annotation(Annotation("LRR", start, end, "NA"))
 
         sorted_annotations = sorted(self.annotations, key=lambda x: x.start)
 
@@ -201,10 +201,11 @@ class Sequence:
 
 
 class Annotation:
-    def __init__(self, domain, start, end):
+    def __init__(self, domain, start, end, evalue):
         self.domain = domain
         self.start = start
         self.end = end
+        self.evalue = evalue
 
 
 class Motif:

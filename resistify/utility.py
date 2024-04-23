@@ -93,11 +93,11 @@ def result_table(sequences, results_dir):
 
 def domain_table(sequences, results_dir):
     with open(os.path.join(results_dir, "domains.tsv"), "w") as file:
-        file.write("Sequence\tDomain\tStart\tEnd\n")
+        file.write("Sequence\tDomain\tStart\tEnd\tE-value\n")
         for sequence in sequences:
             for annotation in sequences[sequence].annotations:
                 file.write(
-                    f"{sequence}\t{annotation.domain}\t{annotation.start}\t{annotation.end}\n"
+                    f"{sequence}\t{annotation.domain}\t{annotation.start}\t{annotation.end}\t{annotation.evalue}\n"
                 )
 
 

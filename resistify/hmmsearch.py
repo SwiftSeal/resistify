@@ -57,6 +57,6 @@ def hmmsearch(input_file, sequences, temp_dir, data_dir, evalue):
             if domain == "Rx_N":
                 domain = "CC"
 
-            sequences[sequence].add_annotation(Annotation(domain, start, end))
+            sequences[sequence].add_annotation(Annotation(domain, start, end, evalue))
 
     return sequences
