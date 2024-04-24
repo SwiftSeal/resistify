@@ -39,6 +39,7 @@ def hmmsearch(input_file, sequences, temp_dir, data_dir, evalue):
     sequences = parse_hmmsearch(output_file, sequences)
 
 def parse_hmmsearch(output_file, sequences):
+
     with open(output_file) as f:
         for line in f:
             if line.startswith("#"):
@@ -59,6 +60,11 @@ def parse_hmmsearch(output_file, sequences):
 
             if domain == "Rx_N" or domain == "cd14798":
                 domain = "CC"
+
+            # RPW8 being problematic - increase score threshold
+            # what could possibly go wrong?
+            if domain == "RPW8" and score < 20:
+                continue
 
             sequences[sequence].add_annotation(Annotation(domain, start, end, evalue, score))
 
