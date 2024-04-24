@@ -56,16 +56,21 @@ def parse_hmmsearch(output_file, sequences):
             if start > end:
                 continue
 
+            # RPW8 being problematic - increase score threshold
+            # what could possibly go wrong?
+            if domain == "RPW8" and score < 20:
+                continue
+
+            # CC being problematic - increase score threshold
+            if domain == "cd14798" and score < 30:
+                continue
+
             if domain == "TIR_2":
                 domain = "TIR"
 
             if domain == "Rx_N" or domain == "cd14798":
                 domain = "CC"
 
-            # RPW8 being problematic - increase score threshold
-            # what could possibly go wrong?
-            if domain == "RPW8" and score < 20:
-                continue
 
             sequences[sequence].add_annotation(Annotation(domain, start, end, evalue, score))
 
