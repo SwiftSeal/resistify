@@ -144,7 +144,7 @@ class Sequence:
             for motif in self.motifs["extEDVID"]:
                 if motif.position < nbarc_start:
                     self.add_annotation(
-                        Annotation("CC", motif.position, motif.position + 1, "NA")
+                        Annotation("CC", motif.position, motif.position + 1, "NA", "NA")
                     )
             TIR_motif_IDs = ["aA", "aC", "aD3", "bA", "bC", "bDaD1"]
             TIR_motifs = [item for motif in TIR_motif_IDs for item in self.motifs[motif] if item.position < nbarc_start]
@@ -152,7 +152,7 @@ class Sequence:
             if len(TIR_motifs) > 0:
                 TIR_motifs.sort(key=lambda x: x.position)
                 self.add_annotation(
-                    Annotation("TIR", TIR_motifs[0].position, TIR_motifs[-1].position, "NA")
+                    Annotation("TIR", TIR_motifs[0].position, TIR_motifs[-1].position, "NA", "NA")
                 )
 
 
