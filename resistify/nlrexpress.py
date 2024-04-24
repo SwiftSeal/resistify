@@ -122,7 +122,7 @@ def jackhmmer(fasta, sequences, temp_dir, data_dir, chunk_size, threads):
         pool.starmap(jackhmmer_subprocess, [(f, temp_dir.name) for f in fastas])
 
     # merge the chunks
-    logging.info(f"🤓 Merging chunks...")
+    logging.debug(f"🤓 Merging chunks...")
     with open(f"{temp_dir.name}/jackhmmer-1.hmm", "w") as f:
         for fasta in fastas:
             with open(f"{fasta}.out-1.hmm") as chunk:
