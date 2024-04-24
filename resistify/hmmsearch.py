@@ -37,6 +37,7 @@ def hmmsearch(input_file, sequences, temp_dir, data_dir, evalue):
         sys.exit(1)
 
     sequences = parse_hmmsearch(output_file, sequences)
+    return sequences
 
 def parse_hmmsearch(output_file, sequences):
 
