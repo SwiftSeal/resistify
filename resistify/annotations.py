@@ -98,7 +98,17 @@ class Sequence:
     def classify(self):
         domain_string = ""
         for annotation in self.annotations:
-            domain_string += short_IDs[annotation.domain]
+            # skip non-core
+            if annotation.domain == "MADA":
+                if annotation.score >= 20:
+                    self.mada = True
+                else:
+                    self.madal = True
+            elif annotation.domain == "C-JID":
+                self.cjid = True
+            else:
+                domain_string += short_IDs[annotation.domain]
+    
 
         # classify based on primary architecture
         if "CN" in domain_string:
@@ -160,27 +170,23 @@ class Sequence:
                     count += 1
                 else:
                     if count >= lrr_length:
-                        self.add_annotation(Annotation("LRR", start, end, "NA"))
+                        self.add_annotation(Annotation("LRR", start, end, "NA", "NA"))
                     start = motif.position
                     end = motif.position
                     count = 0
 
             if count >= 3:
-                self.add_annotation(Annotation("LRR", start, end, "NA"))
+                self.add_annotation(Annotation("LRR", start, end, "NA", "NA"))
 
         sorted_annotations = sorted(self.annotations, key=lambda x: x.start)
 
         domain_string = ""
         for annotation in sorted_annotations:
-            domain_string += short_IDs[annotation.domain]
+            # skip non-core
+            if annotation.domain != "MADA" and annotation.domain != "C-JID":
+                domain_string += short_IDs[annotation.domain]
 
         self.domain_string = domain_string
-
-        # check for MADA and C-JID
-        if "m" in domain_string:
-            self.mada = True
-        if "j" in domain_string:
-            self.cjid = True
 
         # classify based on primary architecture
         # Does order matter?
@@ -201,11 +207,12 @@ class Sequence:
 
 
 class Annotation:
-    def __init__(self, domain, start, end, evalue):
+    def __init__(self, domain, start, end, evalue, score):
         self.domain = domain
         self.start = start
         self.end = end
         self.evalue = evalue
+        self.score = score
 
 
 class Motif:

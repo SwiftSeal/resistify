@@ -62,6 +62,7 @@ def split_fasta(fasta, chunk_size, temp_dir):
 
     for i, record in enumerate(records):
         with open(f"{temp_dir.name}/chunk_{i}.fasta", "w") as f:
+            logging.debug(f"🤓 Splitting fasta to {temp_dir.name}/chunk_{i}.fasta")
             SeqIO.write(record, f, "fasta")
             fastas.append(f"{temp_dir.name}/chunk_{i}.fasta")
 
@@ -88,6 +89,7 @@ def jackhmmer_subprocess(fasta, temp_dir):
         temp_dir + "/nlrexpress.fasta",
     ]
     try:
+        logging.debug(f"🤓 Running jackhmmer subprocess on {fasta}")
         subprocess.run(
             cmd,
             check=True,
@@ -112,16 +114,15 @@ def jackhmmer(fasta, sequences, temp_dir, data_dir, chunk_size, threads):
     )
 
     # split fasta into chunks
-    logging.info(f"😊 Splitting input fasta file into chunks...")
     fastas = split_fasta(fasta, chunk_size, temp_dir)
 
     # run jackhmmer on each chunk
-    logging.info(f"😊 Running jackhmmer on each chunk...")
+    logging.info(f"😊 Running jackhmmer, this could take a while...")
     with Pool(-(-threads//2)) as pool:
         pool.starmap(jackhmmer_subprocess, [(f, temp_dir.name) for f in fastas])
 
     # merge the chunks
-    logging.info(f"😊 Merging chunks...")
+    logging.info(f"🤓 Merging chunks...")
     with open(f"{temp_dir.name}/jackhmmer-1.hmm", "w") as f:
         for fasta in fastas:
             with open(f"{fasta}.out-1.hmm") as chunk:
