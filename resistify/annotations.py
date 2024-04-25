@@ -12,14 +12,36 @@ short_IDs = {
     "C-JID": "j",
 }
 
+motif_translation = {
+    "extEDVID": "C",
+    "bA": "T",
+    "aA": "T",
+    "bC": "T",
+    "aC": "T",
+    "bDaD1": "T",
+    "aD3": "T",
+    "VG": "N",
+    "P-loop": "N",
+    "RNSB-A": "N",
+    "Walker-B": "N",
+    "RNSB-B": "N",
+    "RNSB-C": "N",
+    "RNSB-D": "N",
+    "GLPL": "N",
+    "MHD": "N",
+    "LxxLxL": "L",
+}
+
 
 class Sequence:
     def __init__(self, sequence):
         self.sequence = sequence
         self.classification = None
         self.mada = False
+        self.madal = False
         self.cjid = False
         self.domain_string = ""
+        self.motif_string = ""
         self.annotations = []
         self.motifs = {
             "extEDVID": [],
@@ -76,7 +98,17 @@ class Sequence:
     def classify(self):
         domain_string = ""
         for annotation in self.annotations:
-            domain_string += short_IDs[annotation.domain]
+            # skip non-core
+            if annotation.domain == "MADA":
+                if annotation.score >= 20:
+                    self.mada = True
+                else:
+                    self.madal = True
+            elif annotation.domain == "C-JID":
+                self.cjid = True
+            else:
+                domain_string += short_IDs[annotation.domain]
+    
 
         # classify based on primary architecture
         if "CN" in domain_string:
@@ -94,6 +126,15 @@ class Sequence:
         """
         Reclassify with new LRR annotations.
         """
+        # Create sorted motif string
+        sorted_motifs = [item for sublist in self.motifs.values() for item in sublist]
+        sorted_motifs.sort(key=lambda x: x.position)
+        
+        # write motif string
+        for motif in sorted_motifs:
+            self.motif_string += motif_translation[motif.classification]
+
+
         # Add CC annotation from motif if no N terminal annotation
         if self.classification == "N":
             for annotation in self.annotations:
@@ -103,7 +144,7 @@ class Sequence:
             for motif in self.motifs["extEDVID"]:
                 if motif.position < nbarc_start:
                     self.add_annotation(
-                        Annotation("CC", motif.position, motif.position + 1)
+                        Annotation("CC", motif.position, motif.position + 1, "NA", "NA")
                     )
             TIR_motif_IDs = ["aA", "aC", "aD3", "bA", "bC", "bDaD1"]
             TIR_motifs = [item for motif in TIR_motif_IDs for item in self.motifs[motif] if item.position < nbarc_start]
@@ -111,7 +152,7 @@ class Sequence:
             if len(TIR_motifs) > 0:
                 TIR_motifs.sort(key=lambda x: x.position)
                 self.add_annotation(
-                    Annotation("TIR", TIR_motifs[0].position, TIR_motifs[-1].position)
+                    Annotation("TIR", TIR_motifs[0].position, TIR_motifs[-1].position, "NA", "NA")
                 )
 
 
@@ -129,27 +170,23 @@ class Sequence:
                     count += 1
                 else:
                     if count >= lrr_length:
-                        self.add_annotation(Annotation("LRR", start, end))
+                        self.add_annotation(Annotation("LRR", start, end, "NA", "NA"))
                     start = motif.position
                     end = motif.position
                     count = 0
 
             if count >= 3:
-                self.add_annotation(Annotation("LRR", start, end))
+                self.add_annotation(Annotation("LRR", start, end, "NA", "NA"))
 
         sorted_annotations = sorted(self.annotations, key=lambda x: x.start)
 
         domain_string = ""
         for annotation in sorted_annotations:
-            domain_string += short_IDs[annotation.domain]
+            # skip non-core
+            if annotation.domain != "MADA" and annotation.domain != "C-JID":
+                domain_string += short_IDs[annotation.domain]
 
         self.domain_string = domain_string
-
-        # check for MADA and C-JID
-        if "m" in domain_string:
-            self.mada = True
-        if "j" in domain_string:
-            self.cjid = True
 
         # classify based on primary architecture
         # Does order matter?
@@ -170,10 +207,12 @@ class Sequence:
 
 
 class Annotation:
-    def __init__(self, domain, start, end):
+    def __init__(self, domain, start, end, evalue, score):
         self.domain = domain
         self.start = start
         self.end = end
+        self.evalue = evalue
+        self.score = score
 
 
 class Motif:

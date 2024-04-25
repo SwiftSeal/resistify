@@ -15,10 +15,12 @@ def parse_args():
         """
     )
     parser.add_argument("--verbose", help="Verbose output", action="store_true")
+    parser.add_argument("--threads", help="Threads available to jackhmmer", default=2, type=int)
+    parser.add_argument("--chunksize", help="Number of sequences per split for jackhmmer", default=5, type=int)
     parser.add_argument("--evalue", help="E-value threshold for hmmsearch. Scientific notation not accepted!", default="0.00001")
-    parser.add_argument("--lrr_gap", help="Gap size for LRR annotation", default=75)
-    parser.add_argument("--lrr_length", help="Minimum number of LRR motifs to be considered an LRR domain", default=4)
-    parser.add_argument("--duplicate_gap", help="Gap size (aa) to consider merging duplicate annotations", default=100)
+    parser.add_argument("--lrr_gap", help="Gap size for LRR annotation", default=75, type=int)
+    parser.add_argument("--lrr_length", help="Minimum number of LRR motifs to be considered an LRR domain", default=4, type=int)
+    parser.add_argument("--duplicate_gap", help="Gap size (aa) to consider merging duplicate annotations", default=100, type=int)
     parser.add_argument("input", help="Input FASTA file")
     parser.add_argument("outdir", help="Output directory")
 
@@ -56,7 +58,7 @@ def save_fasta(sequences, path):
 def result_table(sequences, results_dir):
     with open(os.path.join(results_dir, "results.tsv"), "w") as file:
         file.write(
-            "Sequence\tLength\tDomains\tClassification\tNBARC_motifs\tMADA\tCJID\n"
+            "Sequence\tLength\tMotifs\tDomains\tClassification\tNBARC_motifs\tMADA\tMADAL\tCJID\n"
         )
         for sequence in sequences:
             nbarc_motifs = [
@@ -77,23 +79,25 @@ def result_table(sequences, results_dir):
                     n_nbarc_motifs += 1
 
             length = len(sequences[sequence].sequence)
+            motif_string = sequences[sequence].motif_string
             classification = sequences[sequence].classification
             mada = sequences[sequence].mada
+            madal = sequences[sequence].madal
             cjid = sequences[sequence].cjid
             domain_string = sequences[sequence].domain_string
 
             file.write(
-                f"{sequence}\t{length}\t{domain_string}\t{classification}\t{n_nbarc_motifs}\t{mada}\t{cjid}\n"
+                f"{sequence}\t{length}\t{motif_string}\t{domain_string}\t{classification}\t{n_nbarc_motifs}\t{mada}\t{madal}\t{cjid}\n"
             )
 
 
 def domain_table(sequences, results_dir):
     with open(os.path.join(results_dir, "domains.tsv"), "w") as file:
-        file.write("Sequence\tDomain\tStart\tEnd\n")
+        file.write("Sequence\tDomain\tStart\tEnd\tE-value\n")
         for sequence in sequences:
             for annotation in sequences[sequence].annotations:
                 file.write(
-                    f"{sequence}\t{annotation.domain}\t{annotation.start}\t{annotation.end}\n"
+                    f"{sequence}\t{annotation.domain}\t{annotation.start}\t{annotation.end}\t{annotation.evalue}\n"
                 )
 
 
