@@ -61,14 +61,10 @@ def parse_hmmsearch(output_file, sequences):
             if domain == "RPW8" and score < 20:
                 continue
 
-            # CC being problematic - increase score threshold
-            if domain == "cd14798" and score < 30:
-                continue
-
             if domain == "TIR_2":
                 domain = "TIR"
 
-            if domain == "Rx_N" or domain == "cd14798":
+            if domain == "Rx_N":
                 domain = "CC"
 
 
