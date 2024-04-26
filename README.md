@@ -1,4 +1,4 @@
-# 🕵️ Resistify
+# Resistify
 
 Resistify is a program which classifies plant NLRs by their protein domain and motif architecture.
 It is designed to be lightweight - no manual database installations or tricky dependencies here!
@@ -6,18 +6,19 @@ It is designed to be lightweight - no manual database installations or tricky de
 
 ## Installation
 
+Resistify is available on Conda.
 To get started with Resistify, simply run:
 
-`mamba install resistify`
+`conda install resistify`
 
 Resistify requires `biopython` and `scikit-learn==0.24.2`.
 It also requires `hmmsearch` and `jackhmmer` - install these [via conda](https://anaconda.org/bioconda/hmmer) or any other means.
-I'd recommend creating an environment for it specifically, as scikit-learn dependencies are a bit busted:
+I'd recommend creating an environment for it specifically, as scikit-learn dependencies are a bit busted...
 
 Alternatively, you can use:
 
 ```
-mamba create -n resistify python==3.9 pip hmmer
+conda create -n resistify python==3.9 pip hmmer
 pip install resistify
 ```
 
@@ -53,12 +54,18 @@ Resistify will also search for N-terminal MADA motifs and CJID domains that are 
 
 ## A note on run time
 
+Version 0.1.1 has introduced multithreading 🎉 - use the `--threads` argument to get started.
+
 The run time of `resistify` scales linearly with the total number of NLRs present in the input sequence file.
 A file with 200 NLRs will take approximately twice as long as a file with 100 NLRs.
 This does not apply to the total number of *sequences* - an input of 50,000 sequences with 100 NLRs will run just as fast as an input of 1,000 sequences with 100 NLRs.
-The longest step of `resistify` is the two iterations of `jackhmmer` which is limited by I/O rather than the number available threads.
-You could probably gain some speed by splitting the input and running `resistify` in parallel.
-Alternatively, enjoy a longer lunch break...
+
+Here's an example of the `results.tsv` for ZAR1:
+
+|Sequence | Length | Motifs | Domains | Classification | NBARC_motifs | MADA | MADAL | CJID |
+|--- | --- | --- | --- | --- | --- | --- | --- | --- |
+|ZAR1 | 852 | CNNNNNNNNNLLLLLLLLLL | CNL | CNL | 9 | False | True | False |
+
 
 ## Contributing
 
