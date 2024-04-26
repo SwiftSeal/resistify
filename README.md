@@ -1,4 +1,11 @@
 # Resistify
+![PyPI - Version](https://img.shields.io/pypi/v/resistify)
+![Conda Version](https://img.shields.io/conda/vn/bioconda/resistify)
+![Conda Downloads](https://img.shields.io/conda/dn/bioconda/resistify)
+
+
+
+
 
 Resistify is a program which classifies plant NLRs by their protein domain and motif architecture.
 It is designed to be lightweight - no manual database installations or tricky dependencies here!
