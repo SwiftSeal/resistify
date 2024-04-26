@@ -1,0 +1,4 @@
+{
+	"name": "Resistify",
+	"build": { "dockerfile": "Dockerfile" }
+}
