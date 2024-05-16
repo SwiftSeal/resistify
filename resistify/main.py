@@ -42,19 +42,25 @@ def main():
         sequences[sequence].classify()
 
     # subset sequences based on classification
-    classified_sequences = {
-        sequence: sequences[sequence]
-        for sequence in sequences
-        if sequences[sequence].classification is not None
-    }
+    if args.ultra:
+        # do not subset sequences based on classification
+        logging.info(f"😊 Running in ultra mode!")
+        classified_sequences = sequences
+    else:
+        # subset sequences based on classification
+        classified_sequences = {
+            sequence: sequences[sequence]
+            for sequence in sequences
+            if sequences[sequence].classification is not None
+        }
 
-    if not classified_sequences:
-        logging.info(f"😞 No sequences classified as potential NLRs!")
-        sys.exit(0)
+        if not classified_sequences:
+            logging.info(f"😞 No sequences classified as potential NLRs!")
+            sys.exit(0)
 
-    logging.info(
-        f"😊 {len(classified_sequences)} sequences classified as potential NLRs!"
-    )
+        logging.info(
+            f"😊 {len(classified_sequences)} sequences classified as potential NLRs!"
+        )
 
     jackhmmer_input = save_fasta(
         classified_sequences, os.path.join(temp_dir.name, "jackhmmer_input.fa")
