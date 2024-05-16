@@ -3,7 +3,7 @@
 import argparse
 import tempfile
 import sys
-import logging
+from .logging_setup import log, console
 import os
 from .annotations import *
 from .hmmsearch import *
@@ -14,15 +14,6 @@ from .utility import *
 def main():
     args = parse_args()
 
-    if args.verbose:
-        logging.basicConfig(
-            level=logging.DEBUG, stream=sys.stderr, format="%(asctime)s - %(message)s"
-        )
-    else:
-        logging.basicConfig(
-            level=logging.INFO, stream=sys.stderr, format="%(asctime)s - %(message)s"
-        )
-
     data_dir = os.path.join(os.path.dirname(__file__), "data")
 
     results_dir = create_output_directory(args.outdir)
@@ -31,6 +22,7 @@ def main():
 
     # create a temporary directory to store tempfiles
     temp_dir = tempfile.TemporaryDirectory()
+    log.debug(f"Temporary directory created at {temp_dir.name}")
 
     # save the fasta with stripped headers
     hmmer_input = save_fasta(sequences, os.path.join(temp_dir.name, "hmmer_input.fa"))
@@ -44,7 +36,7 @@ def main():
     # subset sequences based on classification
     if args.ultra:
         # do not subset sequences based on classification
-        logging.info(f"😊 Running in ultra mode!")
+        log.info(f"Running in ultra mode!")
         classified_sequences = sequences
     else:
         # subset sequences based on classification
@@ -55,11 +47,11 @@ def main():
         }
 
         if not classified_sequences:
-            logging.info(f"😞 No sequences classified as potential NLRs!")
+            log.info(f"No sequences classified as potential NLRs!")
             sys.exit(0)
 
-        logging.info(
-            f"😊 {len(classified_sequences)} sequences classified as potential NLRs!"
+        log.info(
+            f"{len(classified_sequences)} sequences classified as potential NLRs!"
         )
 
     jackhmmer_input = save_fasta(
@@ -81,12 +73,13 @@ def main():
     for sequence in classified_sequences:
         classified_sequences[sequence].reclassify(args.lrr_gap, args.lrr_length)
 
-    logging.info(f"😊 Saving results to {results_dir}...")
+    log.info(f"Saving results to {results_dir}...")
     result_table(classified_sequences, results_dir)
     domain_table(classified_sequences, results_dir)
     motif_table(classified_sequences, results_dir)
     extract_nbarc(classified_sequences, results_dir)
-    logging.info(f"😊 Thank you for using Resistify!")
+
+    log.info("Thank you for using Resistify!")
 
 
 if __name__ == "__main__":
