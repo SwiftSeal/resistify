@@ -56,7 +56,7 @@ def split_fasta(fasta, chunk_size, temp_dir):
     Split a fasta file into chunks of defined size.
     Return a list of the file paths.
     """
-    log.info(f"Splitting fasta into chunks of {chunk_size} sequences...")
+    log.debug(f"Splitting fasta into chunks of {chunk_size} sequences")
     fastas = []
     records = list(SeqIO.parse(fasta, "fasta"))
     records = [records[i:i + chunk_size] for i in range(0, len(records), chunk_size)]
@@ -222,6 +222,7 @@ def parse_jackhmmer(file, iteration=False):
 
 def prepare_jackhmmer_data(sequences, hmm_it1, hmm_it2):
     for sequence in sequences:
+        log.debug(f"Preparing jackhmmer data for {sequence}")
         # get the dna sequence
         seq = sequences[sequence].sequence
         # make blank list for this sequence
@@ -248,10 +249,11 @@ def prepare_jackhmmer_data(sequences, hmm_it1, hmm_it2):
 
 def predict_motif(sequences, predictor, data_dir):
     # create a matrix for the predictors motif size
-    log.info(f"Generating matrix for {predictor}...")
+    log.info(f"Predicting {predictor} motifs...")
     matrix = []
     motif_size = motif_span_lengths[predictor]
     for sequence in sequences:
+        log.debug(f"Preparing matrix for {sequence}")
         sequence_length = len(sequences[sequence].sequence)
         for i in range(sequence_length):
             # make sure we are within the sequence bounds
@@ -271,12 +273,14 @@ def predict_motif(sequences, predictor, data_dir):
 
     model = pickle.load(open(model_path, "rb"))
     # run the prediction
-    log.info(f"Predicting {predictor} motifs...")
+    log.debug("Running prediction")
     result = model.predict_proba(matrix)
+    log.debug("Prediction complete")
 
     # iterate through sequences and pull out any predictions with a probability > 0.8
     result_index = 0
     for sequence in sequences:
+        log.debug(f"Adding motifs to {sequence}")
         sequence_length = len(sequences[sequence].sequence)
         for i in range(len(sequences[sequence].sequence)):
             # make sure we are within the sequence bounds

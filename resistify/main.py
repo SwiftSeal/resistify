@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+from rich_argparse import RichHelpFormatter
 import tempfile
 import sys
 from .logging_setup import log, console
@@ -10,8 +11,28 @@ from .hmmsearch import *
 from .nlrexpress import *
 from .utility import *
 
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="""
+        Resistify is a tool for identifying and classifying NLR resistance genes in plant genomes.
+        """,
+        formatter_class=RichHelpFormatter
+    )
+    parser.add_argument("-t", "--threads", help="Threads available to jackhmmer", default=2, type=int)
+    parser.add_argument("--ultra", help="Run in ultra mode, non-NLRs will be retained", action="store_true")
+    parser.add_argument("--chunksize", help="Number of sequences per split for jackhmmer", default=5, type=int)
+    parser.add_argument("--evalue", help="E-value threshold for hmmsearch", default="0.00001")
+    parser.add_argument("--lrr_gap", help="Minimum gap between LRR motifs", default=75, type=int)
+    parser.add_argument("--lrr_length", help="Minimum number of LRR motifs to be considered an LRR domain", default=4, type=int)
+    parser.add_argument("--duplicate_gap", help="Gap size (aa) to consider merging duplicate annotations", default=100, type=int)
+    parser.add_argument("input", help="Input FASTA file")
+    parser.add_argument("outdir", help="Output directory")
+
+    return parser.parse_args()
 
 def main():
+    log.info("Welcome to Resistify version 0.2.0!")
+
     args = parse_args()
 
     data_dir = os.path.join(os.path.dirname(__file__), "data")

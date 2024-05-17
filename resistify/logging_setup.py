@@ -4,10 +4,9 @@ from rich.console import Console
 
 console = Console()
 logging.basicConfig(
-    level="NOTSET",
+    level="INFO",
     format="%(message)s",
     datefmt="[%X]",
     handlers=[RichHandler(console=console)],
 )
 log = logging.getLogger("rich")
-log.info("Welcome to Resistify version 0.2.0!")
