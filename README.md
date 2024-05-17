@@ -4,48 +4,55 @@
 ![Conda Downloads](https://img.shields.io/conda/dn/bioconda/resistify)
 
 
-
-
-
 Resistify is a program which classifies plant NLRs by their protein domain and motif architecture.
 It is designed to be lightweight - no manual database installations or tricky dependencies here!
+
+![terminal](assets/terminal.png)
 
 
 ## Installation
 
-Resistify is available on Conda.
-To get started with Resistify, simply run:
+Resistify is available on [Conda](https://anaconda.org/bioconda/resistify):
 
-`conda install resistify`
+`conda install -c bioconda resistify`
 
-Resistify requires `biopython` and `scikit-learn==0.24.2`.
-It also requires `hmmsearch` and `jackhmmer` - install these [via conda](https://anaconda.org/bioconda/hmmer) or any other means.
-I'd recommend creating an environment for it specifically, as scikit-learn dependencies are a bit busted...
+Resistify is also available on [PyPi](https://pypi.org/project/resistify/):
 
-Alternatively, you can use:
+`pip install resistify`
 
-```
-conda create -n resistify python==3.9 pip hmmer
-pip install resistify
-```
+Resistify requires [hmmer](http://hmmer.org) as a dependency.
+
 
 ## Usage
 
-To run Resistify:
+To get started with Resistify:
 
 ```
 resistify <input.fa> <output_directory>
 ```
 
-Your `input.fa` should contain the amino acid sequences of your proteins of interest.
-Multiline and sequence description fields are allowed.
-Stop codons "*" are permitted at the end of sequences - internal stop codons are not.
-
+Your `input.fa` should contain your protein sequences of interest.
 An `output_directory` will be created which will contain the results of your run:
- - `results.tsv` - A table of the length, classification, count of NB-ARC motifs, as well as the presence of any MADA motif or CJID domain
- - `motifs.tsv` - A table of all the NLRexpress motifs for each sequence
- - `domains.tsv` - A table of all the domains identified for each sequence
+ - `results.tsv` - A table containing the primary results of Resistify.
+ - `motifs.tsv` - A table of all the NLR motifs identified for each sequence.
+ - `domains.tsv` - A table of all the domains identified for each sequence.
  - `nbarc.fasta` - A fasta file of all the NB-ARC domains identified.
+
+Here's an example of the `results.tsv` for ZAR1:
+
+|Sequence | Length | Motifs | Domains | Classification | NBARC_motifs | MADA | MADAL | CJID |
+|--- | --- | --- | --- | --- | --- | --- | --- | --- |
+|ZAR1 | 852 | CNNNNNNNNNLLLLLLLLLL | CNL | CNL | 9 | False | True | False |
+
+The main column of interest is "Classification".
+The "Motifs" column indicates the series of NLR-associated motifs identified across the sequence.
+This can be useful for interpreting non-canonical NLRs!
+
+### Ultra mode
+
+By default Resistify will perform an initial filter to remove non-NLRs prior to motif identification.
+Highly degraded or non-canonical NLRs may not be reported.
+If you wish to retain these, simply use `--ultra` mode to skip this step.
 
 ## How does it work?
 
@@ -67,17 +74,11 @@ The run time of `resistify` scales linearly with the total number of NLRs presen
 A file with 200 NLRs will take approximately twice as long as a file with 100 NLRs.
 This does not apply to the total number of *sequences* - an input of 50,000 sequences with 100 NLRs will run just as fast as an input of 1,000 sequences with 100 NLRs.
 
-Here's an example of the `results.tsv` for ZAR1:
-
-|Sequence | Length | Motifs | Domains | Classification | NBARC_motifs | MADA | MADAL | CJID |
-|--- | --- | --- | --- | --- | --- | --- | --- | --- |
-|ZAR1 | 852 | CNNNNNNNNNLLLLLLLLLL | CNL | CNL | 9 | False | True | False |
-
-
 ## Contributing
 
 Contributions are greatly appreciated!
 If you experience any issues running Resistify, please get in touch via the Issues page.
+If you have any suggestions for additional features, get in touch!
 
 ## Citing
 
