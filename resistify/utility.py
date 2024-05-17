@@ -1,40 +1,18 @@
-import logging
-import argparse
+from resistify.logging_setup import log
 import sys
 import os
 from Bio import SeqIO
 from resistify.annotations import Sequence
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(
-        description="""
-        Resistify is a tool for predicting resistance genes in plant genomes.
-        Domains are predicted using hmmsearch against multiple databases which are classified as common resistance gene related domains.
-        Sequences are then classified based on the presence and order of these domains.
-        """
-    )
-    parser.add_argument("--verbose", help="Verbose output", action="store_true")
-    parser.add_argument("--threads", help="Threads available to jackhmmer", default=2, type=int)
-    parser.add_argument("--chunksize", help="Number of sequences per split for jackhmmer", default=5, type=int)
-    parser.add_argument("--evalue", help="E-value threshold for hmmsearch. Scientific notation not accepted!", default="0.00001")
-    parser.add_argument("--lrr_gap", help="Gap size for LRR annotation", default=75, type=int)
-    parser.add_argument("--lrr_length", help="Minimum number of LRR motifs to be considered an LRR domain", default=4, type=int)
-    parser.add_argument("--duplicate_gap", help="Gap size (aa) to consider merging duplicate annotations", default=100, type=int)
-    parser.add_argument("input", help="Input FASTA file")
-    parser.add_argument("outdir", help="Output directory")
-
-    return parser.parse_args()
-
-
 def create_output_directory(outdir):
     try:
         expanded_outdir = os.path.expanduser(os.path.expandvars(outdir))
         os.makedirs(expanded_outdir, exist_ok=True)
-        logging.info(f"😊 Output directory created at {expanded_outdir}")
+        log.debug(f"Output directory created at {expanded_outdir}")
         return expanded_outdir
     except OSError as e:
-        logging.error(f"😞 Error creating output directory: {e}")
+        log.error(f"Error creating output directory: {e}")
         sys.exit(1)
 
 

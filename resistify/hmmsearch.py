@@ -1,6 +1,6 @@
 import subprocess
 import sys
-import logging
+from resistify.logging_setup import log
 import os
 from resistify.annotations import Annotation
 
@@ -19,7 +19,7 @@ def hmmsearch(input_file, sequences, temp_dir, data_dir, evalue):
         input_file,
     ]
 
-    logging.info(f"😊 Running hmmsearch...")
+    log.info(f"Running hmmsearch...")
     try:
         subprocess.run(
             cmd,
@@ -28,12 +28,12 @@ def hmmsearch(input_file, sequences, temp_dir, data_dir, evalue):
             stderr=subprocess.PIPE,
             universal_newlines=True,
         )
-        logging.info(f"😊 hmmsearch completed successfully...")
+        log.info(f"hmmsearch completed successfully...")
     except subprocess.CalledProcessError as e:
-        logging.error(f"😞 Error running hmmsearch:\nStderr: {e.stderr}\nStdout:{e.stdout}")
+        log.error(f"Error running hmmsearch:\nStderr: {e.stderr}\nStdout:{e.stdout}")
         sys.exit(1)
     except FileNotFoundError:
-        logging.error(f"😞 hmmsearch not found. Have you installed it?")
+        log.error(f"hmmsearch not found. Have you installed it?")
         sys.exit(1)
 
     sequences = parse_hmmsearch(output_file, sequences)
@@ -67,7 +67,7 @@ def parse_hmmsearch(output_file, sequences):
             if domain == "Rx_N":
                 domain = "CC"
 
-
+            log.debug(f"Adding annotation {domain} to {sequence}")
             sequences[sequence].add_annotation(Annotation(domain, start, end, evalue, score))
 
     return sequences

@@ -7,7 +7,7 @@ import pickle
 from Bio import SeqIO
 from multiprocessing import Pool
 import tempfile
-import logging
+from resistify.logging_setup import log
 import os
 from resistify.annotations import Motif
 
@@ -56,13 +56,14 @@ def split_fasta(fasta, chunk_size, temp_dir):
     Split a fasta file into chunks of defined size.
     Return a list of the file paths.
     """
+    log.debug(f"Splitting fasta into chunks of {chunk_size} sequences")
     fastas = []
     records = list(SeqIO.parse(fasta, "fasta"))
     records = [records[i:i + chunk_size] for i in range(0, len(records), chunk_size)]
 
     for i, record in enumerate(records):
         with open(f"{temp_dir.name}/chunk_{i}.fasta", "w") as f:
-            logging.debug(f"🤓 Splitting fasta to {temp_dir.name}/chunk_{i}.fasta")
+            log.debug(f"Writing chunk {i} to {temp_dir.name}/chunk_{i}.fasta")
             SeqIO.write(record, f, "fasta")
             fastas.append(f"{temp_dir.name}/chunk_{i}.fasta")
 
@@ -89,7 +90,6 @@ def jackhmmer_subprocess(fasta, temp_dir):
         temp_dir + "/nlrexpress.fasta",
     ]
     try:
-        logging.debug(f"🤓 Running jackhmmer subprocess on {fasta}")
         subprocess.run(
             cmd,
             check=True,
@@ -98,7 +98,7 @@ def jackhmmer_subprocess(fasta, temp_dir):
             universal_newlines=True,
         )
     except subprocess.CalledProcessError as e:
-        logging.error(f"😞 Error running jackhmmer:\nStderr: {e.stderr}\nStdout:{e.stdout}")
+        log.error(f"Error running jackhmmer:\nStderr: {e.stderr}\nStdout:{e.stdout}")
         sys.exit(1)
     
 
@@ -108,6 +108,7 @@ def jackhmmer(fasta, sequences, temp_dir, data_dir, chunk_size, threads):
     """
 
     # Copy database to temp_dir for speeeed
+    log.debug(f"Copying nlrexpress database to {temp_dir.name}")
     shutil.copy(
         os.path.join(data_dir, "nlrexpress.fasta"),
         f"{temp_dir.name}/nlrexpress.fasta"
@@ -117,14 +118,14 @@ def jackhmmer(fasta, sequences, temp_dir, data_dir, chunk_size, threads):
     fastas = split_fasta(fasta, chunk_size, temp_dir)
 
     # run jackhmmer on each chunk
-    logging.info(f"😊 Running jackhmmer, this could take a while...")
+    log.info(f"Running jackhmmer, this could take a while...")
     with Pool(-(-threads//2)) as pool:
         pool.starmap(jackhmmer_subprocess, [(f, temp_dir.name) for f in fastas])
 
     # merge the chunks
-    logging.debug(f"🤓 Merging chunks...")
     with open(f"{temp_dir.name}/jackhmmer-1.hmm", "w") as f:
         for fasta in fastas:
+            log.debug(f"Writing {fasta}.out-1.hmm to jackhmmer-1.hmm")
             with open(f"{fasta}.out-1.hmm") as chunk:
                 f.write(chunk.read())
 
@@ -135,10 +136,11 @@ def jackhmmer(fasta, sequences, temp_dir, data_dir, chunk_size, threads):
     try:
         with open(f"{temp_dir.name}/jackhmmer-2.hmm", "w") as f:
             for fasta in fastas:
+                log.debug(f"Writing {fasta}.out-2.hmm to jackhmmer-2.hmm")
                 with open(f"{fasta}.out-2.hmm") as chunk:
                     f.write(chunk.read())
     except FileNotFoundError:
-        logging.info(f"😊 Second jackhmmer iteration file does not exist, setting second as first..."),
+        log.info(f"Second jackhmmer iteration file does not exist, setting second as first..."),
         jackhmmer_iteration_2 = parse_jackhmmer(
             os.path.join(temp_dir.name, "jackhmmer-1.hmm"), iteration=False
         )
@@ -146,7 +148,7 @@ def jackhmmer(fasta, sequences, temp_dir, data_dir, chunk_size, threads):
         jackhmmer_iteration_2 = parse_jackhmmer(
             os.path.join(temp_dir.name, "jackhmmer-2.hmm"), iteration=True
         )
-
+    
     sequences = prepare_jackhmmer_data(
         sequences, jackhmmer_iteration_1, jackhmmer_iteration_2
     )
@@ -210,7 +212,7 @@ def parse_jackhmmer(file, iteration=False):
                     try:
                         float(value)
                     except ValueError:
-                        print(f"Error: {value} is not a float. {name} {file}")
+                        log.error(f"{value} is not a float. {name} {file}")
                         sys.exit(1)
                 value_dict = dict(zip(header1, line[1:21]))
                 hmm_dict[name].append(value_dict)
@@ -218,23 +220,9 @@ def parse_jackhmmer(file, iteration=False):
 
     return hmm_dict
 
-
-def parse_fasta(file):
-    """
-    Parse a FASTA file and return a dictionary of the sequences.
-    """
-    seq_dict = {}
-
-    logging.info(f"😊 Parsing FASTA file...")
-    with open(file) as f:
-        for record in SeqIO.parse(f, "fasta"):
-            seq_dict[record.id] = record.seq
-
-    return seq_dict
-
-
 def prepare_jackhmmer_data(sequences, hmm_it1, hmm_it2):
     for sequence in sequences:
+        log.debug(f"Preparing jackhmmer data for {sequence}")
         # get the dna sequence
         seq = sequences[sequence].sequence
         # make blank list for this sequence
@@ -261,10 +249,11 @@ def prepare_jackhmmer_data(sequences, hmm_it1, hmm_it2):
 
 def predict_motif(sequences, predictor, data_dir):
     # create a matrix for the predictors motif size
-    logging.info(f"😊 Generating matrix for {predictor}...")
+    log.info(f"Predicting {predictor} motifs...")
     matrix = []
     motif_size = motif_span_lengths[predictor]
     for sequence in sequences:
+        log.debug(f"Preparing matrix for {sequence}")
         sequence_length = len(sequences[sequence].sequence)
         for i in range(sequence_length):
             # make sure we are within the sequence bounds
@@ -284,12 +273,14 @@ def predict_motif(sequences, predictor, data_dir):
 
     model = pickle.load(open(model_path, "rb"))
     # run the prediction
-    logging.info(f"😊 Predicting {predictor} motifs...")
+    log.debug("Running prediction")
     result = model.predict_proba(matrix)
+    log.debug("Prediction complete")
 
     # iterate through sequences and pull out any predictions with a probability > 0.8
     result_index = 0
     for sequence in sequences:
+        log.debug(f"Adding motifs to {sequence}")
         sequence_length = len(sequences[sequence].sequence)
         for i in range(len(sequences[sequence].sequence)):
             # make sure we are within the sequence bounds
