@@ -133,20 +133,23 @@ def jackhmmer(fasta, sequences, temp_dir, data_dir, chunk_size, threads):
         os.path.join(temp_dir.name, "jackhmmer-1.hmm"), iteration=False
     )
     
-    try:
-        with open(f"{temp_dir.name}/jackhmmer-2.hmm", "w") as f:
-            for fasta in fastas:
-                log.debug(f"Writing {fasta}.out-2.hmm to jackhmmer-2.hmm")
+    with open(f"{temp_dir.name}/jackhmmer-2.hmm", "w") as f:
+        for fasta in fastas:
+            log.debug(f"Writing {fasta}.out-2.hmm to jackhmmer-2.hmm")
+            try:
                 with open(f"{fasta}.out-2.hmm") as chunk:
                     f.write(chunk.read())
+            except FileNotFoundError:
+                log.info("Second jackhmmer iteration file does not exist, skipping...")
+    
+    try:
+        jackhmmer_iteration_2 = parse_jackhmmer(
+            os.path.join(temp_dir.name, "jackhmmer-2.hmm"), iteration=True
+        )
     except FileNotFoundError:
         log.info(f"Second jackhmmer iteration file does not exist, setting second as first..."),
         jackhmmer_iteration_2 = parse_jackhmmer(
             os.path.join(temp_dir.name, "jackhmmer-1.hmm"), iteration=False
-        )
-    else:
-        jackhmmer_iteration_2 = parse_jackhmmer(
-            os.path.join(temp_dir.name, "jackhmmer-2.hmm"), iteration=True
         )
     
     sequences = prepare_jackhmmer_data(
