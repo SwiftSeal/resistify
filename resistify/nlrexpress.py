@@ -147,7 +147,7 @@ def jackhmmer(fasta, sequences, temp_dir, data_dir, chunk_size, threads):
             os.path.join(temp_dir.name, "jackhmmer-2.hmm"), iteration=True
         )
     except FileNotFoundError:
-        log.info(f"Second jackhmmer iteration file does not exist, setting second as first..."),
+        log.debug(f"Second jackhmmer iteration file does not exist, setting second as first..."),
         jackhmmer_iteration_2 = parse_jackhmmer(
             os.path.join(temp_dir.name, "jackhmmer-1.hmm"), iteration=False
         )
