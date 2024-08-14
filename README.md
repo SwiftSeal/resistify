@@ -16,7 +16,7 @@ Resistify is available on [Conda](https://anaconda.org/bioconda/resistify):
 `conda install -c bioconda resistify`
 
 Docker/Podman containers are also available through the [biocontainers repository](https://quay.io/repository/biocontainers/resistify?tab=tags).
-To use these using - for example - singularity, simply run:
+To use these with - for example - singularity, simply run:
 
 `singularity exec docker://quay.io/biocontainers/resistify:0.2.2--pyhdfd78af_0`
 
