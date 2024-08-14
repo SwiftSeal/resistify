@@ -9,19 +9,22 @@ It is designed to be lightweight - no manual database installations or tricky de
 
 ![terminal](assets/terminal.png)
 
-
 ## Installation
 
 Resistify is available on [Conda](https://anaconda.org/bioconda/resistify):
 
 `conda install -c bioconda resistify`
 
-Resistify is also available on [PyPi](https://pypi.org/project/resistify/):
+Docker/Podman containers are also available through the [biocontainers repository](https://quay.io/repository/biocontainers/resistify?tab=tags).
+To use these using - for example - singularity, simply run:
+
+`singularity exec docker://quay.io/biocontainers/resistify:0.2.2--pyhdfd78af_0`
+
+Alternatively, Resistify is also available on [PyPi](https://pypi.org/project/resistify/):
 
 `pip install resistify`
 
-Resistify requires [hmmer](http://hmmer.org) as a dependency.
-
+Please note that Resistify requires [hmmer](http://hmmer.org) as a dependency which will need to be installed if using pip.
 
 ## Usage
 
