@@ -36,13 +36,12 @@ def main():
     args = parse_args()
 
     data_dir = os.path.join(os.path.dirname(__file__), "data")
-
+    temp_dir = prepare_temp_directory(data_dir)
     results_dir = create_output_directory(args.outdir)
 
     sequences = parse_fasta(args.input)
 
     # create a temporary directory to store tempfiles
-    temp_dir = tempfile.TemporaryDirectory()
     log.debug(f"Temporary directory created at {temp_dir.name}")
 
     # save the fasta with stripped headers

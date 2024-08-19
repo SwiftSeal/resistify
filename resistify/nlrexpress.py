@@ -62,10 +62,11 @@ def split_fasta(fasta, chunk_size, temp_dir):
     records = [records[i:i + chunk_size] for i in range(0, len(records), chunk_size)]
 
     for i, record in enumerate(records):
-        with open(f"{temp_dir.name}/chunk_{i}.fasta", "w") as f:
-            log.debug(f"Writing chunk {i} to {temp_dir.name}/chunk_{i}.fasta")
+        chunk_path = os.path.join(temp_dir.name, f"chunk_{i}.fasta")
+        with open(chunk_path) as f:
+            log.debug(f"Writing chunk {i} to {chunk_path}")
             SeqIO.write(record, f, "fasta")
-            fastas.append(f"{temp_dir.name}/chunk_{i}.fasta")
+            fastas.append(f"{chunk_path}")
 
     return fastas
 
@@ -106,14 +107,6 @@ def jackhmmer(fasta, sequences, temp_dir, data_dir, chunk_size, threads):
     """
     Run jackhmmer on the input fasta file against the database_path.
     """
-
-    # Copy database to temp_dir for speeeed
-    log.debug(f"Copying nlrexpress database to {temp_dir.name}")
-    shutil.copy(
-        os.path.join(data_dir, "nlrexpress.fasta"),
-        f"{temp_dir.name}/nlrexpress.fasta"
-    )
-
     # split fasta into chunks
     fastas = split_fasta(fasta, chunk_size, temp_dir)
 

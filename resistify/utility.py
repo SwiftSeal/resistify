@@ -3,7 +3,8 @@ import sys
 import os
 from Bio import SeqIO
 from resistify.annotations import Sequence
-
+from tempfile import TemporaryDirectory
+import shutil
 
 def create_output_directory(outdir):
     try:
@@ -14,6 +15,17 @@ def create_output_directory(outdir):
     except OSError as e:
         log.error(f"Error creating output directory: {e}")
         sys.exit(1)
+
+def prepare_temp_directory(data_dir):
+    temp_dir = TemporaryDirectory()
+
+    # Copy nlrexpress database to the temporary directory
+    log.debug(f"Copying nlrexpress database to {temp_dir.name}")
+    shutil.copy(
+        os.path.join(data_dir, "nlrexpress.fasta"),
+        os.path.join(temp_dir.name, "nlrexpress.fasta"),
+    )
+    return temp_dir
 
 
 def parse_fasta(path):
