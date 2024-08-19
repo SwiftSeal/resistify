@@ -1,9 +1,10 @@
 import subprocess
 import sys
-from resistify.logging_setup import log
 import os
 from resistify.annotations import Annotation
 from Bio import SearchIO
+import logging
+log = logging.getLogger(__name__)
 
 def hmmsearch(input_file, sequences, temp_dir, data_dir, evalue):
     hmmsearch_db = os.path.join(data_dir, "nlrdb.hmm")

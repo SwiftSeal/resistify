@@ -1,10 +1,9 @@
-#!/usr/bin/env python3
-
 import argparse
 from rich_argparse import RichHelpFormatter
+import logging
+from rich.logging import RichHandler
 import tempfile
 import sys
-from .logging_setup import log, console
 import os
 from .annotations import *
 from .hmmsearch import *
@@ -19,6 +18,7 @@ def parse_args():
         formatter_class=RichHelpFormatter
     )
     parser.add_argument("-t", "--threads", help="Threads available to jackhmmer", default=2, type=int)
+    parser.add_argument("--debug", help="Enable debug logging", action="store_true")
     parser.add_argument("--ultra", help="Run in ultra mode, non-NLRs will be retained", action="store_true")
     parser.add_argument("--chunksize", help="Number of sequences per split for jackhmmer", default=5, type=int)
     parser.add_argument("--evalue", help="E-value threshold for hmmsearch", default="0.00001")
@@ -31,6 +31,13 @@ def parse_args():
     return parser.parse_args()
 
 def main():
+    logging.basicConfig(
+        level="INFO",
+        format="%(message)s",
+        datefmt="[%X]",
+        handlers=[RichHandler(console=RichHandler())],
+    )
+    log = logging.getLogger("rich")
     log.info("Welcome to Resistify version 0.2.3!")
 
     args = parse_args()

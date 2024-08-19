@@ -1,4 +1,3 @@
-from resistify.logging_setup import log
 import sys
 import os
 from Bio import SeqIO
@@ -6,6 +5,8 @@ from resistify.annotations import Sequence
 from tempfile import TemporaryDirectory
 import shutil
 from .nlrexpress import MOTIF_SPAN_LENGTHS
+import logging
+log = logging.getLogger(__name__)
 
 def create_output_directory(outdir):
     try:
@@ -109,10 +110,10 @@ def motif_table(sequences, results_dir):
         for sequence in sequences:
             for motif in sequences[sequence].motifs:
                 for item in sequences[sequence].motifs[motif]:
-                    aa_sequence = sequences[sequence].sequence
-                    five_prime_sequence = aa_sequence[item.position - 5 : item.position]
-                    motif_sequence = aa_sequence[item.position : item.position + MOTIF_SPAN_LENGTHS[motif]]
-                    three_prime_sequence = aa_sequence[item.position + MOTIF_SPAN_LENGTHS[motif] : item.position + MOTIF_SPAN_LENGTHS[motif] + 5]
+                    #aa_sequence = sequences[sequence].sequence
+                    #five_prime_sequence = aa_sequence[item.position - 5 : item.position]
+                    #motif_sequence = aa_sequence[item.position : item.position + MOTIF_SPAN_LENGTHS[motif]]
+                    #three_prime_sequence = aa_sequence[item.position + MOTIF_SPAN_LENGTHS[motif] : item.position + MOTIF_SPAN_LENGTHS[motif] + 5]
                     file.write(
                         f"{sequence}\t{motif}\t{item.position}\t{item.probability}\n"
                     )

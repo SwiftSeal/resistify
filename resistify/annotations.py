@@ -1,4 +1,5 @@
-from resistify.logging_setup import log
+import logging
+log = logging.getLogger(__name__)
 
 DUPLICATE_GAP = 100
 
