@@ -31,7 +31,7 @@ def parse_args():
     return parser.parse_args()
 
 def main():
-    log.info("Welcome to Resistify version 0.2.0!")
+    log.info("Welcome to Resistify version 0.2.3!")
 
     args = parse_args()
 
