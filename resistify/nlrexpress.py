@@ -6,7 +6,7 @@ from sklearn.neural_network import MLPClassifier
 import pickle
 from Bio import SeqIO
 from multiprocessing import Pool
-import tempfile
+#import tempfile
 from resistify.logging_setup import log
 import os
 from resistify.annotations import Motif
@@ -74,6 +74,7 @@ def jackhmmer_subprocess(fasta, temp_dir):
     """
     Run jackhmmer on the input fasta file against the database_path.
     """
+    nlrexpress_fasta_path = os.path.join(temp_dir, "nlrexpress.fasta")
     cmd = [
         "jackhmmer",
         "--noali",
@@ -88,7 +89,7 @@ def jackhmmer_subprocess(fasta, temp_dir):
         "--chkhmm",
         fasta + ".out",
         fasta,
-        temp_dir + "/nlrexpress.fasta",
+        nlrexpress_fasta_path,
     ]
     try:
         subprocess.run(
@@ -116,7 +117,8 @@ def jackhmmer(fasta, sequences, temp_dir, data_dir, chunk_size, threads):
         pool.starmap(jackhmmer_subprocess, [(f, temp_dir.name) for f in fastas])
 
     # merge the chunks
-    with open(f"{temp_dir.name}/jackhmmer-1.hmm", "w") as f:
+    iteration_1_path = os.path.join(temp_dir.name, "jackhmmer-1.hmm")
+    with open(iteration_1_path, "w") as f:
         for fasta in fastas:
             log.debug(f"Writing {fasta}.out-1.hmm to jackhmmer-1.hmm")
             with open(f"{fasta}.out-1.hmm") as chunk:
@@ -126,7 +128,8 @@ def jackhmmer(fasta, sequences, temp_dir, data_dir, chunk_size, threads):
         os.path.join(temp_dir.name, "jackhmmer-1.hmm"), iteration=False
     )
     
-    with open(f"{temp_dir.name}/jackhmmer-2.hmm", "w") as f:
+    iteration_2_path = os.path.join(temp_dir.name, "jackhmmer-2.hmm")
+    with open(iteration_2_path, "w") as f:
         for fasta in fastas:
             log.debug(f"Writing {fasta}.out-2.hmm to jackhmmer-2.hmm")
             try:
@@ -137,12 +140,12 @@ def jackhmmer(fasta, sequences, temp_dir, data_dir, chunk_size, threads):
     
     try:
         jackhmmer_iteration_2 = parse_jackhmmer(
-            os.path.join(temp_dir.name, "jackhmmer-2.hmm"), iteration=True
+            iteration_2_path, iteration=True
         )
     except FileNotFoundError:
         log.debug(f"Second jackhmmer iteration file does not exist, setting second as first..."),
         jackhmmer_iteration_2 = parse_jackhmmer(
-            os.path.join(temp_dir.name, "jackhmmer-1.hmm"), iteration=False
+            iteration_1_path, iteration=False
         )
     
     sequences = prepare_jackhmmer_data(
