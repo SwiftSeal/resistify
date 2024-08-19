@@ -8,6 +8,7 @@ from sklearn.neural_network import MLPClassifier
 from Bio import SeqIO
 from multiprocessing import Pool
 from resistify.annotations import Motif
+
 log = logging.getLogger(__name__)
 
 MOTIF_SPAN_LENGTHS = {
@@ -47,8 +48,9 @@ motif_models = {
     "aD3": "MLP_TIR_aD3.pkl",
     "bA": "MLP_TIR_bA.pkl",
     "bC": "MLP_TIR_bC.pkl",
-    "bDaD1": "MLP_TIR_bD-aD1.pkl"
+    "bDaD1": "MLP_TIR_bD-aD1.pkl",
 }
+
 
 def split_fasta(fasta, chunk_size, temp_dir):
     """
@@ -58,7 +60,7 @@ def split_fasta(fasta, chunk_size, temp_dir):
     log.debug(f"Splitting fasta into chunks of {chunk_size} sequences")
     fastas = []
     records = list(SeqIO.parse(fasta, "fasta"))
-    records = [records[i:i + chunk_size] for i in range(0, len(records), chunk_size)]
+    records = [records[i : i + chunk_size] for i in range(0, len(records), chunk_size)]
 
     for i, record in enumerate(records):
         chunk_path = os.path.join(temp_dir.name, f"chunk_{i}.fasta")
@@ -68,6 +70,7 @@ def split_fasta(fasta, chunk_size, temp_dir):
             fastas.append(f"{chunk_path}")
 
     return fastas
+
 
 def jackhmmer_subprocess(fasta, temp_dir):
     """
@@ -101,7 +104,7 @@ def jackhmmer_subprocess(fasta, temp_dir):
     except subprocess.CalledProcessError as e:
         log.error(f"Error running jackhmmer:\nStderr: {e.stderr}\nStdout:{e.stdout}")
         sys.exit(1)
-    
+
 
 def jackhmmer(fasta, sequences, temp_dir, data_dir, chunk_size, threads):
     """
@@ -112,7 +115,7 @@ def jackhmmer(fasta, sequences, temp_dir, data_dir, chunk_size, threads):
 
     # run jackhmmer on each chunk
     log.info(f"Running jackhmmer, this could take a while...")
-    with Pool(-(-threads//2)) as pool:
+    with Pool(-(-threads // 2)) as pool:
         pool.starmap(jackhmmer_subprocess, [(f, temp_dir.name) for f in fastas])
 
     # merge the chunks
@@ -126,7 +129,7 @@ def jackhmmer(fasta, sequences, temp_dir, data_dir, chunk_size, threads):
     jackhmmer_iteration_1 = parse_jackhmmer(
         os.path.join(temp_dir.name, "jackhmmer-1.hmm"), iteration=False
     )
-    
+
     iteration_2_path = os.path.join(temp_dir.name, "jackhmmer-2.hmm")
     with open(iteration_2_path, "w") as f:
         for fasta in fastas:
@@ -136,17 +139,15 @@ def jackhmmer(fasta, sequences, temp_dir, data_dir, chunk_size, threads):
                     f.write(chunk.read())
             except FileNotFoundError:
                 log.info("Second jackhmmer iteration file does not exist, skipping...")
-    
+
     try:
-        jackhmmer_iteration_2 = parse_jackhmmer(
-            iteration_2_path, iteration=True
-        )
+        jackhmmer_iteration_2 = parse_jackhmmer(iteration_2_path, iteration=True)
     except FileNotFoundError:
-        log.debug(f"Second jackhmmer iteration file does not exist, setting second as first..."),
-        jackhmmer_iteration_2 = parse_jackhmmer(
-            iteration_1_path, iteration=False
-        )
-    
+        log.debug(
+            f"Second jackhmmer iteration file does not exist, setting second as first..."
+        ),
+        jackhmmer_iteration_2 = parse_jackhmmer(iteration_1_path, iteration=False)
+
     sequences = prepare_jackhmmer_data(
         sequences, jackhmmer_iteration_1, jackhmmer_iteration_2
     )
@@ -217,6 +218,7 @@ def parse_jackhmmer(file, iteration=False):
                 i += 3
 
     return hmm_dict
+
 
 def prepare_jackhmmer_data(sequences, hmm_it1, hmm_it2):
     for sequence in sequences:

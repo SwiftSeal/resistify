@@ -1,10 +1,12 @@
 import subprocess
 import sys
 import os
+import logging
 from resistify.annotations import Annotation
 from Bio import SearchIO
-import logging
+
 log = logging.getLogger(__name__)
+
 
 def hmmsearch(input_file, sequences, temp_dir, data_dir, evalue):
     hmmsearch_db = os.path.join(data_dir, "nlrdb.hmm")
@@ -41,6 +43,7 @@ def hmmsearch(input_file, sequences, temp_dir, data_dir, evalue):
     sequences = parse_hmmsearch(output_file, sequences)
     return sequences
 
+
 def parse_hmmsearch(output_file, sequences):
     for record in SearchIO.parse(output_file, "hmmsearch3-domtab"):
         for hit in record:
@@ -50,12 +53,7 @@ def parse_hmmsearch(output_file, sequences):
                     continue
                 sequences[hit.id].add_annotation(
                     Annotation(
-                        record.id, 
-                        hsp.env_start, 
-                        hsp.env_end, 
-                        hsp.evalue, 
-                        hsp.bitscore
+                        record.id, hsp.env_start, hsp.env_end, hsp.evalue, hsp.bitscore
                     )
                 )
     return sequences
-

@@ -7,7 +7,9 @@ from Bio import SeqIO
 from resistify.annotations import Sequence
 from resistify.nlrexpress import MOTIF_SPAN_LENGTHS
 from tempfile import TemporaryDirectory
+
 log = logging.getLogger(__name__)
+
 
 def create_output_directory(outdir):
     try:
@@ -18,6 +20,7 @@ def create_output_directory(outdir):
     except OSError as e:
         log.error(f"Error creating output directory: {e}")
         sys.exit(1)
+
 
 def prepare_temp_directory(data_dir):
     temp_dir = TemporaryDirectory()
@@ -41,11 +44,11 @@ def parse_fasta(path):
                 log.error(f"Internal stop codon detected in sequence {record.id}")
                 sys.exit(1)
             sequences[record.id] = Sequence(sequence_str)
-    
+
     if len(sequences) > 100000:
         log.error("Input fasta larger than 100,000 sequences currently not supported.")
         sys.exit(1)
-    
+
     return sequences
 
 
@@ -114,6 +117,7 @@ def result_table(sequences, results_dir):
                 ]
             )
 
+
 def domain_table(sequences, results_dir):
     with open(os.path.join(results_dir, "domains.tsv"), "w") as file:
         table_writer = csv.writer(file, delimiter="\t")
@@ -151,8 +155,15 @@ def motif_table(sequences, results_dir):
                 for item in sequences[sequence].motifs[motif]:
                     aa_sequence = sequences[sequence].sequence
                     downstream_sequence = aa_sequence[item.position - 5 : item.position]
-                    motif_sequence = aa_sequence[item.position : item.position + MOTIF_SPAN_LENGTHS[motif]]
-                    upstream_sequence = aa_sequence[item.position + MOTIF_SPAN_LENGTHS[motif] : item.position + MOTIF_SPAN_LENGTHS[motif] + 5]
+                    motif_sequence = aa_sequence[
+                        item.position : item.position + MOTIF_SPAN_LENGTHS[motif]
+                    ]
+                    upstream_sequence = aa_sequence[
+                        item.position
+                        + MOTIF_SPAN_LENGTHS[motif] : item.position
+                        + MOTIF_SPAN_LENGTHS[motif]
+                        + 5
+                    ]
                     table_writer.writerow(
                         [
                             sequence,
