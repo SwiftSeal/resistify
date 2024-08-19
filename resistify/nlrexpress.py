@@ -1,13 +1,13 @@
 import subprocess
 import sys
 import numpy as np
-from sklearn.neural_network import MLPClassifier
 import pickle
+import os
+import logging
+from sklearn.neural_network import MLPClassifier
 from Bio import SeqIO
 from multiprocessing import Pool
-import os
 from resistify.annotations import Motif
-import logging
 log = logging.getLogger(__name__)
 
 MOTIF_SPAN_LENGTHS = {

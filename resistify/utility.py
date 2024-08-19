@@ -1,11 +1,12 @@
 import sys
 import os
+import csv
+import shutil
+import logging
 from Bio import SeqIO
 from resistify.annotations import Sequence
 from resistify.nlrexpress import MOTIF_SPAN_LENGTHS
 from tempfile import TemporaryDirectory
-import shutil
-import logging
 log = logging.getLogger(__name__)
 
 def create_output_directory(outdir):
@@ -58,8 +59,19 @@ def save_fasta(sequences, path):
 
 def result_table(sequences, results_dir):
     with open(os.path.join(results_dir, "results.tsv"), "w") as file:
-        file.write(
-            "Sequence\tLength\tMotifs\tDomains\tClassification\tNBARC_motifs\tMADA\tMADAL\tCJID\n"
+        table_writer = csv.writer(file, delimiter="\t")
+        table_writer.writerow(
+            [
+                "Sequence",
+                "Length",
+                "Motifs",
+                "Domains",
+                "Classification",
+                "NBARC_motifs",
+                "MADA",
+                "MADAL",
+                "CJID",
+            ]
         )
 
         nbarc_motifs = [
@@ -88,34 +100,69 @@ def result_table(sequences, results_dir):
             cjid = sequences[sequence].cjid
             domain_string = sequences[sequence].domain_string
 
-            file.write(
-                f"{sequence}\t{length}\t{motif_string}\t{domain_string}\t{classification}\t{n_nbarc_motifs}\t{mada}\t{madal}\t{cjid}\n"
+            table_writer.writerow(
+                [
+                    sequence,
+                    length,
+                    motif_string,
+                    domain_string,
+                    classification,
+                    n_nbarc_motifs,
+                    mada,
+                    madal,
+                    cjid,
+                ]
             )
-
 
 def domain_table(sequences, results_dir):
     with open(os.path.join(results_dir, "domains.tsv"), "w") as file:
-        file.write("Sequence\tDomain\tStart\tEnd\tE-value\n")
+        table_writer = csv.writer(file, delimiter="\t")
+        table_writer.writerow(["Sequence", "Domain", "Start", "End", "E-value"])
         for sequence in sequences:
             for annotation in sequences[sequence].annotations:
-                file.write(
-                    f"{sequence}\t{annotation.domain}\t{annotation.start}\t{annotation.end}\t{annotation.evalue}\n"
+                table_writer.writerow(
+                    [
+                        sequence,
+                        annotation.domain,
+                        annotation.start,
+                        annotation.end,
+                        annotation.evalue,
+                    ]
                 )
 
 
 def motif_table(sequences, results_dir):
     output_path = os.path.join(results_dir, "motifs.tsv")
     with open(output_path, "w") as file:
-        file.write("Sequence\tMotif\tPosition\tProbability\n")
+        table_writer = csv.writer(file, delimiter="\t")
+        table_writer.writerow(
+            [
+                "Sequence",
+                "Motif",
+                "Position",
+                "Probability",
+                "Downstream_sequence",
+                "Motif_sequence",
+                "Upstream_sequence",
+            ]
+        )
         for sequence in sequences:
             for motif in sequences[sequence].motifs:
                 for item in sequences[sequence].motifs[motif]:
-                    #aa_sequence = sequences[sequence].sequence
-                    #five_prime_sequence = aa_sequence[item.position - 5 : item.position]
-                    #motif_sequence = aa_sequence[item.position : item.position + MOTIF_SPAN_LENGTHS[motif]]
-                    #three_prime_sequence = aa_sequence[item.position + MOTIF_SPAN_LENGTHS[motif] : item.position + MOTIF_SPAN_LENGTHS[motif] + 5]
-                    file.write(
-                        f"{sequence}\t{motif}\t{item.position}\t{item.probability}\n"
+                    aa_sequence = sequences[sequence].sequence
+                    downstream_sequence = aa_sequence[item.position - 5 : item.position]
+                    motif_sequence = aa_sequence[item.position : item.position + MOTIF_SPAN_LENGTHS[motif]]
+                    upstream_sequence = aa_sequence[item.position + MOTIF_SPAN_LENGTHS[motif] : item.position + MOTIF_SPAN_LENGTHS[motif] + 5]
+                    table_writer.writerow(
+                        [
+                            sequence,
+                            motif,
+                            item.position,
+                            item.probability,
+                            downstream_sequence,
+                            motif_sequence,
+                            upstream_sequence,
+                        ]
                     )
 
 

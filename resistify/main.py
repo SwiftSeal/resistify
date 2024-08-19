@@ -4,10 +4,19 @@ import logging
 from rich.logging import RichHandler
 import sys
 import os
-from .annotations import *
-from .hmmsearch import *
-from .nlrexpress import *
-from .utility import *
+from resistify.utility import (
+    prepare_temp_directory,
+    create_output_directory,
+    parse_fasta,
+    save_fasta,
+    result_table,
+    domain_table,
+    motif_table,
+    extract_nbarc
+)
+from resistify.hmmsearch import hmmsearch
+from resistify.nlrexpress import jackhmmer, motif_models, predict_motif
+from resistify.annotations import Sequence
 
 def parse_args():
     parser = argparse.ArgumentParser(
