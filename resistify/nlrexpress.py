@@ -11,7 +11,7 @@ from resistify.logging_setup import log
 import os
 from resistify.annotations import Motif
 
-motif_span_lengths = {
+MOTIF_SPAN_LENGTHS = {
     "extEDVID": 12,
     "bA": 10,
     "aA": 7,
@@ -63,7 +63,7 @@ def split_fasta(fasta, chunk_size, temp_dir):
 
     for i, record in enumerate(records):
         chunk_path = os.path.join(temp_dir.name, f"chunk_{i}.fasta")
-        with open(chunk_path) as f:
+        with open(chunk_path, "w") as f:
             log.debug(f"Writing chunk {i} to {chunk_path}")
             SeqIO.write(record, f, "fasta")
             fastas.append(f"{chunk_path}")
@@ -250,7 +250,7 @@ def predict_motif(sequences, predictor, data_dir):
     # create a matrix for the predictors motif size
     log.info(f"Predicting {predictor} motifs...")
     matrix = []
-    motif_size = motif_span_lengths[predictor]
+    motif_size = MOTIF_SPAN_LENGTHS[predictor]
     for sequence in sequences:
         log.debug(f"Preparing matrix for {sequence}")
         sequence_length = len(sequences[sequence].sequence)
@@ -283,7 +283,7 @@ def predict_motif(sequences, predictor, data_dir):
         sequence_length = len(sequences[sequence].sequence)
         for i in range(len(sequences[sequence].sequence)):
             # make sure we are within the sequence bounds
-            if i >= 5 and i < sequence_length - (motif_span_lengths[predictor] + 5):
+            if i >= 5 and i < sequence_length - (MOTIF_SPAN_LENGTHS[predictor] + 5):
                 value = round(result[result_index][1], 4)
                 if value > 0.8:
                     sequences[sequence].add_motif(Motif(predictor, value, i))

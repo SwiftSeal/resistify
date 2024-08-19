@@ -5,6 +5,7 @@ from Bio import SeqIO
 from resistify.annotations import Sequence
 from tempfile import TemporaryDirectory
 import shutil
+from .nlrexpress import MOTIF_SPAN_LENGTHS
 
 def create_output_directory(outdir):
     try:
@@ -33,7 +34,16 @@ def parse_fasta(path):
     with open(path) as file:
         for record in SeqIO.parse(file, "fasta"):
             # need to remove asterisk, interferes with hmmsearch
-            sequences[record.id] = Sequence(record.seq.strip("*"))
+            sequence_str = str(record.seq).strip("*")
+            if "*" in sequence_str:
+                log.error(f"Internal stop codon detected in sequence {record.id}")
+                sys.exit(1)
+            sequences[record.id] = Sequence(sequence_str)
+    
+    if len(sequences) > 100000:
+        log.error("Input fasta larger than 100,000 sequences currently not supported.")
+        sys.exit(1)
+    
     return sequences
 
 
@@ -50,19 +60,20 @@ def result_table(sequences, results_dir):
         file.write(
             "Sequence\tLength\tMotifs\tDomains\tClassification\tNBARC_motifs\tMADA\tMADAL\tCJID\n"
         )
-        for sequence in sequences:
-            nbarc_motifs = [
-                "VG",
-                "P-loop",
-                "RNSB-A",
-                "Walker-B",
-                "RNSB-B",
-                "RNSB-C",
-                "RNSB-D",
-                "GLPL",
-                "MHD",
-            ]
 
+        nbarc_motifs = [
+            "VG",
+            "P-loop",
+            "RNSB-A",
+            "Walker-B",
+            "RNSB-B",
+            "RNSB-C",
+            "RNSB-D",
+            "GLPL",
+            "MHD",
+        ]
+
+        for sequence in sequences:
             n_nbarc_motifs = 0
             for motif in nbarc_motifs:
                 if len(sequences[sequence].motifs[motif]) > 0:
@@ -92,11 +103,16 @@ def domain_table(sequences, results_dir):
 
 
 def motif_table(sequences, results_dir):
-    with open(os.path.join(results_dir, "motifs.tsv"), "w") as file:
+    output_path = os.path.join(results_dir, "motifs.tsv")
+    with open(output_path, "w") as file:
         file.write("Sequence\tMotif\tPosition\tProbability\n")
         for sequence in sequences:
             for motif in sequences[sequence].motifs:
                 for item in sequences[sequence].motifs[motif]:
+                    aa_sequence = sequences[sequence].sequence
+                    five_prime_sequence = aa_sequence[item.position - 5 : item.position]
+                    motif_sequence = aa_sequence[item.position : item.position + MOTIF_SPAN_LENGTHS[motif]]
+                    three_prime_sequence = aa_sequence[item.position + MOTIF_SPAN_LENGTHS[motif] : item.position + MOTIF_SPAN_LENGTHS[motif] + 5]
                     file.write(
                         f"{sequence}\t{motif}\t{item.position}\t{item.probability}\n"
                     )

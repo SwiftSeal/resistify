@@ -41,7 +41,7 @@ def hmmsearch(input_file, sequences, temp_dir, data_dir, evalue):
     return sequences
 
 def parse_hmmsearch(output_file, sequences):
-    for record in SearchIO.parse(output_file, "hmmer3-tab"):
+    for record in SearchIO.parse(output_file, "hmmsearch3-domtab"):
         for hit in record:
             for hsp in hit:
                 # Set a high threshold for RPW8 to avoid false positives
