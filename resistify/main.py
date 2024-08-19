@@ -75,7 +75,7 @@ def main():
         handlers=[RichHandler()],
     )
     log = logging.getLogger("rich")
-    log.info("Welcome to Resistify version 0.2.3!")
+    log.info("Welcome to Resistify version 0.3.0!")
 
     data_dir = os.path.join(os.path.dirname(__file__), "data")
     temp_dir = prepare_temp_directory(data_dir)
