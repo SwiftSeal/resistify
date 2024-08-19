@@ -1,8 +1,12 @@
 import subprocess
 import sys
-from resistify.logging_setup import log
 import os
+import logging
 from resistify.annotations import Annotation
+from Bio import SearchIO
+
+log = logging.getLogger(__name__)
+
 
 def hmmsearch(input_file, sequences, temp_dir, data_dir, evalue):
     hmmsearch_db = os.path.join(data_dir, "nlrdb.hmm")
@@ -39,35 +43,17 @@ def hmmsearch(input_file, sequences, temp_dir, data_dir, evalue):
     sequences = parse_hmmsearch(output_file, sequences)
     return sequences
 
+
 def parse_hmmsearch(output_file, sequences):
-
-    with open(output_file) as f:
-        for line in f:
-            if line.startswith("#"):
-                continue
-            line = line.split()
-            sequence = line[0]
-            domain = line[3]
-            evalue = float(line[11])
-            score = float(line[13])
-            start = int(line[17])
-            end = int(line[18])
-
-            if start > end:
-                continue
-
-            # RPW8 being problematic - increase score threshold
-            # what could possibly go wrong?
-            if domain == "RPW8" and score < 20:
-                continue
-
-            if domain == "TIR_2":
-                domain = "TIR"
-
-            if domain == "Rx_N":
-                domain = "CC"
-
-            log.debug(f"Adding annotation {domain} to {sequence}")
-            sequences[sequence].add_annotation(Annotation(domain, start, end, evalue, score))
-
+    for record in SearchIO.parse(output_file, "hmmsearch3-domtab"):
+        for hit in record:
+            for hsp in hit:
+                # Set a high threshold for RPW8 to avoid false positives
+                if record.id == "RPW8" and hsp.bitscore < 20:
+                    continue
+                sequences[hit.id].add_annotation(
+                    Annotation(
+                        record.id, hsp.env_start, hsp.env_end, hsp.evalue, hsp.bitscore
+                    )
+                )
     return sequences

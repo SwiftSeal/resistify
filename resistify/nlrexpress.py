@@ -1,17 +1,17 @@
 import subprocess
 import sys
-import shutil
 import numpy as np
-from sklearn.neural_network import MLPClassifier
 import pickle
+import os
+import logging
+from sklearn.neural_network import MLPClassifier
 from Bio import SeqIO
 from multiprocessing import Pool
-import tempfile
-from resistify.logging_setup import log
-import os
 from resistify.annotations import Motif
 
-motif_span_lengths = {
+log = logging.getLogger(__name__)
+
+MOTIF_SPAN_LENGTHS = {
     "extEDVID": 12,
     "bA": 10,
     "aA": 7,
@@ -48,8 +48,9 @@ motif_models = {
     "aD3": "MLP_TIR_aD3.pkl",
     "bA": "MLP_TIR_bA.pkl",
     "bC": "MLP_TIR_bC.pkl",
-    "bDaD1": "MLP_TIR_bD-aD1.pkl"
+    "bDaD1": "MLP_TIR_bD-aD1.pkl",
 }
+
 
 def split_fasta(fasta, chunk_size, temp_dir):
     """
@@ -59,20 +60,23 @@ def split_fasta(fasta, chunk_size, temp_dir):
     log.debug(f"Splitting fasta into chunks of {chunk_size} sequences")
     fastas = []
     records = list(SeqIO.parse(fasta, "fasta"))
-    records = [records[i:i + chunk_size] for i in range(0, len(records), chunk_size)]
+    records = [records[i : i + chunk_size] for i in range(0, len(records), chunk_size)]
 
     for i, record in enumerate(records):
-        with open(f"{temp_dir.name}/chunk_{i}.fasta", "w") as f:
-            log.debug(f"Writing chunk {i} to {temp_dir.name}/chunk_{i}.fasta")
+        chunk_path = os.path.join(temp_dir.name, f"chunk_{i}.fasta")
+        with open(chunk_path, "w") as f:
+            log.debug(f"Writing chunk {i} to {chunk_path}")
             SeqIO.write(record, f, "fasta")
-            fastas.append(f"{temp_dir.name}/chunk_{i}.fasta")
+            fastas.append(f"{chunk_path}")
 
     return fastas
+
 
 def jackhmmer_subprocess(fasta, temp_dir):
     """
     Run jackhmmer on the input fasta file against the database_path.
     """
+    nlrexpress_fasta_path = os.path.join(temp_dir, "nlrexpress.fasta")
     cmd = [
         "jackhmmer",
         "--noali",
@@ -87,7 +91,7 @@ def jackhmmer_subprocess(fasta, temp_dir):
         "--chkhmm",
         fasta + ".out",
         fasta,
-        temp_dir + "/nlrexpress.fasta",
+        nlrexpress_fasta_path,
     ]
     try:
         subprocess.run(
@@ -100,30 +104,23 @@ def jackhmmer_subprocess(fasta, temp_dir):
     except subprocess.CalledProcessError as e:
         log.error(f"Error running jackhmmer:\nStderr: {e.stderr}\nStdout:{e.stdout}")
         sys.exit(1)
-    
+
 
 def jackhmmer(fasta, sequences, temp_dir, data_dir, chunk_size, threads):
     """
     Run jackhmmer on the input fasta file against the database_path.
     """
-
-    # Copy database to temp_dir for speeeed
-    log.debug(f"Copying nlrexpress database to {temp_dir.name}")
-    shutil.copy(
-        os.path.join(data_dir, "nlrexpress.fasta"),
-        f"{temp_dir.name}/nlrexpress.fasta"
-    )
-
     # split fasta into chunks
     fastas = split_fasta(fasta, chunk_size, temp_dir)
 
     # run jackhmmer on each chunk
     log.info(f"Running jackhmmer, this could take a while...")
-    with Pool(-(-threads//2)) as pool:
+    with Pool(-(-threads // 2)) as pool:
         pool.starmap(jackhmmer_subprocess, [(f, temp_dir.name) for f in fastas])
 
     # merge the chunks
-    with open(f"{temp_dir.name}/jackhmmer-1.hmm", "w") as f:
+    iteration_1_path = os.path.join(temp_dir.name, "jackhmmer-1.hmm")
+    with open(iteration_1_path, "w") as f:
         for fasta in fastas:
             log.debug(f"Writing {fasta}.out-1.hmm to jackhmmer-1.hmm")
             with open(f"{fasta}.out-1.hmm") as chunk:
@@ -132,8 +129,9 @@ def jackhmmer(fasta, sequences, temp_dir, data_dir, chunk_size, threads):
     jackhmmer_iteration_1 = parse_jackhmmer(
         os.path.join(temp_dir.name, "jackhmmer-1.hmm"), iteration=False
     )
-    
-    with open(f"{temp_dir.name}/jackhmmer-2.hmm", "w") as f:
+
+    iteration_2_path = os.path.join(temp_dir.name, "jackhmmer-2.hmm")
+    with open(iteration_2_path, "w") as f:
         for fasta in fastas:
             log.debug(f"Writing {fasta}.out-2.hmm to jackhmmer-2.hmm")
             try:
@@ -141,17 +139,15 @@ def jackhmmer(fasta, sequences, temp_dir, data_dir, chunk_size, threads):
                     f.write(chunk.read())
             except FileNotFoundError:
                 log.info("Second jackhmmer iteration file does not exist, skipping...")
-    
+
     try:
-        jackhmmer_iteration_2 = parse_jackhmmer(
-            os.path.join(temp_dir.name, "jackhmmer-2.hmm"), iteration=True
-        )
+        jackhmmer_iteration_2 = parse_jackhmmer(iteration_2_path, iteration=True)
     except FileNotFoundError:
-        log.debug(f"Second jackhmmer iteration file does not exist, setting second as first..."),
-        jackhmmer_iteration_2 = parse_jackhmmer(
-            os.path.join(temp_dir.name, "jackhmmer-1.hmm"), iteration=False
-        )
-    
+        log.debug(
+            f"Second jackhmmer iteration file does not exist, setting second as first..."
+        ),
+        jackhmmer_iteration_2 = parse_jackhmmer(iteration_1_path, iteration=False)
+
     sequences = prepare_jackhmmer_data(
         sequences, jackhmmer_iteration_1, jackhmmer_iteration_2
     )
@@ -223,6 +219,7 @@ def parse_jackhmmer(file, iteration=False):
 
     return hmm_dict
 
+
 def prepare_jackhmmer_data(sequences, hmm_it1, hmm_it2):
     for sequence in sequences:
         log.debug(f"Preparing jackhmmer data for {sequence}")
@@ -254,7 +251,7 @@ def predict_motif(sequences, predictor, data_dir):
     # create a matrix for the predictors motif size
     log.info(f"Predicting {predictor} motifs...")
     matrix = []
-    motif_size = motif_span_lengths[predictor]
+    motif_size = MOTIF_SPAN_LENGTHS[predictor]
     for sequence in sequences:
         log.debug(f"Preparing matrix for {sequence}")
         sequence_length = len(sequences[sequence].sequence)
@@ -287,7 +284,7 @@ def predict_motif(sequences, predictor, data_dir):
         sequence_length = len(sequences[sequence].sequence)
         for i in range(len(sequences[sequence].sequence)):
             # make sure we are within the sequence bounds
-            if i >= 5 and i < sequence_length - (motif_span_lengths[predictor] + 5):
+            if i >= 5 and i < sequence_length - (MOTIF_SPAN_LENGTHS[predictor] + 5):
                 value = round(result[result_index][1], 4)
                 if value > 0.8:
                     sequences[sequence].add_motif(Motif(predictor, value, i))

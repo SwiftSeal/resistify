@@ -1,4 +1,6 @@
-from resistify.logging_setup import log
+import logging
+
+log = logging.getLogger(__name__)
 
 DUPLICATE_GAP = 100
 
@@ -60,7 +62,7 @@ class Sequence:
             "aD3": [],
             "bA": [],
             "bC": [],
-            "bDaD1": []
+            "bDaD1": [],
         }
 
     def add_annotation(self, annotation):
@@ -108,7 +110,6 @@ class Sequence:
                 self.cjid = True
             else:
                 domain_string += short_IDs[annotation.domain]
-    
 
         # classify based on primary architecture
         if "CN" in domain_string:
@@ -129,11 +130,10 @@ class Sequence:
         # Create sorted motif string
         sorted_motifs = [item for sublist in self.motifs.values() for item in sublist]
         sorted_motifs.sort(key=lambda x: x.position)
-        
+
         # write motif string
         for motif in sorted_motifs:
             self.motif_string += motif_translation[motif.classification]
-
 
         # Add CC annotation from motif if no N terminal annotation
         if self.classification == "N":
@@ -147,14 +147,24 @@ class Sequence:
                         Annotation("CC", motif.position, motif.position + 1, "NA", "NA")
                     )
             TIR_motif_IDs = ["aA", "aC", "aD3", "bA", "bC", "bDaD1"]
-            TIR_motifs = [item for motif in TIR_motif_IDs for item in self.motifs[motif] if item.position < nbarc_start]
+            TIR_motifs = [
+                item
+                for motif in TIR_motif_IDs
+                for item in self.motifs[motif]
+                if item.position < nbarc_start
+            ]
             # TIR motifs are pretty conserved, seems okay to take 1 as sufficient evidence
             if len(TIR_motifs) > 0:
                 TIR_motifs.sort(key=lambda x: x.position)
                 self.add_annotation(
-                    Annotation("TIR", TIR_motifs[0].position, TIR_motifs[-1].position, "NA", "NA")
+                    Annotation(
+                        "TIR",
+                        TIR_motifs[0].position,
+                        TIR_motifs[-1].position,
+                        "NA",
+                        "NA",
+                    )
                 )
-
 
         # Add LRR annotation if there are more than 3 LRR motifs
         if len(self.motifs["LxxLxL"]) > lrr_length - 1:
