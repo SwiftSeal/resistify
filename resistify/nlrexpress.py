@@ -1,15 +1,14 @@
 import subprocess
 import sys
-import shutil
 import numpy as np
 from sklearn.neural_network import MLPClassifier
 import pickle
 from Bio import SeqIO
 from multiprocessing import Pool
-#import tempfile
-from resistify.logging_setup import log
 import os
 from resistify.annotations import Motif
+import logging
+log = logging.getLogger(__name__)
 
 MOTIF_SPAN_LENGTHS = {
     "extEDVID": 12,

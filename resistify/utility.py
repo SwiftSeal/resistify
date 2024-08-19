@@ -2,9 +2,9 @@ import sys
 import os
 from Bio import SeqIO
 from resistify.annotations import Sequence
+from resistify.nlrexpress import MOTIF_SPAN_LENGTHS
 from tempfile import TemporaryDirectory
 import shutil
-from .nlrexpress import MOTIF_SPAN_LENGTHS
 import logging
 log = logging.getLogger(__name__)
 

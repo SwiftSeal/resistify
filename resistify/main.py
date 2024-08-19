@@ -2,7 +2,6 @@ import argparse
 from rich_argparse import RichHelpFormatter
 import logging
 from rich.logging import RichHandler
-import tempfile
 import sys
 import os
 from .annotations import *
@@ -31,16 +30,16 @@ def parse_args():
     return parser.parse_args()
 
 def main():
+    args = parse_args()
+
     logging.basicConfig(
-        level="INFO",
+        level= "DEBUG" if args.debug else "INFO",
         format="%(message)s",
         datefmt="[%X]",
-        handlers=[RichHandler(console=RichHandler())],
+        handlers=[RichHandler()],
     )
     log = logging.getLogger("rich")
     log.info("Welcome to Resistify version 0.2.3!")
-
-    args = parse_args()
 
     data_dir = os.path.join(os.path.dirname(__file__), "data")
     temp_dir = prepare_temp_directory(data_dir)
@@ -90,7 +89,7 @@ def main():
     )
 
     # close the temporary directory
-    temp_dir.cleanup()
+    #temp_dir.cleanup()
 
     # predict and add motifs to sequences
     # perhaps move all of this into a function rather than iterating
