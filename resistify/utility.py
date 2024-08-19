@@ -121,7 +121,7 @@ def result_table(sequences, results_dir):
 def domain_table(sequences, results_dir):
     with open(os.path.join(results_dir, "domains.tsv"), "w") as file:
         table_writer = csv.writer(file, delimiter="\t")
-        table_writer.writerow(["Sequence", "Domain", "Start", "End", "E-value"])
+        table_writer.writerow(["Sequence", "Domain", "Start", "End", "E_value"])
         for sequence in sequences:
             for annotation in sequences[sequence].annotations:
                 table_writer.writerow(
@@ -188,6 +188,6 @@ def extract_nbarc(sequences, results_dir):
                 if annotation.domain == "NB-ARC":
                     file.write(f">{sequence}_{count}\n")
                     file.write(
-                        f"{sequences[sequence].sequence[annotation.start-1:annotation.end]}\n"
+                        f"{sequences[sequence].sequence[annotation.start:annotation.end]}\n"
                     )
                     count += 1
