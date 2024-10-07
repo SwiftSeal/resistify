@@ -191,3 +191,9 @@ def extract_nbarc(sequences, results_dir):
                         f"{sequences[sequence].sequence[annotation.start:annotation.end]}\n"
                     )
                     count += 1
+
+def extract_nlr(sequence, results_dir):
+    with open(os.path.join(results_dir, "nlrs.fasta"), "w") as file:
+        if sequence.classification != None:
+            file.write(f">{sequence.id}\n")
+            file.write(f"{sequence.sequence}\n")

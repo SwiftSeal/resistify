@@ -13,6 +13,7 @@ from resistify.utility import (
     domain_table,
     motif_table,
     extract_nbarc,
+    extract_nlr
 )
 from resistify.hmmsearch import hmmsearch
 from resistify.nlrexpress import jackhmmer, motif_models, predict_motif
@@ -143,6 +144,7 @@ def main():
     domain_table(classified_sequences, results_dir)
     motif_table(classified_sequences, results_dir)
     extract_nbarc(classified_sequences, results_dir)
+    extract_nlr(classified_sequences, results_dir)
 
     log.info("Thank you for using Resistify!")
 
