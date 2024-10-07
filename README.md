@@ -87,6 +87,7 @@ The five amino acids upstream and downstream of the motif site are also provided
 #### domains.tsv
 
 Sequence | Domain | Start | End | E_value |
+| --- | --- | --- | --- | --- |
 NP_190664.1 | MADA | 0 | 21 | 5e-07 |
 NP_190664.1 | CC | 4 | 128 | 7.8e-24 |
 NP_190664.1 | NB-ARC | 162 | 410 | 4.6e-90 |
