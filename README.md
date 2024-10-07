@@ -175,7 +175,7 @@ motifs <- read_tsv("output/motifs.tsv") |>
 myplot <- ggplot() +
   geom_segment(data = results, aes(y = Sequence, yend = Sequence, x = 0, xend = Length)) +
   geom_segment(data = domains, aes(y = Sequence, yend = Sequence, x = Start, xend = End, colour = Domain)) +
-  geom_point(data = motifs, aes(y = Sequence, x = Position, colour = Domain), size = 0.4)
+  geom_point(data = motifs, aes(y = Sequence, x = Position, colour = Domain))
 ```
 
 ![Example plot of NLR domains](assets/domain_plot.png)
