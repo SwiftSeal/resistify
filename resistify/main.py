@@ -143,7 +143,7 @@ def main():
     domain_table(classified_sequences, results_dir)
     motif_table(classified_sequences, results_dir)
     extract_nbarc(classified_sequences, results_dir)
-    save_fasta(classified_sequences, results_dir, nlr_only=True)
+    save_fasta(classified_sequences, os.path.join(results_dir, "nlr.fasta"), nlr_only=True)
 
     log.info("Thank you for using Resistify!")
 
