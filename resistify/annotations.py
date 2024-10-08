@@ -199,11 +199,12 @@ class Sequence:
         self.domain_string = domain_string
 
         # collapse adjacent domains
-        collapsed_domain_string = [domain_string[0]]
-        for domain in domain_string[1:]:
-            if domain != collapsed_domain_string[-1]:
-                collapsed_domain_string.append(domain)
-        domain_string = "".join(collapsed_domain_string)
+        if len(domain_string) > 0:
+            collapsed_domain_string = [domain_string[0]]
+            for domain in domain_string[1:]:
+                if domain != collapsed_domain_string[-1]:
+                    collapsed_domain_string.append(domain)
+            domain_string = "".join(collapsed_domain_string)
 
 
         # classify based on primary architecture
