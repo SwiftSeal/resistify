@@ -101,7 +101,6 @@ def jackhmmer_subprocess(fasta, temp_dir):
             stderr=subprocess.PIPE,
             universal_newlines=True,
         )
-        log.debug(f"Jackhmmer completed successfully for {fasta}")
     except subprocess.CalledProcessError as e:
         log.error(f"Error running jackhmmer:\nStderr: {e.stderr}\nStdout:{e.stdout}")
         sys.exit(1)
@@ -249,35 +248,44 @@ def prepare_jackhmmer_data(sequences, hmm_it1, hmm_it2):
 
 
 def predict_motif(sequences, predictor, data_dir):
+    # create a matrix for the predictors motif size
     log.info(f"Predicting {predictor} motifs...")
+    matrix = []
     motif_size = MOTIF_SPAN_LENGTHS[predictor]
-
-    # Load the model from model dictionary
-    model_path = os.path.join(data_dir, motif_models[predictor])
-    model = pickle.load(open(model_path, "rb"))
-
     for sequence in sequences:
-        log.debug(f"Processing {sequence}")
+        log.debug(f"Preparing matrix for {sequence}")
         sequence_length = len(sequences[sequence].sequence)
-        features = sequences[sequence].jackhmmer_data
-
         for i in range(sequence_length):
-            # Make sure we are within the sequence bounds
+            # make sure we are within the sequence bounds
             if i >= 5 and i < sequence_length - (motif_size + 5):
-                # Extract the feature window
-                feature_window = []
+                features = sequences[sequence].jackhmmer_data
+
+                matrix.append([])
+
+                # add the hmm values for this range
                 for j in range(-5, motif_size + 6):
-                    feature_window += features[i + j]
+                    matrix[-1] += features[i + j]
 
-                # Convert to numpy array and reshape for prediction
-                feature_window = np.array(feature_window, dtype=float).reshape(1, -1)
+    matrix = np.array(matrix, dtype=float)
+    # load the model from model dictionary
 
-                # Run the prediction
-                result = model.predict_proba(feature_window)
+    model_path = os.path.join(data_dir, motif_models[predictor])
 
-                # Check the prediction result
-                value = round(result[0][1], 4)
+    model = pickle.load(open(model_path, "rb"))
+    # run the prediction
+    log.debug("Running prediction")
+    result = model.predict_proba(matrix)
+    log.debug("Prediction complete")
+
+    # iterate through sequences and pull out any predictions with a probability > 0.8
+    result_index = 0
+    for sequence in sequences:
+        log.debug(f"Adding motifs to {sequence}")
+        sequence_length = len(sequences[sequence].sequence)
+        for i in range(len(sequences[sequence].sequence)):
+            # make sure we are within the sequence bounds
+            if i >= 5 and i < sequence_length - (MOTIF_SPAN_LENGTHS[predictor] + 5):
+                value = round(result[result_index][1], 4)
                 if value > 0.8:
-                    log.debug(f"Predicted {predictor} motif at position {i} with value {value}")
                     sequences[sequence].add_motif(Motif(predictor, value, i))
-
+                result_index += 1
