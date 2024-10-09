@@ -281,15 +281,3 @@ def predict_motif(sequences, predictor, data_dir):
                 if value > 0.8:
                     sequences[sequence].add_motif(Motif(predictor, value, i))
 
-def nlrexpress(fasta, sequences, temp_dir, chunk_size, threads):
-    """
-    Run the NLRexpress process on processed samples
-    """
-    fastas = split_fasta(fasta, chunk_size, temp_dir)
-
-    with Pool(-(-threads // 2)) as pool:
-        pool.starmap(jackhmmer_subprocess, [(f, temp_dir.name) for f in fastas])
-    
-    for fasta in fastas:
-        parse_jackhmmer(fasta)
-
