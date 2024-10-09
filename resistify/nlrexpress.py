@@ -273,12 +273,11 @@ def predict_motif(sequences, predictor, data_dir):
                 feature_window = np.array(feature_window, dtype=float).reshape(1, -1)
 
                 # Run the prediction
-                log.debug("Running prediction")
                 result = model.predict_proba(feature_window)
-                log.debug("Prediction complete")
 
                 # Check the prediction result
                 value = round(result[0][1], 4)
                 if value > 0.8:
+                    log.debug(f"Predicted {predictor} motif at position {i} with value {value}")
                     sequences[sequence].add_motif(Motif(predictor, value, i))
 
