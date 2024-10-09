@@ -101,6 +101,7 @@ def jackhmmer_subprocess(fasta, temp_dir):
             stderr=subprocess.PIPE,
             universal_newlines=True,
         )
+        log.debug(f"Jackhmmer completed successfully for {fasta}")
     except subprocess.CalledProcessError as e:
         log.error(f"Error running jackhmmer:\nStderr: {e.stderr}\nStdout:{e.stdout}")
         sys.exit(1)
