@@ -3,24 +3,21 @@ import sys
 import os
 import logging
 from resistify.annotations import Annotation
+from resistify.utility import split_fasta
 from Bio import SearchIO
 
 log = logging.getLogger(__name__)
 
-
-def hmmsearch(input_file, sequences, temp_dir, data_dir, evalue):
-    hmmsearch_db = os.path.join(data_dir, "nlrdb.hmm")
-    output_file = os.path.join(temp_dir.name, "hmmsearch.out")
-
+def hmmsearch_subprocess(input, output, db, evalue):
     cmd = [
         "hmmsearch",
         "--noali",
         "--domE",
         evalue,
         "--domtblout",
-        output_file,
-        hmmsearch_db,
-        input_file,
+        output,
+        db,
+        input,
     ]
 
     log.info(f"Running hmmsearch...")
@@ -40,7 +37,20 @@ def hmmsearch(input_file, sequences, temp_dir, data_dir, evalue):
         log.error(f"hmmsearch not found. Have you installed it?")
         sys.exit(1)
 
-    sequences = parse_hmmsearch(output_file, sequences)
+
+def hmmsearch(input_file, sequences, temp_dir, data_dir, evalue):
+    hmmsearch_db = os.path.join(data_dir, "nlrdb.hmm")
+    output_file = os.path.join(temp_dir.name, "hmmsearch.out")
+
+    if len(sequences) >= 100000:
+        log.debug(f"Splitting input file into chunks")
+        fastas = split_fasta(input_file, 50000, temp_dir)
+        for fasta in fastas:
+            hmmsearch_subprocess(fasta, f"{fasta}.out", hmmsearch_db, evalue)
+            sequences = parse_hmmsearch(f"{fasta}.out", sequences)
+    else:
+        hmmsearch_subprocess(input_file, output_file, hmmsearch_db, evalue)
+        sequences = parse_hmmsearch(output_file, sequences)
     return sequences
 
 

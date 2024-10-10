@@ -8,6 +8,7 @@ from sklearn.neural_network import MLPClassifier
 from Bio import SeqIO
 from multiprocessing import Pool
 from resistify.annotations import Motif
+from resistify.utility import split_fasta
 
 log = logging.getLogger(__name__)
 
@@ -52,24 +53,7 @@ motif_models = {
 }
 
 
-def split_fasta(fasta, chunk_size, temp_dir):
-    """
-    Split a fasta file into chunks of defined size.
-    Return a list of the file paths.
-    """
-    log.debug(f"Splitting fasta into chunks of {chunk_size} sequences")
-    fastas = []
-    records = list(SeqIO.parse(fasta, "fasta"))
-    records = [records[i : i + chunk_size] for i in range(0, len(records), chunk_size)]
 
-    for i, record in enumerate(records):
-        chunk_path = os.path.join(temp_dir.name, f"chunk_{i}.fasta")
-        with open(chunk_path, "w") as f:
-            log.debug(f"Writing chunk {i} to {chunk_path}")
-            SeqIO.write(record, f, "fasta")
-            fastas.append(f"{chunk_path}")
-
-    return fastas
 
 
 def jackhmmer_subprocess(fasta, temp_dir):
