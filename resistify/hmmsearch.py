@@ -49,6 +49,9 @@ def parse_hmmsearch(output_file, sequences):
     for record in SearchIO.parse(output_file, "hmmsearch3-domtab"):
         for hit in record:
             for hsp in hit:
+                # Necessary to avoid parsing errors
+                if record.id == "TIR2":
+                    record.id = "TIR"
                 # Set a high threshold for RPW8 to avoid false positives
                 if record.id == "RPW8" and hsp.bitscore < 20:
                     continue

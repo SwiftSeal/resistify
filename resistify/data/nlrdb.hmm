@@ -1784,7 +1784,7 @@ HMM          A        C        D        E        F        G        H        I   
           0.01242  4.39486        *  0.61958  0.77255  0.00000        *
 //
 HMMER3/f [3.3 | Nov 2019]
-NAME  TIR
+NAME  TIR2
 ACC   PF13676.10
 DESC  TIR domain
 LENG  122
