@@ -5,7 +5,6 @@ import shutil
 import logging
 from Bio import SeqIO
 from resistify.annotations import Sequence
-from resistify.nlrexpress import MOTIF_SPAN_LENGTHS
 from tempfile import TemporaryDirectory
 
 log = logging.getLogger(__name__)
@@ -42,6 +41,9 @@ def parse_fasta(path):
             sequence_str = str(record.seq).strip("*")
             if "*" in sequence_str:
                 log.error(f"Internal stop codon detected in sequence {record.id}")
+                sys.exit(1)
+            if len(sequence_str) > 100000:
+                log.error(f"Sequence {record.id} is too long (>100000 aa)")
                 sys.exit(1)
             sequences[record.id] = Sequence(sequence_str)
 
@@ -152,6 +154,7 @@ def domain_table(sequences, results_dir):
 
 
 def motif_table(sequences, results_dir):
+    from resistify.nlrexpress import MOTIF_SPAN_LENGTHS
     output_path = os.path.join(results_dir, "motifs.tsv")
     with open(output_path, "w") as file:
         table_writer = csv.writer(file, delimiter="\t")

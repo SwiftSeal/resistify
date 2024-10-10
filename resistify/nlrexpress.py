@@ -53,9 +53,6 @@ motif_models = {
 }
 
 
-
-
-
 def jackhmmer_subprocess(fasta, temp_dir):
     """
     Run jackhmmer on the input fasta file against the database_path.
