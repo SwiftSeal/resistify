@@ -8,6 +8,7 @@ from sklearn.neural_network import MLPClassifier
 from Bio import SeqIO
 from multiprocessing import Pool
 from resistify.annotations import Motif
+from resistify.utility import split_fasta
 
 log = logging.getLogger(__name__)
 
@@ -50,26 +51,6 @@ motif_models = {
     "bC": "MLP_TIR_bC.pkl",
     "bDaD1": "MLP_TIR_bD-aD1.pkl",
 }
-
-
-def split_fasta(fasta, chunk_size, temp_dir):
-    """
-    Split a fasta file into chunks of defined size.
-    Return a list of the file paths.
-    """
-    log.debug(f"Splitting fasta into chunks of {chunk_size} sequences")
-    fastas = []
-    records = list(SeqIO.parse(fasta, "fasta"))
-    records = [records[i : i + chunk_size] for i in range(0, len(records), chunk_size)]
-
-    for i, record in enumerate(records):
-        chunk_path = os.path.join(temp_dir.name, f"chunk_{i}.fasta")
-        with open(chunk_path, "w") as f:
-            log.debug(f"Writing chunk {i} to {chunk_path}")
-            SeqIO.write(record, f, "fasta")
-            fastas.append(f"{chunk_path}")
-
-    return fastas
 
 
 def jackhmmer_subprocess(fasta, temp_dir):
@@ -138,7 +119,7 @@ def jackhmmer(fasta, sequences, temp_dir, data_dir, chunk_size, threads):
                 with open(f"{fasta}.out-2.hmm") as chunk:
                     f.write(chunk.read())
             except FileNotFoundError:
-                log.info("Second jackhmmer iteration file does not exist, skipping...")
+                log.debug("Second jackhmmer iteration file does not exist, skipping...")
 
     try:
         jackhmmer_iteration_2 = parse_jackhmmer(iteration_2_path, iteration=True)

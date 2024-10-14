@@ -5,7 +5,6 @@ import shutil
 import logging
 from Bio import SeqIO
 from resistify.annotations import Sequence
-from resistify.nlrexpress import MOTIF_SPAN_LENGTHS
 from tempfile import TemporaryDirectory
 
 log = logging.getLogger(__name__)
@@ -43,18 +42,37 @@ def parse_fasta(path):
             if "*" in sequence_str:
                 log.error(f"Internal stop codon detected in sequence {record.id}")
                 sys.exit(1)
+            if len(sequence_str) > 100000:
+                log.error(f"Sequence {record.id} is too long (>100000 aa)")
+                sys.exit(1)
             sequences[record.id] = Sequence(sequence_str)
-
-    if len(sequences) > 100000:
-        log.error("Input fasta larger than 100,000 sequences currently not supported.")
-        sys.exit(1)
 
     return sequences
 
+def split_fasta(fasta, chunk_size, temp_dir):
+    """
+    Split a fasta file into chunks of defined size.
+    Return a list of the file paths.
+    """
+    log.debug(f"Splitting fasta into chunks of {chunk_size} sequences")
+    fastas = []
+    records = list(SeqIO.parse(fasta, "fasta"))
+    records = [records[i : i + chunk_size] for i in range(0, len(records), chunk_size)]
 
-def save_fasta(sequences, path):
+    for i, record in enumerate(records):
+        chunk_path = os.path.join(temp_dir.name, f"chunk_{i}.fasta")
+        with open(chunk_path, "w") as f:
+            log.debug(f"Writing chunk {i} to {chunk_path}")
+            SeqIO.write(record, f, "fasta")
+            fastas.append(f"{chunk_path}")
+
+    return fastas
+
+def save_fasta(sequences, path, nlr_only=False):
     with open(path, "w") as file:
         for sequence in sequences:
+            if nlr_only and sequences[sequence].classification is None:
+                continue
             file.write(f">{sequence}\n")
             file.write(f"{sequences[sequence].sequence}\n")
     return path
@@ -136,6 +154,7 @@ def domain_table(sequences, results_dir):
 
 
 def motif_table(sequences, results_dir):
+    from resistify.nlrexpress import MOTIF_SPAN_LENGTHS
     output_path = os.path.join(results_dir, "motifs.tsv")
     with open(output_path, "w") as file:
         table_writer = csv.writer(file, delimiter="\t")

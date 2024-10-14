@@ -75,7 +75,7 @@ def main():
         handlers=[RichHandler()],
     )
     log = logging.getLogger("rich")
-    log.info("Welcome to Resistify version 0.3.0!")
+    log.info("Welcome to Resistify version 0.4.0!")
 
     data_dir = os.path.join(os.path.dirname(__file__), "data")
     temp_dir = prepare_temp_directory(data_dir)
@@ -143,6 +143,9 @@ def main():
     domain_table(classified_sequences, results_dir)
     motif_table(classified_sequences, results_dir)
     extract_nbarc(classified_sequences, results_dir)
+    save_fasta(
+        classified_sequences, os.path.join(results_dir, "nlr.fasta"), nlr_only=True
+    )
 
     log.info("Thank you for using Resistify!")
 

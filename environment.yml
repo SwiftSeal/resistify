@@ -1,0 +1,11 @@
+channels:
+ - conda-forge
+ - bioconda
+dependencies:
+ - python
+ - scikit-learn==0.24.2
+ - biopython
+ - rich
+ - rich-argparse
+ - numpy<1.23.0
+ - hmmer

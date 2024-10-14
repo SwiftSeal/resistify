@@ -3,10 +3,10 @@ import sys
 import os
 import logging
 from resistify.annotations import Annotation
+from resistify.utility import split_fasta
 from Bio import SearchIO
 
 log = logging.getLogger(__name__)
-
 
 def hmmsearch(input_file, sequences, temp_dir, data_dir, evalue):
     hmmsearch_db = os.path.join(data_dir, "nlrdb.hmm")
@@ -41,6 +41,7 @@ def hmmsearch(input_file, sequences, temp_dir, data_dir, evalue):
         sys.exit(1)
 
     sequences = parse_hmmsearch(output_file, sequences)
+    
     return sequences
 
 
@@ -48,6 +49,9 @@ def parse_hmmsearch(output_file, sequences):
     for record in SearchIO.parse(output_file, "hmmsearch3-domtab"):
         for hit in record:
             for hsp in hit:
+                # Necessary to avoid parsing errors
+                if record.id == "TIR2":
+                    record.id = "TIR"
                 # Set a high threshold for RPW8 to avoid false positives
                 if record.id == "RPW8" and hsp.bitscore < 20:
                     continue
