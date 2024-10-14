@@ -18,6 +18,7 @@ from resistify.hmmsearch import hmmsearch
 from resistify.nlrexpress import jackhmmer, motif_models, predict_motif
 from resistify.annotations import Sequence
 
+__version__ = "0.4.0"
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -25,6 +26,9 @@ def parse_args():
         Resistify is a tool for identifying and classifying NLR resistance genes in plant genomes.
         """,
         formatter_class=RichHelpFormatter,
+    )
+    parser.add_argument(
+        "-v", "--version", action="version", version=f"%(prog)s {__version__}"
     )
     parser.add_argument(
         "-t", "--threads", help="Threads available to jackhmmer", default=2, type=int
@@ -75,7 +79,7 @@ def main():
         handlers=[RichHandler()],
     )
     log = logging.getLogger("rich")
-    log.info("Welcome to Resistify version 0.4.0!")
+    log.info(f"Welcome to Resistify version {__version__}!")
 
     data_dir = os.path.join(os.path.dirname(__file__), "data")
     temp_dir = prepare_temp_directory(data_dir)
