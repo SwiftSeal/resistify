@@ -17,6 +17,7 @@ from resistify.utility import (
 from resistify.hmmsearch import hmmsearch
 from resistify.nlrexpress import jackhmmer, motif_models, predict_motif
 from resistify.annotations import Sequence
+from resistify.coconat import coconat
 
 __version__ = "0.4.0"
 
@@ -38,6 +39,12 @@ def parse_args():
         "--ultra",
         help="Run in ultra mode, non-NLRs will be retained",
         action="store_true",
+    )
+    parser.add_argument(
+        "--coconat",
+        help="Path to Coconat database. If not provided, Coconat will not be used to improve CC annotations.",
+        default=None,
+        type=str,
     )
     parser.add_argument(
         "--chunksize",
@@ -117,6 +124,10 @@ def main():
             sys.exit(0)
 
         log.info(f"{len(classified_sequences)} sequences classified as potential NLRs!")
+
+    if args.coconat:
+        log.info(f"Coconat database provided - Coconat will be used to improve CC annotations.")
+        coconat_result = coconat(classified_sequences, args.coconat, temp_dir, data_dir)
 
     jackhmmer_input = save_fasta(
         classified_sequences, os.path.join(temp_dir.name, "jackhmmer_input.fa")
