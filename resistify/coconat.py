@@ -8,6 +8,8 @@ import subprocess
 import logging
 import sys
 import os
+import tempfile
+import csv
 
 log = logging.getLogger(__name__)
 
@@ -181,8 +183,8 @@ def esm_embedding(sequences, sequence_ids, esm2_database):
     
     return embeddings
 
-def predict_register_probability(sequences, lengths, merged, registers_model, temp_dir):
-    output_path = os.path.join(temp_dir.name, "registers.tsv")
+def predict_register_probability(sequences, lengths, merged, registers_model):
+    output_path = tempfile.NamedTemporaryFile()
     checkpoint = torch.load(registers_model)
     model = MMModelLSTM()
     model.load_state_dict(checkpoint["state_dict"])
@@ -196,9 +198,9 @@ def predict_register_probability(sequences, lengths, merged, registers_model, te
             outfile.write("\n")
     return output_path
 
-def crf(register_path, biocrf_path, crf_model, temp_dir):
-    output_path = os.path.join(temp_dir.name, "crf.output.tsv")
-    prefix_path = os.path.join(temp_dir.name, "crf.posterior.")
+def crf(register_path, biocrf_path, crf_model):
+    output_path = tempfile.NamedTemporaryFile()
+    prefix_path = os.path.join(tempfile.TemporaryDirectory(), "crf")
     subprocess.call(
         [
             f"{biocrf_path}",
@@ -231,7 +233,7 @@ def crf(register_path, biocrf_path, crf_model, temp_dir):
                 i += 1
     return labels, probs
 
-def coconat(sequences, database, temp_dir, data_dir):
+def coconat(sequences, database):
     """
     Use Coconat to predict coiled-coil domains in the N-terminal regions of NLRs.
     """
@@ -252,9 +254,9 @@ def coconat(sequences, database, temp_dir, data_dir):
     
     prot_t5_database = os.path.join(database, "prot_t5_xl_uniref50")
     esm2_database = os.path.join(database, "esm2", "esm2_t33_650M_UR50D.pt")
-    registers_model = os.path.join(data_dir, "dlModel.ckpt")
-    biocrf_path = os.path.join(data_dir, bin, "biocrf-static")
-    crf_model = os.path.join(data_dir, "crfModel")
+    registers_model = os.path.join(os.path.dirname(__file__), "data", "dlModel.ckpt")
+    biocrf_path = os.path.join(os.path.dirname(__file__), bin, "biocrf-static")
+    crf_model = os.path.join(os.path.dirname(__file__), "data", "crfModel")
     
     log.debug("Extracting N-terminal sequences...")
     sequence_ids, nterminal_sequences, lengths = [], [], []
@@ -283,11 +285,26 @@ def coconat(sequences, database, temp_dir, data_dir):
 
     merged = torch.nn.utils.rnn.pad_sequence(merged, batch_first=True)
 
-    register_path = predict_register_probability(nterminal_sequences, lengths, merged, registers_model, temp_dir)
+    register_path = predict_register_probability(nterminal_sequences, lengths, merged, registers_model)
 
     merged = merged.detach().cpu().numpy()
 
-    labels, probs = crf(register_path, biocrf_path, crf_model, temp_dir)
+    labels, probs = crf(register_path, biocrf_path, crf_model)
+
+    with open("coconat_results.txt", "w") as outfile:
+        result_writer = csv.writer(outfile, delimiter="\t")
+        result_writer.writerow(["sequence_id", "position", "cc_probability"])
+        for i in range(len(nterminal_sequences)):
+            for j in range(len(nterminal_sequences[i])):
+                result_writer.writerow(
+                    [
+                        sequence_ids[i],
+                        j,
+                        probs[i][j][0],
+                    ]
+                )
+    
+    return probs
 
             
     
