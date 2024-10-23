@@ -11,6 +11,7 @@ import os
 import tempfile
 import csv
 from resistify.annotations import Annotation
+import warnings
 
 log = logging.getLogger(__name__)
 
@@ -84,8 +85,11 @@ ESM2_FILES = [
 
 def prot_t5_embedding(sequences, lengths, prot_t5_database):
     log.debug("Loading ProtT5 model...")
-    model = T5EncoderModel.from_pretrained(prot_t5_database)
-    tokenizer = T5Tokenizer.from_pretrained(prot_t5_database)
+    # suppress warning about weights
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=FutureWarning)
+        model = T5EncoderModel.from_pretrained(prot_t5_database)
+        tokenizer = T5Tokenizer.from_pretrained(prot_t5_database)
     log.debug("Generating ProtT5 embeddings...")
     sequences = [" ".join(re.sub(r"[UZOB]", "X", sequence)) for sequence in sequences]
     ids = tokenizer.batch_encode_plus(sequences, add_special_tokens=True, padding="longest")
@@ -104,7 +108,10 @@ def prot_t5_embedding(sequences, lengths, prot_t5_database):
 
 def esm_embedding(sequences, sequence_ids, esm2_database):
     log.debug("Loading ESM2 model...")
-    model, alphabet = esm.pretrained.load_model_and_alphabet(esm2_database)
+    # suppress warning about weights
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=FutureWarning)
+        model, alphabet = esm.pretrained.load_model_and_alphabet(esm2_database)
     model.eval()
     log.debug("Generating ESM2 embeddings...")
     batch_converter = alphabet.get_batch_converter()
@@ -122,7 +129,8 @@ def esm_embedding(sequences, sequence_ids, esm2_database):
 
 def predict_register_probability(sequences, lengths, merged, registers_model):
     output_path = tempfile.NamedTemporaryFile()
-    checkpoint = torch.load(registers_model)
+    log.debug("Loading registers model...")
+    checkpoint = torch.load(registers_model, weights_only=False)
     model = MMModelLSTM()
     model.load_state_dict(checkpoint["state_dict"])
     model.eval()
@@ -283,7 +291,8 @@ def coconat(sequences, database):
                         "CC",
                         start + chunk_index[0],
                         end + chunk_index[0],
-                        merged_result[sequence.id][1][start:end]
+                        None,
+                        None
                     )
                 )
 
