@@ -170,3 +170,10 @@ def extract_nbarc(sequences, results_dir):
                         f"{sequence.sequence[annotation.start:annotation.end]}\n"
                     )
                     count += 1
+
+def coconat_table(sequences, results_dir):
+    output_path = os.path.join(results_dir, "coconat.tsv")
+    with open(output_path, "w") as f:
+        for sequence in sequences:
+            for i, probability in enumerate(sequence.cc_probs):
+                f.write(f"{sequence.id}\t{i}\t{probability}\n")

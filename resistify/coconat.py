@@ -223,7 +223,9 @@ def crf(register_path, biocrf_path, crf_model):
             "-q",
             f"{prefix_path}",
             f"{register_path.name}",
-        ]
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
     )
     labels, probs = [], []
     current_label = ""

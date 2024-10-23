@@ -12,6 +12,7 @@ from resistify.utility import (
     domain_table,
     motif_table,
     extract_nbarc,
+    coconat_table
 )
 from resistify.hmmsearch import hmmsearch
 from resistify.nlrexpress import nlrexpress
@@ -117,15 +118,15 @@ def main():
     if args.coconat:
         log.info(f"Coconat database provided - Coconat will be used to improve CC annotations.")
         classified_sequences = coconat(classified_sequences, args.coconat)
+        for sequence in classified_sequences:
+            sequence.merge_annotations()
+            sequence.classify()
 
     classified_sequences = nlrexpress(
         classified_sequences,
         args.chunksize,
         args.threads,
     )
-
-    # predict and add motifs to sequences
-    # perhaps move all of this into a function rather than iterating
 
     for sequence in classified_sequences:
         sequence.reclassify(args.lrr_gap, args.lrr_length)
@@ -138,6 +139,8 @@ def main():
     save_fasta(
         classified_sequences, os.path.join(results_dir, "nlr.fasta"), nlr_only=True
     )
+    if args.coconat:
+        coconat_table(classified_sequences, results_dir)
 
     log.info("Thank you for using Resistify!")
 
