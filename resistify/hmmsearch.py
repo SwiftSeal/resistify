@@ -3,24 +3,31 @@ import sys
 import os
 import logging
 from resistify.annotations import Annotation
-from resistify.utility import split_fasta
 from Bio import SearchIO
+import tempfile
 
 log = logging.getLogger(__name__)
 
-def hmmsearch(input_file, sequences, temp_dir, data_dir, evalue):
-    hmmsearch_db = os.path.join(data_dir, "nlrdb.hmm")
-    output_file = os.path.join(temp_dir.name, "hmmsearch.out")
+def hmmsearch(sequences, evalue):
+    hmmsearch_db = os.path.join(os.path.dirname(__file__), "data", "nlrdb.hmm")
+    output_file = tempfile.NamedTemporaryFile()
 
+    input_fasta = tempfile.NamedTemporaryFile()
+
+    log.debug(f"Writing sequences to {input_fasta.name}")
+    with open(input_fasta.name, "w") as f:
+        for sequence in sequences:
+            f.write(f">{sequence.id}\n{sequence.sequence}\n")
+        
     cmd = [
         "hmmsearch",
         "--noali",
         "--domE",
         evalue,
         "--domtblout",
-        output_file,
+        output_file.name,
         hmmsearch_db,
-        input_file,
+        input_fasta.name,
     ]
 
     log.info(f"Running hmmsearch...")
@@ -40,13 +47,8 @@ def hmmsearch(input_file, sequences, temp_dir, data_dir, evalue):
         log.error(f"hmmsearch not found. Have you installed it?")
         sys.exit(1)
 
-    sequences = parse_hmmsearch(output_file, sequences)
-    
-    return sequences
-
-
-def parse_hmmsearch(output_file, sequences):
-    for record in SearchIO.parse(output_file, "hmmsearch3-domtab"):
+    hmmsearch_results = {}
+    for record in SearchIO.parse(output_file.name, "hmmsearch3-domtab"):
         for hit in record:
             for hsp in hit:
                 # Necessary to avoid parsing errors
@@ -55,9 +57,16 @@ def parse_hmmsearch(output_file, sequences):
                 # Set a high threshold for RPW8 to avoid false positives
                 if record.id == "RPW8" and hsp.bitscore < 20:
                     continue
-                sequences[hit.id].add_annotation(
+
+                hmmsearch_results.setdefault(hit.id, []).append(
                     Annotation(
                         record.id, hsp.env_start, hsp.env_end, hsp.evalue, hsp.bitscore
                     )
                 )
+    
+    for sequence in sequences:
+        annotations = hmmsearch_results.get(sequence.id, [])
+        for annotation in annotations:
+            sequence.add_annotation(annotation)
+    
     return sequences

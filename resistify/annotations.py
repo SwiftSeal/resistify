@@ -36,7 +36,8 @@ motif_translation = {
 
 
 class Sequence:
-    def __init__(self, sequence):
+    def __init__(self, id, sequence):
+        self.id = id
         self.sequence = sequence
         self.classification = None
         self.mada = False
@@ -67,6 +68,7 @@ class Sequence:
 
     def add_annotation(self, annotation):
         self.annotations.append(annotation)
+        self.annotations.sort(key=lambda x: x.start)
 
     def add_motif(self, motif):
         self.motifs[motif.classification].append(motif)
@@ -96,6 +98,11 @@ class Sequence:
         # sort merged annotations by start position
         merged_annotations.sort(key=lambda x: x.start)
         self.annotations = merged_annotations
+    
+    def get_nterminal(self):
+        for annotation in self.annotations:
+            if annotation.domain == "NB-ARC":
+                return self.sequence[:annotation.start]
 
     def classify(self):
         domain_string = ""

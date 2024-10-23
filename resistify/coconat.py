@@ -255,21 +255,17 @@ def coconat(sequences, database):
     prot_t5_database = os.path.join(database, "prot_t5_xl_uniref50")
     esm2_database = os.path.join(database, "esm2", "esm2_t33_650M_UR50D.pt")
     registers_model = os.path.join(os.path.dirname(__file__), "data", "dlModel.ckpt")
-    biocrf_path = os.path.join(os.path.dirname(__file__), bin, "biocrf-static")
+    biocrf_path = os.path.join(os.path.dirname(__file__), "bin", "biocrf-static")
     crf_model = os.path.join(os.path.dirname(__file__), "data", "crfModel")
     
     log.debug("Extracting N-terminal sequences...")
     sequence_ids, nterminal_sequences, lengths = [], [], []
     for sequence in sequences:
-        if sequence[sequence].classification in ["N", "CN"]:
-            for annotation in sequence.annotations:
-                if annotation.domain == "NB-ARC":
-                    nbarc_start = annotation.start
-                    break
-            nterminal_sequence = sequence[sequence].sequence[:nbarc_start]
+        if sequence.classification in ["N", "CN"]:
+            nterminal_sequence = sequence.get_nterminal()
 
             if len(nterminal_sequence) >= 1022:
-                log.warning(f"Sequence {sequence[sequence].id} N-terminus too long, skipping. MUST FIX THIS!")
+                log.warning(f"Sequence {sequence.id} N-terminus too long, skipping. MUST FIX THIS!")
             else:
                 sequence_ids.append(sequence)
                 nterminal_sequences.append(nterminal_sequence)
