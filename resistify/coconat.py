@@ -91,7 +91,7 @@ def prot_t5_embedding(sequences, lengths, prot_t5_database):
         model = T5EncoderModel.from_pretrained(prot_t5_database)
         tokenizer = T5Tokenizer.from_pretrained(prot_t5_database)
     log.debug("Generating ProtT5 embeddings...")
-    sequences = [" ".join(re.sub(r"[UZOB]", "X", sequence)) for sequence in sequences]
+    sequences = [" ".join(list(re.sub(r"[UZOB]", "X", sequence))) for sequence in sequences]
     ids = tokenizer.batch_encode_plus(sequences, add_special_tokens=True, padding="longest")
     input_ids = torch.tensor(ids['input_ids'])
     attention_mask = torch.tensor(ids['attention_mask'])
@@ -143,7 +143,7 @@ def predict_register_probability(sequences, lengths, merged, registers_model):
             outfile.write("\n")
     return output_path
 
-def crf(register_path, biocrf_path, crf_model):
+def crf(sequence_ids, register_path, biocrf_path, crf_model):
     output_path = tempfile.NamedTemporaryFile()
     prefix_directory = tempfile.TemporaryDirectory()
     prefix_path = os.path.join(prefix_directory.name, "crf")
@@ -205,7 +205,7 @@ def coconat(sequences, database):
     crf_model = os.path.join(os.path.dirname(__file__), "data", "crfModel")
     
     log.debug("Extracting N-terminal sequences...")
-    sequence_ids, chunk_index, nterminal_sequences, lengths = [], [], [], []
+    sequence_ids, nterminal_sequences, lengths = [], [], []
     for sequence in sequences:
         if sequence.classification in ["N", "CN"]:
             nterminal_sequence = sequence.get_nterminal()
@@ -213,13 +213,11 @@ def coconat(sequences, database):
             if len(nterminal_sequence) >= 1022:
                 log.debug(f"N-terminus of {sequence.id} is too long, splitting into chunks...")
                 for i in range(0, len(nterminal_sequence), 1022):
-                    sequence_ids.append(sequence.id)
-                    chunk_index.append(i)
+                    sequence_ids.append(f"sequence.id)_{i}")
                     nterminal_sequences.append(nterminal_sequence[i:i+1022])
                     lengths.append(1022)
             else:
-                sequence_ids.append(sequence.id)
-                chunk_index.append(0)
+                sequence_ids.append(f"{sequence.id}_0")
                 nterminal_sequences.append(nterminal_sequence)
                 lengths.append(len(nterminal_sequence))
     
@@ -243,10 +241,11 @@ def coconat(sequences, database):
     merged_probabilities = {}
     for i in range(len(sequence_ids)):
         log.debug(f"Combining results for {sequence_ids[i]}")
-        if sequence_ids[i] not in merged_probabilities:
-            merged_probabilities[sequence_ids[i]] = cc_probabilities[i]
+        sequence_id = sequence_ids[i].rsplit("_", 1)[0]
+        if sequence_id not in merged_probabilities:
+            merged_probabilities[sequence_id] = cc_probabilities[i]
         else:
-            merged_probabilities[sequence_ids[i]].extend(cc_probabilities[i])
+            merged_probabilities[sequence_id].extend(cc_probabilities[i])
 
     #with open("coconat_results.txt", "w") as outfile:
     #    result_writer = csv.writer(outfile, delimiter="\t")
