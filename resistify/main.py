@@ -119,6 +119,7 @@ def main():
         log.info(f"Coconat database provided - Coconat will be used to improve CC annotations.")
         classified_sequences = coconat(classified_sequences, args.coconat)
         for sequence in classified_sequences:
+            sequence.identify_cc_domains()
             sequence.merge_annotations()
             sequence.classify()
 

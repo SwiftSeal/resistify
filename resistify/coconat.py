@@ -166,20 +166,18 @@ def crf(register_path, biocrf_path, crf_model):
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
-    labels, probs = [], []
-    current_label = ""
-    i = 0
-    with open(output_path.name) as crfo:
-        for line in crfo:
-            line = line.split()
-            if line:
-                current_label += line[1]
-            else:
-                labels.append(current_label)
-                probs.append(np.loadtxt(f"{prefix_path}_{i}"))
-                current_label = ""
-                i += 1
-    return labels, probs
+
+    # A prefix file is created for each sequence (or sequence chunk).
+    # Iterate through the sequence ids and extract the first column of the prefix file - these are the per-residue probabilities.
+    cc_probabilities = []
+    
+    for i, sequence_id in enumerate(sequence_ids):
+        probability_matrix = np.loadtxt(f"{prefix_path}_{i}")
+        # extract first column
+        cc_probability = probability_matrix[:, 0]
+        cc_probabilities.append(cc_probability)
+
+    return cc_probabilities
 
 def coconat(sequences, database):
     """
@@ -239,16 +237,16 @@ def coconat(sequences, database):
 
     merged = merged.detach().cpu().numpy()
 
-    labels, probs = crf(register_path, biocrf_path, crf_model)
+    cc_probabilities = crf(sequence_ids, register_path, biocrf_path, crf_model)
 
     # merge chunks into single entries
-    merged_result = {}
+    merged_probabilities = {}
     for i in range(len(sequence_ids)):
         log.debug(f"Combining results for {sequence_ids[i]}")
-        if sequence_ids[i] not in merged_result:
-            merged_result[sequence_ids[i]] = [[], []]
-        merged_result[sequence_ids[i]][0].extend(labels[i])
-        merged_result[sequence_ids[i]][1].extend(probs[i])
+        if sequence_ids[i] not in merged_probabilities:
+            merged_probabilities[sequence_ids[i]] = cc_probabilities[i]
+        else:
+            merged_probabilities[sequence_ids[i]].extend(cc_probabilities[i])
 
     #with open("coconat_results.txt", "w") as outfile:
     #    result_writer = csv.writer(outfile, delimiter="\t")
@@ -264,37 +262,8 @@ def coconat(sequences, database):
     #            )
     
     for sequence in sequences:
-        if sequence.id in merged_result:
-            sequence.cc_probs = merged_result[sequence.id][1]
-
-            # Annotate CC domains
-            boundaries = []
-            start = None
-            for i in range(len(merged_result[sequence.id][0])):
-                if merged_result[sequence.id][0][i] != "i":
-                    if start is None:
-                        start = i
-                else:
-                    if start is not None:
-                        log.debug(f"Found CC annotation in {sequence.id} from {start} to {i}")
-                        boundaries.append((start, i))
-                        start = None
-            
-            if start is not None:
-                log.debug(f"Found CC annotation in {sequence.id} from {start} to {len(merged_result[sequence.id][0])}")
-                boundaries.append((start, len(merged_result[sequence.id][0])))
-            
-            for start, end in boundaries:
-                log.debug(f"Adding CC annotation to {sequence.id} from {start} to {end}")
-                sequence.add_annotation(
-                    Annotation(
-                        "CC",
-                        start + chunk_index[0],
-                        end + chunk_index[0],
-                        None,
-                        None
-                    )
-                )
+        if sequence.id in merged_probabilities:
+            sequence.cc_probs = merged_probabilities[sequence.id]
 
     return sequences
 

@@ -77,8 +77,36 @@ class Sequence:
     def identify_cc_domains(self):
         """
         Identify CC domains based on Coconat CC probabilites.
-        Domains are defined as a series of N residues with a
+        Use a sliding window of size N and predict as CC if mean probability less than X
         """
+        window_size = 3
+        threshold = 0.7
+        start = None
+
+        for i in range(len(self.cc_probs) - window_size + 1):
+            # Get the current window
+            current_window = self.cc_probs[i:i + window_size]
+
+            # Calculate the average probability for the current window
+            avg_prob = sum(current_window) / window_size
+
+            # Check if the average is below the threshold
+            if avg_prob < threshold:
+                if start is None:
+                    start = i  # Mark the start of the dipping region
+                end = i + window_size - 1  # Extend the end of the region
+            else:
+                # If we were in a dipping region and now the condition is false, record the region
+                if start is not None:
+                    log.debug(f"Adding CC domain in {self.id} from {start} to {end}")
+                    self.add_annotation(Annotation("CC", start, end, None, None))
+                    start = None  # Reset start for the next region
+
+        # If we ended in a dip region, capture the final one
+        if start is not None:
+            log.debug(f"Adding CC domain in {self.id} from {start} to {end}")
+            self.add_annotation(Annotation("CC", start, end, None, None))
+
 
 
     def merge_annotations(self):
