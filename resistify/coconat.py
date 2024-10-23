@@ -190,7 +190,7 @@ def esm_embedding(sequences, sequence_ids, esm2_database):
 
 def predict_register_probability(sequences, lengths, merged, registers_model):
     output_path = tempfile.NamedTemporaryFile()
-    checkpoint = torch.load(registers_model.name)
+    checkpoint = torch.load(registers_model)
     model = MMModelLSTM()
     model.load_state_dict(checkpoint["state_dict"])
     model.eval()
@@ -205,7 +205,7 @@ def predict_register_probability(sequences, lengths, merged, registers_model):
 
 def crf(register_path, biocrf_path, crf_model):
     output_path = tempfile.NamedTemporaryFile()
-    prefix_path = os.path.join(tempfile.TemporaryDirectory(), "crf")
+    prefix_directory = tempfile.TemporaryDirectory()
     subprocess.call(
         [
             f"{biocrf_path}",
@@ -219,7 +219,7 @@ def crf(register_path, biocrf_path, crf_model):
             "-o",
             f"{output_path.name}",
             "-q",
-            f"{prefix_path}",
+            f"{os.path.join(prefix_directory.name, "crf")}",
             f"{register_path.name}",
         ]
     )
@@ -233,7 +233,7 @@ def crf(register_path, biocrf_path, crf_model):
                 current_label += line[1]
             else:
                 labels.append(current_label)
-                probs.append(np.loadtxt(f"{prefix_path.name}_{i}"))
+                probs.append(np.loadtxt(f"{prefix_path}_{i}"))
                 current_label = ""
                 i += 1
     return labels, probs
@@ -264,15 +264,20 @@ def coconat(sequences, database):
     crf_model = os.path.join(os.path.dirname(__file__), "data", "crfModel")
     
     log.debug("Extracting N-terminal sequences...")
-    sequence_ids, nterminal_sequences, lengths = [], [], []
+    sequence_ids, chunk_index, nterminal_sequences, lengths = [], [], [], []
     for sequence in sequences:
         if sequence.classification in ["N", "CN"]:
             nterminal_sequence = sequence.get_nterminal()
 
             if len(nterminal_sequence) >= 1022:
-                log.warning(f"Sequence {sequence.id} N-terminus too long, skipping. MUST FIX THIS!")
+                for i in range(0, len(nterminal_sequence), 1022):
+                    sequence_ids.append(sequence)
+                    chunk_index.append(i)
+                    nterminal_sequences.append(nterminal_sequence[i:i+1022])
+                    lengths.append(1022)
             else:
                 sequence_ids.append(sequence)
+                chunk_index.append(0)
                 nterminal_sequences.append(nterminal_sequence)
                 lengths.append(len(nterminal_sequence))
     
@@ -291,6 +296,13 @@ def coconat(sequences, database):
     merged = merged.detach().cpu().numpy()
 
     labels, probs = crf(register_path, biocrf_path, crf_model)
+
+    # merge chunks into single entries
+    merged_probs = {}
+    for i in range(len(sequence_ids)):
+        if sequence_ids[i] not in merged_probs:
+            merged_probs[sequence_ids[i]] = []
+        merged_probs[sequence_ids[i]].append(probs[i])
 
     with open("coconat_results.txt", "w") as outfile:
         result_writer = csv.writer(outfile, delimiter="\t")
