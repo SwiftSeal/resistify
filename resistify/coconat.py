@@ -206,6 +206,7 @@ def predict_register_probability(sequences, lengths, merged, registers_model):
 def crf(register_path, biocrf_path, crf_model):
     output_path = tempfile.NamedTemporaryFile()
     prefix_directory = tempfile.TemporaryDirectory()
+    prefix_path = os.path.join(prefix_directory.name, "crf")
     subprocess.call(
         [
             f"{biocrf_path}",
@@ -219,7 +220,7 @@ def crf(register_path, biocrf_path, crf_model):
             "-o",
             f"{output_path.name}",
             "-q",
-            f"{os.path.join(prefix_directory.name, "crf")}",
+            f"{prefix_path}",
             f"{register_path.name}",
         ]
     )
