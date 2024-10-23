@@ -205,13 +205,14 @@ def coconat(sequences, database):
             nterminal_sequence = sequence.get_nterminal()
 
             if len(nterminal_sequence) >= 1022:
+                log.debug(f"N-terminus of {sequence.id} is too long, splitting into chunks...")
                 for i in range(0, len(nterminal_sequence), 1022):
-                    sequence_ids.append(sequence)
+                    sequence_ids.append(sequence.id)
                     chunk_index.append(i)
                     nterminal_sequences.append(nterminal_sequence[i:i+1022])
                     lengths.append(1022)
             else:
-                sequence_ids.append(sequence)
+                sequence_ids.append(sequence.id)
                 chunk_index.append(0)
                 nterminal_sequences.append(nterminal_sequence)
                 lengths.append(len(nterminal_sequence))
@@ -235,23 +236,24 @@ def coconat(sequences, database):
     # merge chunks into single entries
     merged_result = {}
     for i in range(len(sequence_ids)):
+        log.debug(f"Combining results for {sequence_ids[i]}")
         if sequence_ids[i] not in merged_result:
             merged_result[sequence_ids[i]] = [[], []]
         merged_result[sequence_ids[i]][0].extend(labels[i])
         merged_result[sequence_ids[i]][1].extend(probs[i])
 
-    with open("coconat_results.txt", "w") as outfile:
-        result_writer = csv.writer(outfile, delimiter="\t")
-        result_writer.writerow(["sequence_id", "position", "cc_probability"])
-        for i in range(len(nterminal_sequences)):
-            for j in range(len(nterminal_sequences[i])):
-                result_writer.writerow(
-                    [
-                        sequence_ids[i],
-                        j,
-                        probs[i][j][0],
-                    ]
-                )
+    #with open("coconat_results.txt", "w") as outfile:
+    #    result_writer = csv.writer(outfile, delimiter="\t")
+    #    result_writer.writerow(["sequence_id", "position", "cc_probability"])
+    #    for i in range(len(nterminal_sequences)):
+    #        for j in range(len(nterminal_sequences[i])):
+    #            result_writer.writerow(
+    #                [
+    #                    sequence_ids[i],
+    #                    j,
+    #                    probs[i][j][0],
+    #                ]
+    #            )
     
     for sequence in sequences:
         if sequence.id in merged_result:
@@ -266,10 +268,12 @@ def coconat(sequences, database):
                         start = i
                 else:
                     if start is not None:
+                        log.debug(f"Found CC annotation in {sequence.id} from {start} to {i}")
                         boundaries.append((start, i))
                         start = None
             
             if start is not None:
+                log.debug(f"Found CC annotation in {sequence.id} from {start} to {len(merged_result[sequence.id][0])}")
                 boundaries.append((start, len(merged_result[sequence.id][0])))
             
             for start, end in boundaries:
