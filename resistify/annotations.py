@@ -65,6 +65,7 @@ class Sequence:
             "bC": [],
             "bDaD1": [],
         }
+        self.cc_probs = []
 
     def add_annotation(self, annotation):
         self.annotations.append(annotation)
@@ -72,6 +73,13 @@ class Sequence:
 
     def add_motif(self, motif):
         self.motifs[motif.classification].append(motif)
+    
+    def identify_cc_domains(self):
+        """
+        Identify CC domains based on Coconat CC probabilites.
+        Domains are defined as a series of N residues with a
+        """
+
 
     def merge_annotations(self):
         merged_annotations = []

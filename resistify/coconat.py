@@ -10,6 +10,7 @@ import sys
 import os
 import tempfile
 import csv
+from resistify.annotations import Annotation
 
 log = logging.getLogger(__name__)
 
@@ -299,11 +300,12 @@ def coconat(sequences, database):
     labels, probs = crf(register_path, biocrf_path, crf_model)
 
     # merge chunks into single entries
-    merged_probs = {}
+    merged_result = {}
     for i in range(len(sequence_ids)):
-        if sequence_ids[i] not in merged_probs:
-            merged_probs[sequence_ids[i]] = []
-        merged_probs[sequence_ids[i]].append(probs[i])
+        if sequence_ids[i] not in merged_result:
+            merged_result[sequence_ids[i]] = [[], []]
+        merged_result[sequence_ids[i]][0].extend(labels[i])
+        merged_result[sequence_ids[i]][1].extend(probs[i])
 
     with open("coconat_results.txt", "w") as outfile:
         result_writer = csv.writer(outfile, delimiter="\t")
@@ -318,7 +320,37 @@ def coconat(sequences, database):
                     ]
                 )
     
-    return probs
+    for sequence in sequences:
+        if sequence.id in merged_result:
+            sequence.cc_probs = merged_result[sequence.id][1]
+
+            # Annotate CC domains
+            boundaries = []
+            start = None
+            for i in range(len(merged_result[sequence.id][0])):
+                if merged_result[sequence.id][0][i] != "i":
+                    if start is None:
+                        start = i
+                else:
+                    if start is not None:
+                        boundaries.append((start, i))
+                        start = None
+            
+            if start is not None:
+                boundaries.append((start, len(merged_result[sequence.id][0])))
+            
+            for start, end in boundaries:
+                log.debug(f"Adding CC annotation to {sequence.id} from {start} to {end}")
+                sequence.add_annotation(
+                    Annotation(
+                        "CC",
+                        start + chunk_index[0],
+                        end + chunk_index[0],
+                        merged_result[sequence.id][1][start:end]
+                    )
+                )
+
+    return sequences
 
             
     

@@ -116,7 +116,7 @@ def main():
 
     if args.coconat:
         log.info(f"Coconat database provided - Coconat will be used to improve CC annotations.")
-        coconat_result = coconat(classified_sequences, args.coconat)
+        classified_sequences = coconat(classified_sequences, args.coconat)
 
     classified_sequences = nlrexpress(
         classified_sequences,
