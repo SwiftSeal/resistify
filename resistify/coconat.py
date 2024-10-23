@@ -151,12 +151,15 @@ ESM2_FILES = [
 ]
 
 def prot_t5_embedding(sequences, lengths, prot_t5_database):
+    log.debug("Loading ProtT5 model...")
     model = T5EncoderModel.from_pretrained(prot_t5_database)
     tokenizer = T5Tokenizer.from_pretrained(prot_t5_database)
+    log.debug("Generating ProtT5 embeddings...")
     sequences = [" ".join(re.sub(r"[UZOB]", "X", sequence)) for sequence in sequences]
     ids = tokenizer.batch_encode_plus(sequences, add_special_tokens=True, padding="longest")
     input_ids = torch.tensor(ids['input_ids'])
     attention_mask = torch.tensor(ids['attention_mask'])
+    log.debug("Computing ProtT5 embeddings...")
     with torch.no_grad():
         embedding_repr = model(input_ids=input_ids, attention_mask=attention_mask)
     
@@ -168,8 +171,10 @@ def prot_t5_embedding(sequences, lengths, prot_t5_database):
     return embeddings
 
 def esm_embedding(sequences, sequence_ids, esm2_database):
+    log.debug("Loading ESM2 model...")
     model, alphabet = esm.pretrained.load_model_and_alphabet(esm2_database)
     model.eval()
+    log.debug("Generating ESM2 embeddings...")
     batch_converter = alphabet.get_batch_converter()
     batch_labels, batch_strs, batch_tokens = batch_converter(list(zip(sequence_ids, sequences)))
     batch_lens = (batch_tokens != alphabet.padding_idx).sum(1)
@@ -185,12 +190,12 @@ def esm_embedding(sequences, sequence_ids, esm2_database):
 
 def predict_register_probability(sequences, lengths, merged, registers_model):
     output_path = tempfile.NamedTemporaryFile()
-    checkpoint = torch.load(registers_model)
+    checkpoint = torch.load(registers_model.name)
     model = MMModelLSTM()
     model.load_state_dict(checkpoint["state_dict"])
     model.eval()
     prediction = model(merged, lengths).detach().cpu().numpy()
-    with open(output_path, 'w') as outfile:
+    with open(output_path.name, 'w') as outfile:
         for i in range(prediction.shape[0]):
             for j in range(len(sequences[i])):
                 prediction_values = " ".join([str(x) for x in prediction[i,j]])
@@ -212,16 +217,16 @@ def crf(register_path, biocrf_path, crf_model):
             "-d",
             "posterior-viterbi-sum",
             "-o",
-            f"{output_path}",
+            f"{output_path.name}",
             "-q",
             f"{prefix_path}",
-            f"{register_path}",
+            f"{register_path.name}",
         ]
     )
     labels, probs = [], []
     current_label = ""
     i = 0
-    with open(output_path) as crfo:
+    with open(output_path.name) as crfo:
         for line in crfo:
             line = line.split()
             if line:
