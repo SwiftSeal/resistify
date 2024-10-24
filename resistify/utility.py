@@ -85,7 +85,7 @@ def result_table(sequences, results_dir):
                 [
                     sequence.id,
                     len(sequence.sequence),
-                    sequence.motif_string,
+                    sequence.motif_string(),
                     sequence.domain_string,
                     sequence.classification,
                     n_nbarc_motifs,

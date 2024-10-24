@@ -142,15 +142,10 @@ def main():
     if args.coconat:
         coconat_table(classified_sequences, results_dir)
 
-    log.info(
-        """
-        Thank you for using Resistify!
-        If you used Resistify in your research, please cite the following:
-                Resistify: https://doi.org/10.1101/2024.02.14.580321
-               NLRexpress: https://doi.org/10.3389/fpls.2022.975888
-        (If used) Coconat: https://doi.org/10.1093/bioinformatics/btad495
-        """
-    )
+    log.info("Thank you for using Resistify!\nIf you used Resistify in your research, please cite the following:")
+    log.info(" - Resistify: https://doi.org/10.1101/2024.02.14.580321")
+    log.info(" - NLRexpress: https://doi.org/10.3389/fpls.2022.975888")
+    log.info(" - Coconat: https://doi.org/10.1093/bioinformatics/btad495 (if used)")
 
 
 if __name__ == "__main__":

@@ -44,7 +44,6 @@ class Sequence:
         self.madal = False
         self.cjid = False
         self.domain_string = ""
-        self.motif_string = ""
         self.annotations = []
         self.motifs = {
             "extEDVID": [],
@@ -66,6 +65,14 @@ class Sequence:
             "bDaD1": [],
         }
         self.cc_probs = []
+    
+    def motif_string(self):
+        sorted_motifs = [item for sublist in self.motifs.values() for item in sublist]
+        sorted_motifs.sort(key=lambda x: x.position)
+        motif_string = ""
+        for motif in sorted_motifs:
+            motif_string += motif_translation[motif.classification]
+        return motif_string
 
     def add_annotation(self, annotation):
         """
@@ -114,6 +121,9 @@ class Sequence:
         """
         Identify LRR domains based on LxxLxL motifs.
         """
+        if len(self.motifs["LxxLxL"]) == 0:
+            return
+        
         sorted_lrr = sorted(self.motifs["LxxLxL"], key=lambda x: x.position)
 
         current_motif = sorted_lrr[0]
@@ -154,7 +164,12 @@ class Sequence:
             else:
                 domain_string += short_IDs[annotation.domain]
 
-        self.domain_string = domain_string
+        log.debug(f"Domain string for {self.id}: {domain_string}")
+        if domain_string != "":
+            self.domain_string = domain_string
+        else:
+            return
+
         
         # collapse adjacent identical domains for classification
         collapsed_domain_string = ""
@@ -165,11 +180,14 @@ class Sequence:
                     collapsed_domain_string.append(domain)
             collapsed_domain_string = "".join(collapsed_domain_string)
         
+        log.debug(f"Collapsed domain string for {self.id}: {collapsed_domain_string}")
+        
         # classify based on primary architecture - first match wins (go team CNL!)
         classifications = ["RNL", "CNL", "TNL", "RN", "CN", "TN", "NL", "N"]
         for classification in classifications:
             if classification in collapsed_domain_string:
                 self.classification = classification
+                break
         
         # scavenge for missed classifications with motifs
         # this is all very janky
@@ -217,7 +235,7 @@ class Annotation:
         self.end = end
         self.evalue = evalue
         self.score = score
-        self.source = None
+        self.source = source
 
 
 class Motif:
