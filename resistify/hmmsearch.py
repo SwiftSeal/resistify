@@ -60,7 +60,7 @@ def hmmsearch(sequences, evalue):
 
                 hmmsearch_results.setdefault(hit.id, []).append(
                     Annotation(
-                        record.id, hsp.env_start, hsp.env_end, hsp.evalue, hsp.bitscore
+                        record.id, hsp.env_start, hsp.env_end, hsp.evalue, hsp.bitscore, "HMM"
                     )
                 )
     

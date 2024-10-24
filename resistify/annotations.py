@@ -68,6 +68,9 @@ class Sequence:
         self.cc_probs = []
 
     def add_annotation(self, annotation):
+        """
+        Add annotation and keep sorted by start position.
+        """
         self.annotations.append(annotation)
         self.annotations.sort(key=lambda x: x.start)
 
@@ -99,41 +102,37 @@ class Sequence:
                 # If we were in a dipping region and now the condition is false, record the region
                 if start is not None:
                     log.debug(f"Adding CC domain in {self.id} from {start} to {end}")
-                    self.add_annotation(Annotation("CC", start, end, None, None))
+                    self.add_annotation(Annotation("CC", start, end, None, None, "Coconat"))
                     start = None  # Reset start for the next region
 
         # If we ended in a dip region, capture the final one
         if start is not None:
             log.debug(f"Adding CC domain in {self.id} from {start} to {end}")
-            self.add_annotation(Annotation("CC", start, end, None, None))
+            self.add_annotation(Annotation("CC", start, end, None, None, "Coconat"))
 
+    def identify_lrr_domains(self, lrr_gap, lrr_length):
+        """
+        Identify LRR domains based on LxxLxL motifs.
+        """
+        sorted_lrr = sorted(self.motifs["LxxLxL"], key=lambda x: x.position)
 
+        current_motif = sorted_lrr[0]
+        start = current_motif.position
+        end = current_motif.position
+        count = 0
+        for motif in sorted_lrr[1:]:
+            if motif.position - end < lrr_gap:
+                end = motif.position
+                count += 1
+            else:
+                if count >= lrr_length:
+                    self.add_annotation(Annotation("LRR", start, end, "NA", "NA", "NLRexpress"))
+                start = motif.position
+                end = motif.position
+                count = 0
 
-    def merge_annotations(self):
-        merged_annotations = []
-        for domain in short_IDs:
-            # get all annotations of this domain
-            domain_sublist = [
-                annotation
-                for annotation in self.annotations
-                if annotation.domain == domain
-            ]
-            # skip if there are no annotations of this domain
-            if len(domain_sublist) == 0:
-                continue
-            domain_sublist.sort(key=lambda x: x.start)
-            # merge overlapping annotations
-            merged_sublist = [domain_sublist[0]]
-            for annotation in domain_sublist[1:]:
-                if annotation.start <= merged_sublist[-1].end + DUPLICATE_GAP:
-                    merged_sublist[-1].end = annotation.end
-                else:
-                    merged_sublist.append(annotation)
-            merged_annotations += merged_sublist
-
-        # sort merged annotations by start position
-        merged_annotations.sort(key=lambda x: x.start)
-        self.annotations = merged_annotations
+        if count >= lrr_length:
+            self.add_annotation(Annotation("LRR", start, end, "NA", "NA", "NLRexpress"))
     
     def get_nterminal(self):
         for annotation in self.annotations:
@@ -141,9 +140,10 @@ class Sequence:
                 return self.sequence[:annotation.start]
 
     def classify(self):
+        # create a simplified domain string
         domain_string = ""
         for annotation in self.annotations:
-            # skip non-core
+            # skip non-core and flag
             if annotation.domain == "MADA":
                 if annotation.score >= 20:
                     self.mada = True
@@ -153,95 +153,8 @@ class Sequence:
                 self.cjid = True
             else:
                 domain_string += short_IDs[annotation.domain]
-
-        # classify based on primary architecture
-        if "CN" in domain_string:
-            self.classification = "CN"
-        elif "RN" in domain_string:
-            self.classification = "RN"
-        elif "TN" in domain_string:
-            self.classification = "TN"
-        elif "N" in domain_string:
-            self.classification = "N"
-        else:
-            self.classification = None
-
-    def reclassify(self, lrr_gap, lrr_length):
-        """
-        Reclassify with new LRR annotations.
-        """
-        # Create sorted motif string
-        sorted_motifs = [item for sublist in self.motifs.values() for item in sublist]
-        sorted_motifs.sort(key=lambda x: x.position)
-
-        # write motif string
-        for motif in sorted_motifs:
-            self.motif_string += motif_translation[motif.classification]
-
-        # Add CC annotation from motif if no N terminal annotation
-        if self.classification == "N":
-            for annotation in self.annotations:
-                if annotation.domain == "NB-ARC":
-                    nbarc_start = annotation.start
-                    break
-            for motif in self.motifs["extEDVID"]:
-                if motif.position < nbarc_start:
-                    self.add_annotation(
-                        Annotation("CC", motif.position, motif.position + 1, "NA", "NA")
-                    )
-            TIR_motif_IDs = ["aA", "aC", "aD3", "bA", "bC", "bDaD1"]
-            TIR_motifs = [
-                item
-                for motif in TIR_motif_IDs
-                for item in self.motifs[motif]
-                if item.position < nbarc_start
-            ]
-            # TIR motifs are pretty conserved, seems okay to take 1 as sufficient evidence
-            if len(TIR_motifs) > 0:
-                TIR_motifs.sort(key=lambda x: x.position)
-                self.add_annotation(
-                    Annotation(
-                        "TIR",
-                        TIR_motifs[0].position,
-                        TIR_motifs[-1].position,
-                        "NA",
-                        "NA",
-                    )
-                )
-
-        # Add LRR annotation if there are more than 3 LRR motifs
-        if len(self.motifs["LxxLxL"]) > lrr_length - 1:
-            sorted_lrr = sorted(self.motifs["LxxLxL"], key=lambda x: x.position)
-
-            current_motif = sorted_lrr[0]
-            start = current_motif.position
-            end = current_motif.position
-            count = 0
-            for motif in sorted_lrr[1:]:
-                if motif.position - end < lrr_gap:
-                    end = motif.position
-                    count += 1
-                else:
-                    if count >= lrr_length:
-                        self.add_annotation(Annotation("LRR", start, end, "NA", "NA"))
-                    start = motif.position
-                    end = motif.position
-                    count = 0
-
-            if count >= 3:
-                self.add_annotation(Annotation("LRR", start, end, "NA", "NA"))
-
-        sorted_annotations = sorted(self.annotations, key=lambda x: x.start)
-
-        domain_string = ""
-        for annotation in sorted_annotations:
-            # skip non-core
-            if annotation.domain != "MADA" and annotation.domain != "C-JID":
-                domain_string += short_IDs[annotation.domain]
-
-        self.domain_string = domain_string
-
-        # collapse adjacent domains
+        
+        # collapse adjacent identical domains
         if len(domain_string) > 0:
             collapsed_domain_string = [domain_string[0]]
             for domain in domain_string[1:]:
@@ -249,32 +162,21 @@ class Sequence:
                     collapsed_domain_string.append(domain)
             domain_string = "".join(collapsed_domain_string)
 
-
-        # classify based on primary architecture
-        # Does order matter?
-        if "CNL" in domain_string:
-            self.classification = "CNL"
-        elif "RNL" in domain_string:
-            self.classification = "RNL"
-        elif "TNL" in domain_string:
-            self.classification = "TNL"
-        elif "NL" in domain_string:
-            self.classification = "NL"
-        elif "CN" in domain_string:
-            self.classification = "CN"
-        elif "TN" in domain_string:
-            self.classification = "TN"
-        else:
-            return
+        # classify based on primary architecture - first match wins (go team CNL!)
+        domain_classes = ["RNL", "CNL", "TNL", "RN", "CN", "TN", "NL", "N"]
+        for domain in domain_classes:
+            if domain in collapsed_domain_string:
+                self.classification = domain
 
 
 class Annotation:
-    def __init__(self, domain, start, end, evalue, score):
+    def __init__(self, domain, start, end, evalue, score, source):
         self.domain = domain
         self.start = start
         self.end = end
         self.evalue = evalue
         self.score = score
+        self.source = None
 
 
 class Motif:

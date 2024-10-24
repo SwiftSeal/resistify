@@ -95,7 +95,6 @@ def main():
     sequences = hmmsearch(sequences, args.evalue)
 
     for sequence in sequences:
-        sequence.merge_annotations()
         sequence.classify()
 
     # subset sequences based on classification
@@ -120,7 +119,6 @@ def main():
         classified_sequences = coconat(classified_sequences, args.coconat)
         for sequence in classified_sequences:
             sequence.identify_cc_domains()
-            sequence.merge_annotations()
             sequence.classify()
 
     classified_sequences = nlrexpress(
@@ -130,7 +128,8 @@ def main():
     )
 
     for sequence in classified_sequences:
-        sequence.reclassify(args.lrr_gap, args.lrr_length)
+        sequence.identify_lrr_domains(args.lrr_gap, args.lrr_length)
+        sequence.classify()
 
     log.info(f"Saving results to {results_dir}...")
     result_table(classified_sequences, results_dir)
@@ -143,7 +142,15 @@ def main():
     if args.coconat:
         coconat_table(classified_sequences, results_dir)
 
-    log.info("Thank you for using Resistify!")
+    log.info(
+        """
+        Thank you for using Resistify!
+        If you used Resistify in your research, please cite the following:
+                Resistify: https://doi.org/10.1101/2024.02.14.580321
+               NLRexpress: https://doi.org/10.3389/fpls.2022.975888
+        (If used) Coconat: https://doi.org/10.21769/BioProtoc.4935
+        """
+    )
 
 
 if __name__ == "__main__":
