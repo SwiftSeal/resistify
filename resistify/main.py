@@ -13,7 +13,7 @@ from resistify.utility import (
     domain_table,
     motif_table,
     extract_nbarc,
-    coconat_table
+    coconat_table,
 )
 from resistify.hmmsearch import hmmsearch
 from resistify.nlrexpress import nlrexpress
@@ -21,6 +21,7 @@ from resistify.annotations import Sequence
 from resistify.coconat import coconat
 
 __version__ = "0.5.0"
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -41,7 +42,12 @@ def parse_args():
         help="Run in ultra mode, non-NLRs will be retained",
         action="store_true",
     )
-    parser.add_argument("--batch", help="Number of sequences to process in parallel. This can help reduce memory usage.", default=None, type=int)
+    parser.add_argument(
+        "--batch",
+        help="Number of sequences to process in parallel. This can help reduce memory usage.",
+        default=None,
+        type=int,
+    )
     parser.add_argument(
         "--coconat",
         help="!EXPERIMENTAL! Path to Coconat database. If provided, Coconat will be used to improve CC annotations.",
@@ -115,7 +121,7 @@ def main():
             sys.exit(0)
 
         log.info(f"{len(classified_sequences)} sequences classified as potential NLRs!")
-    
+
     if args.batch is None:
         batch_size = len(classified_sequences)
     else:
@@ -129,7 +135,9 @@ def main():
     for batch in batches:
         log.info(f"Processing batch of {len(batch)} sequences...")
         if args.coconat:
-            log.info(f"Coconat database provided - Coconat will be used to improve CC annotations.")
+            log.info(
+                f"Coconat database provided - Coconat will be used to improve CC annotations."
+            )
             batch = coconat(batch, args.coconat)
             for sequence in batch:
                 sequence.identify_cc_domains()

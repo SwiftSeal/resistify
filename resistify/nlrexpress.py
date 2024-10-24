@@ -52,6 +52,7 @@ motif_models = {
     "bDaD1": "MLP_TIR_bD-aD1.pkl",
 }
 
+
 def split_fasta(sequences, chunk_size):
     """
     Split a fasta file into chunks of defined size.
@@ -112,7 +113,9 @@ def jackhmmer(fastas, threads):
     """
     # Moving jackhmmer to temp can help speed stuff up on clusters with local storage.
     with tempfile.NamedTemporaryFile(delete=False) as temp_database:
-        nlrexpress_database = os.path.join(os.path.dirname(__file__), "data", "nlrexpress.fasta")
+        nlrexpress_database = os.path.join(
+            os.path.dirname(__file__), "data", "nlrexpress.fasta"
+        )
         shutil.copyfile(nlrexpress_database, temp_database.name)
 
         # run jackhmmer on each chunk
@@ -120,7 +123,6 @@ def jackhmmer(fastas, threads):
         args = [(fasta, temp_database.name) for fasta in fastas]
         with Pool(-(-threads // 2)) as pool:
             pool.starmap(jackhmmer_subprocess, args)
-
 
     # merge the chunks
     iteration_1_path = tempfile.NamedTemporaryFile()
@@ -130,9 +132,7 @@ def jackhmmer(fastas, threads):
             with open(f"{fasta}.out-1.hmm") as chunk:
                 f.write(chunk.read())
 
-    jackhmmer_iteration_1 = parse_jackhmmer(
-        iteration_1_path.name, iteration=False
-    )
+    jackhmmer_iteration_1 = parse_jackhmmer(iteration_1_path.name, iteration=False)
 
     iteration_2_path = tempfile.NamedTemporaryFile()
     with open(iteration_2_path.name, "w") as f:
@@ -266,7 +266,9 @@ def predict_motif(sequences, predictor):
     matrix = np.array(matrix, dtype=float)
     # load the model from model dictionary
 
-    model_path = os.path.join(os.path.dirname(__file__), "data", motif_models[predictor])
+    model_path = os.path.join(
+        os.path.dirname(__file__), "data", motif_models[predictor]
+    )
 
     model = pickle.load(open(model_path, "rb"))
     # run the prediction
@@ -280,11 +282,14 @@ def predict_motif(sequences, predictor):
         log.debug(f"Adding motifs to {sequence.id}")
         for i in range(len(sequence.sequence)):
             # make sure we are within the sequence bounds
-            if i >= 5 and i < len(sequence.sequence) - (MOTIF_SPAN_LENGTHS[predictor] + 5):
+            if i >= 5 and i < len(sequence.sequence) - (
+                MOTIF_SPAN_LENGTHS[predictor] + 5
+            ):
                 value = round(result[result_index][1], 4)
                 if value > 0.8:
                     sequence.add_motif(Motif(predictor, value, i))
                 result_index += 1
+
 
 def nlrexpress(sequences, chunk_size, threads):
 
@@ -292,8 +297,10 @@ def nlrexpress(sequences, chunk_size, threads):
 
     jackhmmer_iteration_1, jackhmmer_iteration_2 = jackhmmer(fastas, threads)
 
-    sequences = prepare_jackhmmer_data(sequences, jackhmmer_iteration_1, jackhmmer_iteration_2) 
-    
+    sequences = prepare_jackhmmer_data(
+        sequences, jackhmmer_iteration_1, jackhmmer_iteration_2
+    )
+
     for predictor in motif_models.keys():
         predict_motif(sequences, predictor)
 

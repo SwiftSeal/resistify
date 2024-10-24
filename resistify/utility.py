@@ -7,6 +7,7 @@ from resistify.annotations import Sequence
 
 log = logging.getLogger(__name__)
 
+
 def create_output_directory(outdir):
     try:
         expanded_outdir = os.path.expanduser(os.path.expandvars(outdir))
@@ -33,7 +34,6 @@ def parse_fasta(path):
             sequences.append(Sequence(record.id, sequence_str))
 
     return sequences
-
 
 
 def save_fasta(sequences, path, nlr_only=False):
@@ -111,10 +111,13 @@ def domain_table(sequences, results_dir):
                     ]
                 )
 
+
 def annotation_table(sequences, results_dir):
     with open(os.path.join(results_dir, "annotations.tsv"), "w") as file:
         table_writer = csv.writer(file, delimiter="\t")
-        table_writer.writerow(["Sequence", "Domain", "Start", "End", "E_value", "Score", "Source"])
+        table_writer.writerow(
+            ["Sequence", "Domain", "Start", "End", "E_value", "Score", "Source"]
+        )
         for sequence in sequences:
             for annotation in sequence.annotations:
                 table_writer.writerow(
@@ -132,6 +135,7 @@ def annotation_table(sequences, results_dir):
 
 def motif_table(sequences, results_dir):
     from resistify.nlrexpress import MOTIF_SPAN_LENGTHS
+
     output_path = os.path.join(results_dir, "motifs.tsv")
     with open(output_path, "w") as file:
         table_writer = csv.writer(file, delimiter="\t")
@@ -187,6 +191,7 @@ def extract_nbarc(sequences, results_dir):
                         f"{sequence.sequence[annotation.start:annotation.end]}\n"
                     )
                     count += 1
+
 
 def coconat_table(sequences, results_dir):
     output_path = os.path.join(results_dir, "coconat.tsv")

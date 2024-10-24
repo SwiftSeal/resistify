@@ -64,7 +64,7 @@ class Sequence:
             "bDaD1": [],
         }
         self.cc_probs = []
-    
+
     def motif_string(self):
         sorted_motifs = [item for sublist in self.motifs.values() for item in sublist]
         sorted_motifs.sort(key=lambda x: x.position)
@@ -82,7 +82,7 @@ class Sequence:
 
     def add_motif(self, motif):
         self.motifs[motif.classification].append(motif)
-    
+
     def identify_cc_domains(self):
         """
         Identify CC domains based on Coconat CC probabilites.
@@ -94,7 +94,7 @@ class Sequence:
 
         for i in range(len(self.cc_probs) - window_size + 1):
             # Get the current window
-            current_window = self.cc_probs[i:i + window_size]
+            current_window = self.cc_probs[i : i + window_size]
 
             # Calculate the average probability for the current window
             avg_prob = sum(current_window) / window_size
@@ -108,7 +108,9 @@ class Sequence:
                 # If we were in a dipping region and now the condition is false, record the region
                 if start is not None:
                     log.debug(f"Adding CC domain in {self.id} from {start} to {end}")
-                    self.add_annotation(Annotation("CC", start, end, None, None, "Coconat"))
+                    self.add_annotation(
+                        Annotation("CC", start, end, None, None, "Coconat")
+                    )
                     start = None  # Reset start for the next region
 
         # If we ended in a dip region, capture the final one
@@ -122,7 +124,7 @@ class Sequence:
         """
         if len(self.motifs["LxxLxL"]) == 0:
             return
-        
+
         sorted_lrr = sorted(self.motifs["LxxLxL"], key=lambda x: x.position)
 
         current_motif = sorted_lrr[0]
@@ -135,18 +137,20 @@ class Sequence:
                 count += 1
             else:
                 if count >= lrr_length:
-                    self.add_annotation(Annotation("LRR", start, end, "NA", "NA", "NLRexpress"))
+                    self.add_annotation(
+                        Annotation("LRR", start, end, "NA", "NA", "NLRexpress")
+                    )
                 start = motif.position
                 end = motif.position
                 count = 0
 
         if count >= lrr_length:
             self.add_annotation(Annotation("LRR", start, end, "NA", "NA", "NLRexpress"))
-    
+
     def get_nterminal(self):
         for annotation in self.annotations:
             if annotation.domain == "NB-ARC":
-                return self.sequence[:annotation.start]
+                return self.sequence[: annotation.start]
 
     def classify(self):
         # create a simplified domain string
@@ -163,7 +167,6 @@ class Sequence:
             else:
                 domain_string += short_IDs[annotation.domain]
 
-        
         # collapse adjacent identical domains for classification
         collapsed_domain_string = ""
         if len(domain_string) > 0:
@@ -172,16 +175,16 @@ class Sequence:
                 if domain != collapsed_domain_string[-1]:
                     collapsed_domain_string.append(domain)
             collapsed_domain_string = "".join(collapsed_domain_string)
-        
+
         log.debug(f"Collapsed domain string for {self.id}: {collapsed_domain_string}")
-        
+
         # classify based on primary architecture - first match wins (go team CNL!)
         classifications = ["RNL", "CNL", "TNL", "RN", "CN", "TN", "NL", "N"]
         for classification in classifications:
             if classification in collapsed_domain_string:
                 self.classification = classification
                 break
-        
+
         # scavenge for missed classifications with motifs
         # this is all very janky
         if self.classification == "N" or self.classification == "NL":
@@ -193,7 +196,14 @@ class Sequence:
             for motif in self.motifs["extEDVID"]:
                 if motif.position < nbarc_start:
                     self.add_annotation(
-                        Annotation("CC", motif.position, motif.position + 1, None, None, "NLRexpress")
+                        Annotation(
+                            "CC",
+                            motif.position,
+                            motif.position + 1,
+                            None,
+                            None,
+                            "NLRexpress",
+                        )
                     )
                     self.classification = "C" + self.classification
                     continue

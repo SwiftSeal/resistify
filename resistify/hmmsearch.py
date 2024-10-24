@@ -8,6 +8,7 @@ import tempfile
 
 log = logging.getLogger(__name__)
 
+
 def hmmsearch(sequences, evalue):
     hmmsearch_db = os.path.join(os.path.dirname(__file__), "data", "nlrdb.hmm")
     output_file = tempfile.NamedTemporaryFile()
@@ -18,7 +19,7 @@ def hmmsearch(sequences, evalue):
     with open(input_fasta.name, "w") as f:
         for sequence in sequences:
             f.write(f">{sequence.id}\n{sequence.sequence}\n")
-        
+
     cmd = [
         "hmmsearch",
         "--noali",
@@ -60,13 +61,18 @@ def hmmsearch(sequences, evalue):
 
                 hmmsearch_results.setdefault(hit.id, []).append(
                     Annotation(
-                        record.id, hsp.env_start, hsp.env_end, hsp.evalue, hsp.bitscore, "HMM"
+                        record.id,
+                        hsp.env_start,
+                        hsp.env_end,
+                        hsp.evalue,
+                        hsp.bitscore,
+                        "HMM",
                     )
                 )
-    
+
     for sequence in sequences:
         annotations = hmmsearch_results.get(sequence.id, [])
         for annotation in annotations:
             sequence.add_annotation(annotation)
-    
+
     return sequences
