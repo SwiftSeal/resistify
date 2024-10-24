@@ -42,7 +42,7 @@ def parse_args():
     )
     parser.add_argument(
         "--coconat",
-        help="Path to Coconat database. If not provided, Coconat will not be used to improve CC annotations.",
+        help="!EXPERIMENTAL! Path to Coconat database. If provided, Coconat will be used to improve CC annotations.",
         default=None,
         type=str,
     )

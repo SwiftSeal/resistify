@@ -83,7 +83,8 @@ ESM2_FILES = [
     "esm2_t33_650M_UR50D.pt"
 ]
 
-def prot_t5_embedding(sequences, lengths, prot_t5_database):
+def prot_t5_embedding(sequences, prot_t5_database):
+    lengths = [len(sequence) for sequence in sequences]
     log.debug("Loading ProtT5 model...")
     # suppress warning about weights
     with warnings.catch_warnings():
@@ -103,7 +104,7 @@ def prot_t5_embedding(sequences, lengths, prot_t5_database):
         embedding_repr.last_hidden_state[i, :lengths[i]].detach().cpu().numpy()
         for i in range(len(sequences))
     ]
-    
+    log.debug(f"Embedding for Prot5 completed, length of embeddings is {len(embeddings)}")
     return embeddings
 
 def esm_embedding(sequences, sequence_ids, esm2_database):
@@ -124,10 +125,26 @@ def esm_embedding(sequences, sequence_ids, esm2_database):
         token_representations[i, 1 : tokens_len - 1].detach().cpu().numpy()
         for i, tokens_len in enumerate(batch_lens)
     ]
-    
+    log.debug(f"Embedding for ESM2 completed, length of embeddings is {len(embeddings)}")
     return embeddings
 
-def predict_register_probability(sequences, lengths, merged, registers_model):
+def merge_embeddings(chunk_ids, embeddings):
+    previous = None
+    merged_embedding = []
+    for i, chunk_id in enumerate(chunk_ids):
+        sequence_id = chunk_id.rsplit("_", 1)[0]
+        if sequence_id != previous:
+            log.debug(f"Creating new merged embedding for {sequence_id}")
+            merged_embedding.append(embeddings[i])
+        else:
+            log.debug(f"Merging embedding for {sequence_id}")
+            merged_embedding[-1] = np.vstack((merged_embedding[-1], embeddings[i]))
+        previous = sequence_id
+    log.debug(f"Merged embedding length: {len(merged_embedding)}")
+    return merged_embedding
+
+
+def predict_register_probability(lengths, merged, registers_model):
     output_path = tempfile.NamedTemporaryFile()
     log.debug("Loading registers model...")
     checkpoint = torch.load(registers_model, weights_only=False)
@@ -137,7 +154,7 @@ def predict_register_probability(sequences, lengths, merged, registers_model):
     prediction = model(merged, lengths).detach().cpu().numpy()
     with open(output_path.name, 'w') as outfile:
         for i in range(prediction.shape[0]):
-            for j in range(len(sequences[i])):
+            for j in range(lengths[i]):
                 prediction_values = " ".join([str(x) for x in prediction[i,j]])
                 outfile.write(f"{prediction_values} i\n")
             outfile.write("\n")
@@ -169,13 +186,14 @@ def crf(sequence_ids, register_path, biocrf_path, crf_model):
 
     # A prefix file is created for each sequence (or sequence chunk).
     # Iterate through the sequence ids and extract the first column of the prefix file - these are the per-residue probabilities.
-    cc_probabilities = []
+    cc_probabilities = {}
     
     for i, sequence_id in enumerate(sequence_ids):
+        log.debug(f"Loading crf probabilities for {sequence_id} in {prefix_path}_{i}")
         probability_matrix = np.loadtxt(f"{prefix_path}_{i}")
         # extract first column
         cc_probability = probability_matrix[:, 0]
-        cc_probabilities.append(cc_probability)
+        cc_probabilities[sequence_id] = cc_probability
 
     return cc_probabilities
 
@@ -205,47 +223,39 @@ def coconat(sequences, database):
     crf_model = os.path.join(os.path.dirname(__file__), "data", "crfModel")
     
     log.debug("Extracting N-terminal sequences...")
-    sequence_ids, nterminal_sequences, lengths = [], [], []
+    sequence_ids, lengths, chunk_ids, chunk_sequences = [], [], [], []
     for sequence in sequences:
         if sequence.classification in ["N", "CN"]:
             nterminal_sequence = sequence.get_nterminal()
-
+            sequence_ids.append(sequence.id)
+            lengths.append(len(nterminal_sequence))
             if len(nterminal_sequence) >= 1022:
                 log.debug(f"N-terminus of {sequence.id} is too long, splitting into chunks...")
                 for i in range(0, len(nterminal_sequence), 1022):
-                    sequence_ids.append(f"sequence.id)_{i}")
-                    nterminal_sequences.append(nterminal_sequence[i:i+1022])
-                    lengths.append(1022)
+                    chunk_ids.append(f"{sequence.id}_{i}")
+                    chunk_sequences.append(nterminal_sequence[i:i+1022])
             else:
-                sequence_ids.append(f"{sequence.id}_0")
-                nterminal_sequences.append(nterminal_sequence)
-                lengths.append(len(nterminal_sequence))
+                chunk_ids.append(f"{sequence.id}_0")
+                chunk_sequences.append(nterminal_sequence)
     
-    prot_t5_embeddings = prot_t5_embedding(nterminal_sequences, lengths, prot_t5_database)
-    esm_embeddings = esm_embedding(nterminal_sequences, sequence_ids, esm2_database)
+    prot_t5_embeddings = prot_t5_embedding(chunk_sequences, prot_t5_database)
+    prot_t5_embeddings = merge_embeddings(chunk_ids, prot_t5_embeddings)
+
+    esm_embeddings = esm_embedding(chunk_sequences, chunk_ids, esm2_database)
+    esm_embeddings = merge_embeddings(chunk_ids, esm_embeddings)
 
     merged = [
         torch.from_numpy(np.hstack((prot_t5_embeddings[i], esm_embeddings[i])))
-        for i in range(len(nterminal_sequences))
+        for i in range(len(sequence_ids))
     ]
 
     merged = torch.nn.utils.rnn.pad_sequence(merged, batch_first=True)
 
-    register_path = predict_register_probability(nterminal_sequences, lengths, merged, registers_model)
+    register_path = predict_register_probability(lengths, merged, registers_model)
 
     merged = merged.detach().cpu().numpy()
 
     cc_probabilities = crf(sequence_ids, register_path, biocrf_path, crf_model)
-
-    # merge chunks into single entries
-    merged_probabilities = {}
-    for i in range(len(sequence_ids)):
-        log.debug(f"Combining results for {sequence_ids[i]}")
-        sequence_id = sequence_ids[i].rsplit("_", 1)[0]
-        if sequence_id not in merged_probabilities:
-            merged_probabilities[sequence_id] = cc_probabilities[i]
-        else:
-            merged_probabilities[sequence_id].extend(cc_probabilities[i])
 
     #with open("coconat_results.txt", "w") as outfile:
     #    result_writer = csv.writer(outfile, delimiter="\t")
@@ -261,8 +271,8 @@ def coconat(sequences, database):
     #            )
     
     for sequence in sequences:
-        if sequence.id in merged_probabilities:
-            sequence.cc_probs = merged_probabilities[sequence.id]
+        if sequence.id in cc_probabilities:
+            sequence.cc_probs = cc_probabilities[sequence.id]
 
     return sequences
 
