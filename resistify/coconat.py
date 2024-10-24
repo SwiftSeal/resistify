@@ -277,19 +277,6 @@ def coconat(sequences, database):
 
     cc_probabilities = crf(sequence_ids, register_path, biocrf_path, crf_model)
 
-    # with open("coconat_results.txt", "w") as outfile:
-    #    result_writer = csv.writer(outfile, delimiter="\t")
-    #    result_writer.writerow(["sequence_id", "position", "cc_probability"])
-    #    for i in range(len(nterminal_sequences)):
-    #        for j in range(len(nterminal_sequences[i])):
-    #            result_writer.writerow(
-    #                [
-    #                    sequence_ids[i],
-    #                    j,
-    #                    probs[i][j][0],
-    #                ]
-    #            )
-
     for sequence in sequences:
         if sequence.id in cc_probabilities:
             sequence.cc_probs = cc_probabilities[sequence.id]
