@@ -10,7 +10,12 @@ dependencies = [
   "biopython",
   "rich",
   "rich-argparse",
-  "numpy < 1.23.0",
+  "torch",
+  "torchvision",
+  "torchaudio",
+  "fair-esm",
+  "transformers==4.31.0",
+  "sentencepiece",
 ]
 authors = [
   { name="Moray Smith", email="moraysmith98@gmail.com" },

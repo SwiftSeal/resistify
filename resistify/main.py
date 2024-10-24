@@ -9,6 +9,7 @@ from resistify.utility import (
     parse_fasta,
     save_fasta,
     result_table,
+    annotation_table,
     domain_table,
     motif_table,
     extract_nbarc,
@@ -40,6 +41,7 @@ def parse_args():
         help="Run in ultra mode, non-NLRs will be retained",
         action="store_true",
     )
+    parser.add_argument("--batch", help="Number of sequences to process in parallel. This can help reduce memory usage.", default=None, type=int)
     parser.add_argument(
         "--coconat",
         help="!EXPERIMENTAL! Path to Coconat database. If provided, Coconat will be used to improve CC annotations.",
@@ -113,26 +115,42 @@ def main():
             sys.exit(0)
 
         log.info(f"{len(classified_sequences)} sequences classified as potential NLRs!")
+    
+    if args.batch is None:
+        batch_size = len(classified_sequences)
+    else:
+        batch_size = args.batch
 
-    if args.coconat:
-        log.info(f"Coconat database provided - Coconat will be used to improve CC annotations.")
-        classified_sequences = coconat(classified_sequences, args.coconat)
-        for sequence in classified_sequences:
-            sequence.identify_cc_domains()
-            sequence.classify()
+    batches = [
+        classified_sequences[i : i + batch_size]
+        for i in range(0, len(classified_sequences), batch_size)
+    ]
 
-    classified_sequences = nlrexpress(
-        classified_sequences,
-        args.chunksize,
-        args.threads,
-    )
+    for batch in batches:
+        log.info(f"Processing batch of {len(batch)} sequences...")
+        if args.coconat:
+            log.info(f"Coconat database provided - Coconat will be used to improve CC annotations.")
+            batch = coconat(batch, args.coconat)
+            for sequence in batch:
+                sequence.identify_cc_domains()
+                sequence.classify()
+
+        batch = nlrexpress(
+            batch,
+            args.chunksize,
+            args.threads,
+        )
+
+    classified_sequences = [sequence for batch in batches for sequence in batch]
 
     for sequence in classified_sequences:
         sequence.identify_lrr_domains(args.lrr_gap, args.lrr_length)
         sequence.classify()
+        sequence.merge_annotations(args.duplicate_gap)
 
     log.info(f"Saving results to {results_dir}...")
     result_table(classified_sequences, results_dir)
+    annotation_table(classified_sequences, results_dir)
     domain_table(classified_sequences, results_dir)
     motif_table(classified_sequences, results_dir)
     extract_nbarc(classified_sequences, results_dir)
@@ -142,10 +160,11 @@ def main():
     if args.coconat:
         coconat_table(classified_sequences, results_dir)
 
-    log.info("Thank you for using Resistify!\nIf you used Resistify in your research, please cite the following:")
+    log.info("Thank you for using Resistify!")
+    log.info("If you used Resistify in your research, please cite the following:")
     log.info(" - Resistify: https://doi.org/10.1101/2024.02.14.580321")
     log.info(" - NLRexpress: https://doi.org/10.3389/fpls.2022.975888")
-    log.info(" - Coconat: https://doi.org/10.1093/bioinformatics/btad495 (if used)")
+    log.info(" - CoCoNat: https://doi.org/10.1093/bioinformatics/btad495 (if used)")
 
 
 if __name__ == "__main__":

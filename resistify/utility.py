@@ -99,7 +99,22 @@ def result_table(sequences, results_dir):
 def domain_table(sequences, results_dir):
     with open(os.path.join(results_dir, "domains.tsv"), "w") as file:
         table_writer = csv.writer(file, delimiter="\t")
-        table_writer.writerow(["Sequence", "Domain", "Start", "End", "E_value", "Source"])
+        table_writer.writerow(["Sequence", "Domain", "Start", "End"])
+        for sequence in sequences:
+            for annotation in sequence.merged_annotations:
+                table_writer.writerow(
+                    [
+                        sequence.id,
+                        annotation.domain,
+                        annotation.start,
+                        annotation.end,
+                    ]
+                )
+
+def annotation_table(sequences, results_dir):
+    with open(os.path.join(results_dir, "annotations.tsv"), "w") as file:
+        table_writer = csv.writer(file, delimiter="\t")
+        table_writer.writerow(["Sequence", "Domain", "Start", "End", "E_value", "Score", "Source"])
         for sequence in sequences:
             for annotation in sequence.annotations:
                 table_writer.writerow(
@@ -109,6 +124,7 @@ def domain_table(sequences, results_dir):
                         annotation.start,
                         annotation.end,
                         annotation.evalue,
+                        annotation.score,
                         annotation.source,
                     ]
                 )
@@ -164,7 +180,7 @@ def extract_nbarc(sequences, results_dir):
     with open(os.path.join(results_dir, "nbarc.fasta"), "w") as file:
         for sequence in sequences:
             count = 1
-            for annotation in sequence.annotations:
+            for annotation in sequence.merged_annotations:
                 if annotation.domain == "NB-ARC":
                     file.write(f">{sequence.id}_{count}\n")
                     file.write(

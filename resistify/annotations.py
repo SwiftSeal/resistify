@@ -2,8 +2,6 @@ import logging
 
 log = logging.getLogger(__name__)
 
-DUPLICATE_GAP = 100
-
 short_IDs = {
     "CC": "C",
     "RPW8": "R",
@@ -45,6 +43,7 @@ class Sequence:
         self.cjid = False
         self.domain_string = ""
         self.annotations = []
+        self.merged_annotations = []
         self.motifs = {
             "extEDVID": [],
             "VG": [],
@@ -164,12 +163,6 @@ class Sequence:
             else:
                 domain_string += short_IDs[annotation.domain]
 
-        log.debug(f"Domain string for {self.id}: {domain_string}")
-        if domain_string != "":
-            self.domain_string = domain_string
-        else:
-            return
-
         
         # collapse adjacent identical domains for classification
         collapsed_domain_string = ""
@@ -226,6 +219,40 @@ class Sequence:
                 )
                 self.classification = "T" + self.classification
 
+    def merge_annotations(self, duplicate_gap):
+        """
+        Merge overlapping annotations of the same domain.
+        Don't trust e-values etc - they're inherited from the first annotation.
+        """
+        merged_annotations = []
+        for domain in short_IDs:
+            # get all annotations of this domain
+            domain_sublist = [
+                annotation
+                for annotation in self.annotations
+                if annotation.domain == domain
+            ]
+            # skip if there are no annotations of this domain
+            if len(domain_sublist) == 0:
+                continue
+            domain_sublist.sort(key=lambda x: x.start)
+            # merge overlapping annotations
+            merged_sublist = [domain_sublist[0]]
+            for annotation in domain_sublist[1:]:
+                if annotation.start <= merged_sublist[-1].end + duplicate_gap:
+                    merged_sublist[-1].end = annotation.end
+                else:
+                    merged_sublist.append(annotation)
+            merged_annotations += merged_sublist
+
+        # sort merged annotations by start position
+        merged_annotations.sort(key=lambda x: x.start)
+        self.merged_annotations = merged_annotations
+
+        domain_string = ""
+        for annotation in merged_annotations:
+            domain_string += short_IDs[annotation.domain]
+        self.domain_string = domain_string
 
 
 class Annotation:
