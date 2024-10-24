@@ -8,6 +8,7 @@ import tempfile
 from sklearn.neural_network import MLPClassifier
 from multiprocessing import Pool
 from resistify.annotations import Motif
+import shutil
 
 log = logging.getLogger(__name__)
 
@@ -71,11 +72,10 @@ def split_fasta(sequences, chunk_size):
     return fastas
 
 
-def jackhmmer_subprocess(fasta):
+def jackhmmer_subprocess(fasta, database):
     """
     Run jackhmmer on the input fasta file against the database_path.
     """
-    nlrexpress_database = os.path.join(os.path.dirname(__file__), "data", "nlrexpress.fasta")
     cmd = [
         "jackhmmer",
         "--noali",
@@ -90,7 +90,7 @@ def jackhmmer_subprocess(fasta):
         "--chkhmm",
         fasta + ".out",
         fasta,
-        nlrexpress_database,
+        database,
     ]
     try:
         log.debug(f"Running jackhmmer on {fasta}")
@@ -110,10 +110,17 @@ def jackhmmer(fastas, threads):
     """
     Run jackhmmer on the input fasta file against the database_path.
     """
-    # run jackhmmer on each chunk
-    log.info(f"Running jackhmmer, this could take a while...")
-    with Pool(-(-threads // 2)) as pool:
-        pool.map(jackhmmer_subprocess, fastas)
+    # Moving jackhmmer to temp can help speed stuff up on clusters with local storage.
+    with tempfile.NamedTemporaryFile(delete=False) as temp_database:
+        nlrexpress_database = os.path.join(os.path.dirname(__file__), "data", "nlrexpress.fasta")
+        shutil.copyfile(nlrexpress_database, temp_database.name)
+
+        # run jackhmmer on each chunk
+        log.info(f"Running jackhmmer, this could take a while...")
+        args = [(fasta, temp_database.name) for fasta in fastas]
+        with Pool(-(-threads // 2)) as pool:
+            pool.starmap(jackhmmer_subprocess, args)
+
 
     # merge the chunks
     iteration_1_path = tempfile.NamedTemporaryFile()

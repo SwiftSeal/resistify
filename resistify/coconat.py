@@ -83,6 +83,26 @@ ESM2_FILES = [
     "esm2_t33_650M_UR50D.pt"
 ]
 
+def split_sequences(sequences):
+    sequence_ids, lengths, chunk_ids, chunk_sequences = [], [], [], []
+    for sequence in sequences:
+        if sequence.classification in ["N", "CN"]:
+            nterminal_sequence = sequence.get_nterminal()
+            if len(nterminal_sequence) == 0:
+                log.debug(f"{sequence.id} has no N-terminal region!")
+                continue
+            sequence_ids.append(sequence.id)
+            lengths.append(len(nterminal_sequence))
+            if len(nterminal_sequence) >= 1022:
+                log.debug(f"N-terminus of {sequence.id} is too long, splitting into chunks...")
+                for i in range(0, len(nterminal_sequence), 1022):
+                    chunk_ids.append(f"{sequence.id}_{i}")
+                    chunk_sequences.append(nterminal_sequence[i:i+1022])
+            else:
+                chunk_ids.append(f"{sequence.id}_0")
+                chunk_sequences.append(nterminal_sequence)
+    return sequence_ids, lengths, chunk_ids, chunk_sequences
+
 def prot_t5_embedding(sequences, prot_t5_database):
     lengths = [len(sequence) for sequence in sequences]
     log.debug("Loading ProtT5 model...")
@@ -223,20 +243,8 @@ def coconat(sequences, database):
     crf_model = os.path.join(os.path.dirname(__file__), "data", "crfModel")
     
     log.debug("Extracting N-terminal sequences...")
-    sequence_ids, lengths, chunk_ids, chunk_sequences = [], [], [], []
-    for sequence in sequences:
-        if sequence.classification in ["N", "CN"]:
-            nterminal_sequence = sequence.get_nterminal()
-            sequence_ids.append(sequence.id)
-            lengths.append(len(nterminal_sequence))
-            if len(nterminal_sequence) >= 1022:
-                log.debug(f"N-terminus of {sequence.id} is too long, splitting into chunks...")
-                for i in range(0, len(nterminal_sequence), 1022):
-                    chunk_ids.append(f"{sequence.id}_{i}")
-                    chunk_sequences.append(nterminal_sequence[i:i+1022])
-            else:
-                chunk_ids.append(f"{sequence.id}_0")
-                chunk_sequences.append(nterminal_sequence)
+    sequence_ids, lengths, chunk_ids, chunk_sequences = split_sequences(sequences)
+
     
     prot_t5_embeddings = prot_t5_embedding(chunk_sequences, prot_t5_database)
     prot_t5_embeddings = merge_embeddings(chunk_ids, prot_t5_embeddings)
