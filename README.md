@@ -4,7 +4,9 @@
 ![Conda Downloads](https://img.shields.io/conda/dn/bioconda/resistify)
 
 Resistify is a program which classifies plant NLRs by their protein domain and motif architecture.
-It is designed to be lightweight - no manual database installations or tricky dependencies here!
+It is designed to be lightweight - no manual database installations* or tricky dependencies here!
+
+\**Optional database not included!*
 
 ![terminal](assets/terminal.png)
 
@@ -17,7 +19,7 @@ Resistify is available on [Conda](https://anaconda.org/bioconda/resistify):
 Docker/Podman containers are also available through the [biocontainers repository](https://quay.io/repository/biocontainers/resistify?tab=tags).
 To use these with - for example - singularity, simply run:
 
-`singularity exec docker://quay.io/biocontainers/resistify:0.2.2--pyhdfd78af_0`
+`singularity exec docker://quay.io/biocontainers/resistify:<tag-goes-here>`
 
 Alternatively, Resistify is also available on [PyPi](https://pypi.org/project/resistify/):
 
@@ -97,11 +99,30 @@ This file contains the coordinates of NLR domains identified by `Resistify`.
 Not that the LRR domain does not have an E-value - this is because it is determined via LRR motifs rather than HMM hits.
 I'd treat this file with a bit of caution - in some cases the CC domain will correspond solely to the position of the CC motif rather than the coordinates of a Pfam hit.
 
+### Coconat-based CC annotation (EXPERIMENTAL)
+
+Version 0.5.0 has introduced an optional module that will use [CoCoNat](https://doi.org/10.1093/bioinformatics/btad495) to improve the identification of CC domains.
+To use this feature, you will first need to download their databases:
+
+```
+wget https://coconat.biocomp.unibo.it/static/data/coconat-plms.tar.gz
+tar xvzf coconat-plms.tar.gz
+```
+
+Then, simply provide a path to the database folder with the argument `--coconat`.
+Coiled-coil domains will be identified exclusively in the N-terminal regions of CNLs and NLs.
+This uses a stripped down version of CoCoNat - currently it will only identify CC domain boundaries and not predict residue-level registers or oligomerization states.
+
+#### Why CoCoNat?
+
+I experimented with several different coiled-coil predictors
+
 ### Ultra mode
 
 By default `Resistify` will perform an initial filter to remove non-NLRs prior to motif identification.
 Highly degraded or non-canonical NLRs may not be reported.
 If you wish to retain these, simply use `--ultra` mode to skip this step.
+You can use this to identify any NLR-associated motifs in a dataset.
 
 ### Output visualisation
 

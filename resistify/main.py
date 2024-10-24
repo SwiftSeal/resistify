@@ -19,7 +19,7 @@ from resistify.nlrexpress import nlrexpress
 from resistify.annotations import Sequence
 from resistify.coconat import coconat
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -148,7 +148,7 @@ def main():
         If you used Resistify in your research, please cite the following:
                 Resistify: https://doi.org/10.1101/2024.02.14.580321
                NLRexpress: https://doi.org/10.3389/fpls.2022.975888
-        (If used) Coconat: https://doi.org/10.21769/BioProtoc.4935
+        (If used) Coconat: https://doi.org/10.1093/bioinformatics/btad495
         """
     )
 

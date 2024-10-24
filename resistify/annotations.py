@@ -161,12 +161,52 @@ class Sequence:
                 if domain != collapsed_domain_string[-1]:
                     collapsed_domain_string.append(domain)
             domain_string = "".join(collapsed_domain_string)
+        
+        self.domain_string = domain_string
 
         # classify based on primary architecture - first match wins (go team CNL!)
-        domain_classes = ["RNL", "CNL", "TNL", "RN", "CN", "TN", "NL", "N"]
-        for domain in domain_classes:
-            if domain in collapsed_domain_string:
-                self.classification = domain
+        classifications = ["RNL", "CNL", "TNL", "RN", "CN", "TN", "NL", "N"]
+        for classification in classifications:
+            if classification in collapsed_domain_string:
+                self.classification = classification
+        
+        # scavenge for missed classifications with motifs
+        # this is all very janky
+        if self.classification == "N" or self.classification == "NL":
+            # get the start of the NB-ARC domain
+            for annotation in self.annotations:
+                if annotation.domain == "NB-ARC":
+                    nbarc_start = annotation.start
+                    break
+            for motif in self.motifs["extEDVID"]:
+                if motif.position < nbarc_start:
+                    self.add_annotation(
+                        Annotation("CC", motif.position, motif.position + 1, None, None, "NLRexpress")
+                    )
+                    self.classification = "C" + self.classification
+                    continue
+            TIR_motif_IDs = ["aA", "aC", "aD3", "bA", "bC", "bDaD1"]
+            TIR_motifs = [
+                item
+                for motif in TIR_motif_IDs
+                for item in self.motifs[motif]
+                if item.position < nbarc_start
+            ]
+            # TIR motifs are pretty conserved, seems okay to take 1 as sufficient evidence
+            if len(TIR_motifs) > 0:
+                TIR_motifs.sort(key=lambda x: x.position)
+                self.add_annotation(
+                    Annotation(
+                        "TIR",
+                        TIR_motifs[0].position,
+                        TIR_motifs[-1].position,
+                        None,
+                        None,
+                        "NLRexpress",
+                    )
+                )
+                self.classification = "T" + self.classification
+
 
 
 class Annotation:

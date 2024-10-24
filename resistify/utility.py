@@ -99,7 +99,7 @@ def result_table(sequences, results_dir):
 def domain_table(sequences, results_dir):
     with open(os.path.join(results_dir, "domains.tsv"), "w") as file:
         table_writer = csv.writer(file, delimiter="\t")
-        table_writer.writerow(["Sequence", "Domain", "Start", "End", "E_value"])
+        table_writer.writerow(["Sequence", "Domain", "Start", "End", "E_value", "Source"])
         for sequence in sequences:
             for annotation in sequence.annotations:
                 table_writer.writerow(
@@ -109,6 +109,7 @@ def domain_table(sequences, results_dir):
                         annotation.start,
                         annotation.end,
                         annotation.evalue,
+                        annotation.source,
                     ]
                 )
 
