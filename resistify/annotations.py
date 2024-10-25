@@ -88,7 +88,7 @@ class Sequence:
         Identify CC domains based on Coconat CC probabilites.
         Use a sliding window of size N and predict as CC if mean probability less than X
         """
-        window_size = 3
+        window_size = 5
         threshold = 0.7
         start = None
 
@@ -100,7 +100,7 @@ class Sequence:
             avg_prob = sum(current_window) / window_size
 
             # Check if the average is below the threshold
-            if avg_prob < threshold:
+            if avg_prob > threshold:
                 if start is None:
                     start = i  # Mark the start of the dipping region
                 end = i + window_size - 1  # Extend the end of the region

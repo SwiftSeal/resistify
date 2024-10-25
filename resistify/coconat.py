@@ -225,7 +225,7 @@ def crf(sequence_ids, register_path, biocrf_path, crf_model):
         log.debug(f"Loading crf probabilities for {sequence_id} in {prefix_path}_{i}")
         probability_matrix = np.loadtxt(f"{prefix_path}_{i}")
         # extract first column
-        cc_probability = probability_matrix[:, 0]
+        cc_probability = 1 - probability_matrix[:, 0]
         cc_probabilities[sequence_id] = cc_probability
 
     return cc_probabilities
