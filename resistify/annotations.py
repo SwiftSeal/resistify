@@ -109,14 +109,14 @@ class Sequence:
                 if start is not None:
                     log.debug(f"Adding CC domain in {self.id} from {start} to {end}")
                     self.add_annotation(
-                        Annotation("CC", start, end, None, None, "Coconat")
+                        Annotation("CC", start, end, "NA", "NA", "Coconat")
                     )
                     start = None  # Reset start for the next region
 
         # If we ended in a dip region, capture the final one
         if start is not None:
             log.debug(f"Adding CC domain in {self.id} from {start} to {end}")
-            self.add_annotation(Annotation("CC", start, end, None, None, "Coconat"))
+            self.add_annotation(Annotation("CC", start, end, "NA", "NA", "Coconat"))
 
     def identify_lrr_domains(self, lrr_gap, lrr_length):
         """
@@ -200,8 +200,8 @@ class Sequence:
                             "CC",
                             motif.position,
                             motif.position + 1,
-                            None,
-                            None,
+                            "NA",
+                            "NA",
                             "NLRexpress",
                         )
                     )
@@ -222,8 +222,8 @@ class Sequence:
                         "TIR",
                         TIR_motifs[0].position,
                         TIR_motifs[-1].position,
-                        None,
-                        None,
+                        "NA",
+                        "NA",
                         "NLRexpress",
                     )
                 )

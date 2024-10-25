@@ -7,6 +7,8 @@ name = "resistify"
 version = "0.5.0"
 dependencies = [
   "scikit-learn==0.24.2",
+  "cython<3",
+  "numpy < 1.23.0",
   "biopython",
   "rich",
   "rich-argparse",
@@ -22,7 +24,7 @@ authors = [
 ]
 description = "A resistance gene annotation tool"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.9,<3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
