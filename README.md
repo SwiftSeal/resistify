@@ -35,7 +35,7 @@ To get started with Resistify:
 resistify <input.fa> <output_directory>
 ```
 
-### Results
+## Results
 
 Your `input.fa` should contain your protein sequences of interest.
 An `output_directory` will be created which will contain the results of your run:
@@ -47,7 +47,7 @@ An `output_directory` will be created which will contain the results of your run
 
 As an example, let's look at the results of a `Resistify` run against the NLR [ZAR1](https://www.ncbi.nlm.nih.gov/protein/15230357)
 
-#### results.tsv
+### results.tsv
 
 |Sequence | Length | Motifs | Domains | Classification | NBARC_motifs | MADA | MADAL | CJID |
 |--- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -58,7 +58,7 @@ The "Motifs" column indicates the series of NLR-associated motifs identified acr
 The columns "MADA", "MADAL", and "CJID" correspond to common NLR sequence signatures.
 Here, it appears that ZAR1 has a MADA-like motif.
 
-#### motifs.tsv
+### motifs.tsv
 
 |Sequence | Motif | Position | Probability | Downstream_sequence | Motif_sequence | Upstream_sequence |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -86,7 +86,7 @@ Here, it appears that ZAR1 has a MADA-like motif.
 Here, the positions, probabilities, and sequence of NLRexpress motif hits are listed.
 The five amino acids upstream and downstream of the motif site are also provided.
 
-#### domains.tsv
+### domains.tsv
 
 Sequence | Domain | Start | End | E_value |
 | --- | --- | --- | --- | --- |
@@ -99,7 +99,7 @@ This file contains the coordinates of NLR domains identified by `Resistify`.
 Not that the LRR domain does not have an E-value - this is because it is determined via LRR motifs rather than HMM hits.
 I'd treat this file with a bit of caution - in some cases the CC domain will correspond solely to the position of the CC motif rather than the coordinates of a Pfam hit.
 
-### Coconat-based CC annotation (EXPERIMENTAL)
+## CoCoNat-based CC annotation (EXPERIMENTAL)
 
 Version 0.5.0 has introduced an optional module that will use [CoCoNat](https://doi.org/10.1093/bioinformatics/btad495) to improve the identification of CC domains.
 To use this feature, you will first need to download their databases:
@@ -110,26 +110,23 @@ tar xvzf coconat-plms.tar.gz
 ```
 
 Then, simply provide a path to the database folder with the argument `--coconat`.
-Coiled-coil domains will be identified exclusively in the N-terminal regions of CNLs and NLs.
+CoCoNat will then be used to improve the annotation of coiled-coil domains in your input.
+
 This uses a stripped down version of CoCoNat - currently it will only identify CC domain boundaries and not predict residue-level registers or oligomerization states.
 
-#### Why CoCoNat?
-
-I experimented with several different coiled-coil predictors
-
-### Ultra mode
+## Ultra mode
 
 By default `Resistify` will perform an initial filter to remove non-NLRs prior to motif identification.
 Highly degraded or non-canonical NLRs may not be reported.
 If you wish to retain these, simply use `--ultra` mode to skip this step.
 You can use this to identify any NLR-associated motifs in a dataset.
 
-### Output visualisation
+## Output visualisation
 
 I've kept the output files of `Resistify` fairly minimal so that users can carry out their own analysis/visualisation.
 Here are some examples of how `Resistify` can be used to create basic plots.
 
-#### Phylogenetics
+### Phylogenetics
 
 `Resistify` extracts the NB-ARC domains of each hit so we can easily build a phylogenetic tree.
 Here, we create a tree rooted on the NB-ARC domain of [CED-4](https://www.uniprot.org/uniprotkb/P30429/entry).
@@ -161,7 +158,7 @@ myplot <- myplot +
 
 ![Example plot of phylogenetic tree](assets/phylogenetic.png)
 
-#### Domain plotting
+### Domain plotting
 
 Somtimes, it might be of interest to plot the distribution of domains and motifs across each NLR.
 Achieving this with `Resistify` is quite simple:
