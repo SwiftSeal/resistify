@@ -96,6 +96,11 @@ def main():
     log = logging.getLogger("rich")
     log.info(f"Welcome to Resistify version {__version__}!")
 
+    if args.coconat:
+        log.info(
+            f"CoCoNat database provided - this will be used to improve CC annotations."
+        )
+
     results_dir = create_output_directory(args.outdir)
 
     sequences = parse_fasta(args.input)
@@ -135,9 +140,7 @@ def main():
     for batch in batches:
         log.info(f"Processing batch of {len(batch)} sequences...")
         if args.coconat:
-            log.info(
-                f"Coconat database provided - Coconat will be used to improve CC annotations."
-            )
+            log.info(f"Running CoCoNat...")
             batch = coconat(batch, args.coconat)
             for sequence in batch:
                 sequence.identify_cc_domains()

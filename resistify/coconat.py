@@ -84,8 +84,9 @@ def split_sequences(sequences):
     for sequence in sequences:
         if sequence.classification in ["N", "CN"]:
             nterminal_sequence = sequence.get_nterminal()
-            if len(nterminal_sequence) == 0:
-                log.debug(f"{sequence.id} has no N-terminal region!")
+            # Probably arbitrary, but 5 is unlikely to affect results
+            if len(nterminal_sequence) < 5:
+                log.debug(f"{sequence.id} N-terminal too short, will not be processed")
                 continue
             sequence_ids.append(sequence.id)
             lengths.append(len(nterminal_sequence))
