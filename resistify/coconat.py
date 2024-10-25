@@ -14,6 +14,7 @@ from resistify.annotations import Annotation
 import warnings
 
 log = logging.getLogger(__name__)
+logging.getLogger("transformers").setLevel(logging.CRITICAL)
 
 
 class TransposeX(nn.Module):
