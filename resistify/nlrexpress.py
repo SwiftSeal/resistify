@@ -4,11 +4,11 @@ import numpy as np
 import pickle
 import os
 import logging
+import tempfile
 from sklearn.neural_network import MLPClassifier
-from Bio import SeqIO
 from multiprocessing import Pool
 from resistify.annotations import Motif
-from resistify.utility import split_fasta
+import shutil
 
 log = logging.getLogger(__name__)
 
@@ -53,11 +53,30 @@ motif_models = {
 }
 
 
-def jackhmmer_subprocess(fasta, temp_dir):
+def split_fasta(sequences, chunk_size):
+    """
+    Split a fasta file into chunks of defined size.
+    Return a list of the file paths.
+    """
+    log.debug(f"Splitting fasta into chunks of {chunk_size} sequences")
+    fastas = []
+
+    for i in range(0, len(sequences), chunk_size):
+        chunk = sequences[i : i + chunk_size]
+        chunk_path = tempfile.NamedTemporaryFile(delete=False)
+        log.debug(f"Writing chunk to {chunk_path.name}")
+        with open(chunk_path.name, "w") as f:
+            for sequence in chunk:
+                f.write(f">{sequence.id}\n{sequence.sequence}\n")
+        fastas.append(chunk_path.name)
+
+    return fastas
+
+
+def jackhmmer_subprocess(fasta, database):
     """
     Run jackhmmer on the input fasta file against the database_path.
     """
-    nlrexpress_fasta_path = os.path.join(temp_dir, "nlrexpress.fasta")
     cmd = [
         "jackhmmer",
         "--noali",
@@ -72,9 +91,10 @@ def jackhmmer_subprocess(fasta, temp_dir):
         "--chkhmm",
         fasta + ".out",
         fasta,
-        nlrexpress_fasta_path,
+        database,
     ]
     try:
+        log.debug(f"Running jackhmmer on {fasta}")
         subprocess.run(
             cmd,
             check=True,
@@ -87,34 +107,37 @@ def jackhmmer_subprocess(fasta, temp_dir):
         sys.exit(1)
 
 
-def jackhmmer(fasta, sequences, temp_dir, data_dir, chunk_size, threads):
+def jackhmmer(fastas, threads):
     """
     Run jackhmmer on the input fasta file against the database_path.
     """
-    # split fasta into chunks
-    fastas = split_fasta(fasta, chunk_size, temp_dir)
+    # Moving jackhmmer to temp can help speed stuff up on clusters with local storage.
+    with tempfile.NamedTemporaryFile(delete=False) as temp_database:
+        nlrexpress_database = os.path.join(
+            os.path.dirname(__file__), "data", "nlrexpress.fasta"
+        )
+        shutil.copyfile(nlrexpress_database, temp_database.name)
 
-    # run jackhmmer on each chunk
-    log.info(f"Running jackhmmer, this could take a while...")
-    with Pool(-(-threads // 2)) as pool:
-        pool.starmap(jackhmmer_subprocess, [(f, temp_dir.name) for f in fastas])
+        # run jackhmmer on each chunk
+        log.info(f"Running jackhmmer, this could take a while...")
+        args = [(fasta, temp_database.name) for fasta in fastas]
+        with Pool(-(-threads // 2)) as pool:
+            pool.starmap(jackhmmer_subprocess, args)
 
     # merge the chunks
-    iteration_1_path = os.path.join(temp_dir.name, "jackhmmer-1.hmm")
-    with open(iteration_1_path, "w") as f:
+    iteration_1_path = tempfile.NamedTemporaryFile()
+    with open(iteration_1_path.name, "w") as f:
         for fasta in fastas:
-            log.debug(f"Writing {fasta}.out-1.hmm to jackhmmer-1.hmm")
+            log.debug(f"Writing {fasta}.out-1.hmm to {iteration_1_path.name}")
             with open(f"{fasta}.out-1.hmm") as chunk:
                 f.write(chunk.read())
 
-    jackhmmer_iteration_1 = parse_jackhmmer(
-        os.path.join(temp_dir.name, "jackhmmer-1.hmm"), iteration=False
-    )
+    jackhmmer_iteration_1 = parse_jackhmmer(iteration_1_path.name, iteration=False)
 
-    iteration_2_path = os.path.join(temp_dir.name, "jackhmmer-2.hmm")
-    with open(iteration_2_path, "w") as f:
+    iteration_2_path = tempfile.NamedTemporaryFile()
+    with open(iteration_2_path.name, "w") as f:
         for fasta in fastas:
-            log.debug(f"Writing {fasta}.out-2.hmm to jackhmmer-2.hmm")
+            log.debug(f"Writing {fasta}.out-2.hmm to {iteration_2_path.name}")
             try:
                 with open(f"{fasta}.out-2.hmm") as chunk:
                     f.write(chunk.read())
@@ -122,18 +145,14 @@ def jackhmmer(fasta, sequences, temp_dir, data_dir, chunk_size, threads):
                 log.debug("Second jackhmmer iteration file does not exist, skipping...")
 
     try:
-        jackhmmer_iteration_2 = parse_jackhmmer(iteration_2_path, iteration=True)
+        jackhmmer_iteration_2 = parse_jackhmmer(iteration_2_path.name, iteration=True)
     except FileNotFoundError:
         log.debug(
             f"Second jackhmmer iteration file does not exist, setting second as first..."
         ),
-        jackhmmer_iteration_2 = parse_jackhmmer(iteration_1_path, iteration=False)
+        jackhmmer_iteration_2 = parse_jackhmmer(iteration_1_path.name, iteration=False)
 
-    sequences = prepare_jackhmmer_data(
-        sequences, jackhmmer_iteration_1, jackhmmer_iteration_2
-    )
-
-    return sequences
+    return jackhmmer_iteration_1, jackhmmer_iteration_2
 
 
 def parse_jackhmmer(file, iteration=False):
@@ -203,43 +222,40 @@ def parse_jackhmmer(file, iteration=False):
 
 def prepare_jackhmmer_data(sequences, hmm_it1, hmm_it2):
     for sequence in sequences:
-        log.debug(f"Preparing jackhmmer data for {sequence}")
-        # get the dna sequence
-        seq = sequences[sequence].sequence
+        log.debug(f"Preparing jackhmmer data for {sequence.id}")
         # make blank list for this sequence
         jackhmmer_data = []
 
         # for each amino acid in the sequence
-        for i, aa in enumerate(seq):
+        for i, aa in enumerate(sequence.sequence):
             # add a blank list for this amino acid
             jackhmmer_data.append([])
-            for k, (key, val) in enumerate(hmm_it1[sequence][i].items()):
+            for k, (key, val) in enumerate(hmm_it1[sequence.id][i].items()):
                 jackhmmer_data[-1].append(val)
 
-            if sequence in hmm_it2:
-                for k, (key, val) in enumerate(hmm_it2[sequence][i].items()):
+            if sequence.id in hmm_it2:
+                for k, (key, val) in enumerate(hmm_it2[sequence.id][i].items()):
                     jackhmmer_data[-1].append(val)
             else:
-                for k, (key, val) in enumerate(hmm_it1[sequence][i].items()):
+                for k, (key, val) in enumerate(hmm_it1[sequence.id][i].items()):
                     jackhmmer_data[-1].append(val)
 
-        sequences[sequence].jackhmmer_data = jackhmmer_data
+        sequence.jackhmmer_data = jackhmmer_data
 
     return sequences
 
 
-def predict_motif(sequences, predictor, data_dir):
+def predict_motif(sequences, predictor):
     # create a matrix for the predictors motif size
     log.info(f"Predicting {predictor} motifs...")
     matrix = []
     motif_size = MOTIF_SPAN_LENGTHS[predictor]
     for sequence in sequences:
-        log.debug(f"Preparing matrix for {sequence}")
-        sequence_length = len(sequences[sequence].sequence)
-        for i in range(sequence_length):
+        log.debug(f"Preparing matrix for {sequence.id}")
+        for i in range(len(sequence.sequence)):
             # make sure we are within the sequence bounds
-            if i >= 5 and i < sequence_length - (motif_size + 5):
-                features = sequences[sequence].jackhmmer_data
+            if i >= 5 and i < len(sequence.sequence) - (motif_size + 5):
+                features = sequence.jackhmmer_data
 
                 matrix.append([])
 
@@ -250,7 +266,9 @@ def predict_motif(sequences, predictor, data_dir):
     matrix = np.array(matrix, dtype=float)
     # load the model from model dictionary
 
-    model_path = os.path.join(data_dir, motif_models[predictor])
+    model_path = os.path.join(
+        os.path.dirname(__file__), "data", motif_models[predictor]
+    )
 
     model = pickle.load(open(model_path, "rb"))
     # run the prediction
@@ -261,12 +279,29 @@ def predict_motif(sequences, predictor, data_dir):
     # iterate through sequences and pull out any predictions with a probability > 0.8
     result_index = 0
     for sequence in sequences:
-        log.debug(f"Adding motifs to {sequence}")
-        sequence_length = len(sequences[sequence].sequence)
-        for i in range(len(sequences[sequence].sequence)):
+        log.debug(f"Adding motifs to {sequence.id}")
+        for i in range(len(sequence.sequence)):
             # make sure we are within the sequence bounds
-            if i >= 5 and i < sequence_length - (MOTIF_SPAN_LENGTHS[predictor] + 5):
+            if i >= 5 and i < len(sequence.sequence) - (
+                MOTIF_SPAN_LENGTHS[predictor] + 5
+            ):
                 value = round(result[result_index][1], 4)
                 if value > 0.8:
-                    sequences[sequence].add_motif(Motif(predictor, value, i))
+                    sequence.add_motif(Motif(predictor, value, i))
                 result_index += 1
+
+
+def nlrexpress(sequences, chunk_size, threads):
+
+    fastas = split_fasta(sequences, chunk_size)
+
+    jackhmmer_iteration_1, jackhmmer_iteration_2 = jackhmmer(fastas, threads)
+
+    sequences = prepare_jackhmmer_data(
+        sequences, jackhmmer_iteration_1, jackhmmer_iteration_2
+    )
+
+    for predictor in motif_models.keys():
+        predict_motif(sequences, predictor)
+
+    return sequences

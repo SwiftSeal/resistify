@@ -5,20 +5,23 @@ from rich.logging import RichHandler
 import sys
 import os
 from resistify.utility import (
-    prepare_temp_directory,
     create_output_directory,
     parse_fasta,
     save_fasta,
     result_table,
+    annotation_table,
     domain_table,
     motif_table,
     extract_nbarc,
+    coconat_table,
 )
 from resistify.hmmsearch import hmmsearch
-from resistify.nlrexpress import jackhmmer, motif_models, predict_motif
+from resistify.nlrexpress import nlrexpress
 from resistify.annotations import Sequence
+from resistify.coconat import coconat
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -38,6 +41,18 @@ def parse_args():
         "--ultra",
         help="Run in ultra mode, non-NLRs will be retained",
         action="store_true",
+    )
+    parser.add_argument(
+        "--batch",
+        help="Number of sequences to process in parallel. This can help reduce memory usage.",
+        default=None,
+        type=int,
+    )
+    parser.add_argument(
+        "--coconat",
+        help="!EXPERIMENTAL! Path to Coconat database. If provided, Coconat will be used to improve CC annotations.",
+        default=None,
+        type=str,
     )
     parser.add_argument(
         "--chunksize",
@@ -81,23 +96,19 @@ def main():
     log = logging.getLogger("rich")
     log.info(f"Welcome to Resistify version {__version__}!")
 
-    data_dir = os.path.join(os.path.dirname(__file__), "data")
-    temp_dir = prepare_temp_directory(data_dir)
+    if args.coconat:
+        log.info(
+            f"CoCoNat database provided - this will be used to improve CC annotations."
+        )
+
     results_dir = create_output_directory(args.outdir)
 
     sequences = parse_fasta(args.input)
 
-    # create a temporary directory to store tempfiles
-    log.debug(f"Temporary directory created at {temp_dir.name}")
-
-    # save the fasta with stripped headers
-    hmmer_input = save_fasta(sequences, os.path.join(temp_dir.name, "hmmer_input.fa"))
-
-    sequences = hmmsearch(hmmer_input, sequences, temp_dir, data_dir, args.evalue)
+    sequences = hmmsearch(sequences, args.evalue)
 
     for sequence in sequences:
-        sequences[sequence].merge_annotations()
-        sequences[sequence].classify()
+        sequence.classify()
 
     # subset sequences based on classification
     if args.ultra:
@@ -106,11 +117,9 @@ def main():
         classified_sequences = sequences
     else:
         # subset sequences based on classification
-        classified_sequences = {
-            sequence: sequences[sequence]
-            for sequence in sequences
-            if sequences[sequence].classification is not None
-        }
+        classified_sequences = [
+            sequence for sequence in sequences if sequence.classification is not None
+        ]
 
         if not classified_sequences:
             log.info(f"No sequences classified as potential NLRs!")
@@ -118,40 +127,55 @@ def main():
 
         log.info(f"{len(classified_sequences)} sequences classified as potential NLRs!")
 
-    jackhmmer_input = save_fasta(
-        classified_sequences, os.path.join(temp_dir.name, "jackhmmer_input.fa")
-    )
+    if args.batch is None:
+        batch_size = len(classified_sequences)
+    else:
+        batch_size = args.batch
 
-    classified_sequences = jackhmmer(
-        jackhmmer_input,
-        classified_sequences,
-        temp_dir,
-        data_dir,
-        args.chunksize,
-        args.threads,
-    )
+    batches = [
+        classified_sequences[i : i + batch_size]
+        for i in range(0, len(classified_sequences), batch_size)
+    ]
 
-    # close the temporary directory
-    # temp_dir.cleanup()
+    for batch in batches:
+        log.info(f"Processing batch of {len(batch)} sequences...")
+        if args.coconat:
+            log.info(f"Running CoCoNat...")
+            batch = coconat(batch, args.coconat)
+            for sequence in batch:
+                sequence.identify_cc_domains()
+                sequence.classify()
 
-    # predict and add motifs to sequences
-    # perhaps move all of this into a function rather than iterating
-    for predictor in motif_models.keys():
-        predict_motif(classified_sequences, predictor, data_dir)
+        batch = nlrexpress(
+            batch,
+            args.chunksize,
+            args.threads,
+        )
+
+    classified_sequences = [sequence for batch in batches for sequence in batch]
 
     for sequence in classified_sequences:
-        classified_sequences[sequence].reclassify(args.lrr_gap, args.lrr_length)
+        sequence.identify_lrr_domains(args.lrr_gap, args.lrr_length)
+        sequence.classify()
+        sequence.merge_annotations(args.duplicate_gap)
 
     log.info(f"Saving results to {results_dir}...")
     result_table(classified_sequences, results_dir)
+    annotation_table(classified_sequences, results_dir)
     domain_table(classified_sequences, results_dir)
     motif_table(classified_sequences, results_dir)
     extract_nbarc(classified_sequences, results_dir)
     save_fasta(
         classified_sequences, os.path.join(results_dir, "nlr.fasta"), nlr_only=True
     )
+    if args.coconat:
+        coconat_table(classified_sequences, results_dir)
 
     log.info("Thank you for using Resistify!")
+    log.info("If you used Resistify in your research, please cite the following:")
+    log.info(" - Resistify: https://doi.org/10.1101/2024.02.14.580321")
+    log.info(" - NLRexpress: https://doi.org/10.3389/fpls.2022.975888")
+    log.info(" - CoCoNat: https://doi.org/10.1093/bioinformatics/btad495 (if used)")
 
 
 if __name__ == "__main__":

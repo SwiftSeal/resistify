@@ -1,11 +1,9 @@
 import sys
 import os
 import csv
-import shutil
 import logging
 from Bio import SeqIO
 from resistify.annotations import Sequence
-from tempfile import TemporaryDirectory
 
 log = logging.getLogger(__name__)
 
@@ -21,20 +19,8 @@ def create_output_directory(outdir):
         sys.exit(1)
 
 
-def prepare_temp_directory(data_dir):
-    temp_dir = TemporaryDirectory()
-
-    # Copy nlrexpress database to the temporary directory
-    log.debug(f"Copying nlrexpress database to {temp_dir.name}")
-    shutil.copy(
-        os.path.join(data_dir, "nlrexpress.fasta"),
-        os.path.join(temp_dir.name, "nlrexpress.fasta"),
-    )
-    return temp_dir
-
-
 def parse_fasta(path):
-    sequences = {}
+    sequences = []
     with open(path) as file:
         for record in SeqIO.parse(file, "fasta"):
             # need to remove asterisk, interferes with hmmsearch
@@ -45,36 +31,18 @@ def parse_fasta(path):
             if len(sequence_str) > 100000:
                 log.error(f"Sequence {record.id} is too long (>100000 aa)")
                 sys.exit(1)
-            sequences[record.id] = Sequence(sequence_str)
+            sequences.append(Sequence(record.id, sequence_str))
 
     return sequences
 
-def split_fasta(fasta, chunk_size, temp_dir):
-    """
-    Split a fasta file into chunks of defined size.
-    Return a list of the file paths.
-    """
-    log.debug(f"Splitting fasta into chunks of {chunk_size} sequences")
-    fastas = []
-    records = list(SeqIO.parse(fasta, "fasta"))
-    records = [records[i : i + chunk_size] for i in range(0, len(records), chunk_size)]
-
-    for i, record in enumerate(records):
-        chunk_path = os.path.join(temp_dir.name, f"chunk_{i}.fasta")
-        with open(chunk_path, "w") as f:
-            log.debug(f"Writing chunk {i} to {chunk_path}")
-            SeqIO.write(record, f, "fasta")
-            fastas.append(f"{chunk_path}")
-
-    return fastas
 
 def save_fasta(sequences, path, nlr_only=False):
     with open(path, "w") as file:
         for sequence in sequences:
-            if nlr_only and sequences[sequence].classification is None:
+            if nlr_only and sequence.classification is None:
                 continue
-            file.write(f">{sequence}\n")
-            file.write(f"{sequences[sequence].sequence}\n")
+            file.write(f">{sequence.id}\n")
+            file.write(f"{sequence.sequence}\n")
     return path
 
 
@@ -110,28 +78,20 @@ def result_table(sequences, results_dir):
         for sequence in sequences:
             n_nbarc_motifs = 0
             for motif in nbarc_motifs:
-                if len(sequences[sequence].motifs[motif]) > 0:
+                if len(sequence.motifs[motif]) > 0:
                     n_nbarc_motifs += 1
-
-            length = len(sequences[sequence].sequence)
-            motif_string = sequences[sequence].motif_string
-            classification = sequences[sequence].classification
-            mada = sequences[sequence].mada
-            madal = sequences[sequence].madal
-            cjid = sequences[sequence].cjid
-            domain_string = sequences[sequence].domain_string
 
             table_writer.writerow(
                 [
-                    sequence,
-                    length,
-                    motif_string,
-                    domain_string,
-                    classification,
+                    sequence.id,
+                    len(sequence.sequence),
+                    sequence.motif_string(),
+                    sequence.domain_string,
+                    sequence.classification,
                     n_nbarc_motifs,
-                    mada,
-                    madal,
-                    cjid,
+                    sequence.mada,
+                    sequence.madal,
+                    sequence.cjid,
                 ]
             )
 
@@ -139,22 +99,43 @@ def result_table(sequences, results_dir):
 def domain_table(sequences, results_dir):
     with open(os.path.join(results_dir, "domains.tsv"), "w") as file:
         table_writer = csv.writer(file, delimiter="\t")
-        table_writer.writerow(["Sequence", "Domain", "Start", "End", "E_value"])
+        table_writer.writerow(["Sequence", "Domain", "Start", "End"])
         for sequence in sequences:
-            for annotation in sequences[sequence].annotations:
+            for annotation in sequence.merged_annotations:
                 table_writer.writerow(
                     [
-                        sequence,
+                        sequence.id,
+                        annotation.domain,
+                        annotation.start,
+                        annotation.end,
+                    ]
+                )
+
+
+def annotation_table(sequences, results_dir):
+    with open(os.path.join(results_dir, "annotations.tsv"), "w") as file:
+        table_writer = csv.writer(file, delimiter="\t")
+        table_writer.writerow(
+            ["Sequence", "Domain", "Start", "End", "E_value", "Score", "Source"]
+        )
+        for sequence in sequences:
+            for annotation in sequence.annotations:
+                table_writer.writerow(
+                    [
+                        sequence.id,
                         annotation.domain,
                         annotation.start,
                         annotation.end,
                         annotation.evalue,
+                        annotation.score,
+                        annotation.source,
                     ]
                 )
 
 
 def motif_table(sequences, results_dir):
     from resistify.nlrexpress import MOTIF_SPAN_LENGTHS
+
     output_path = os.path.join(results_dir, "motifs.tsv")
     with open(output_path, "w") as file:
         table_writer = csv.writer(file, delimiter="\t")
@@ -170,9 +151,9 @@ def motif_table(sequences, results_dir):
             ]
         )
         for sequence in sequences:
-            for motif in sequences[sequence].motifs:
-                for item in sequences[sequence].motifs[motif]:
-                    aa_sequence = sequences[sequence].sequence
+            for motif in sequence.motifs:
+                for item in sequence.motifs[motif]:
+                    aa_sequence = sequence.sequence
                     downstream_sequence = aa_sequence[item.position - 5 : item.position]
                     motif_sequence = aa_sequence[
                         item.position : item.position + MOTIF_SPAN_LENGTHS[motif]
@@ -185,7 +166,7 @@ def motif_table(sequences, results_dir):
                     ]
                     table_writer.writerow(
                         [
-                            sequence,
+                            sequence.id,
                             motif,
                             item.position,
                             item.probability,
@@ -203,10 +184,18 @@ def extract_nbarc(sequences, results_dir):
     with open(os.path.join(results_dir, "nbarc.fasta"), "w") as file:
         for sequence in sequences:
             count = 1
-            for annotation in sequences[sequence].annotations:
+            for annotation in sequence.merged_annotations:
                 if annotation.domain == "NB-ARC":
-                    file.write(f">{sequence}_{count}\n")
+                    file.write(f">{sequence.id}_{count}\n")
                     file.write(
-                        f"{sequences[sequence].sequence[annotation.start:annotation.end]}\n"
+                        f"{sequence.sequence[annotation.start:annotation.end]}\n"
                     )
                     count += 1
+
+
+def coconat_table(sequences, results_dir):
+    output_path = os.path.join(results_dir, "coconat.tsv")
+    with open(output_path, "w") as f:
+        for sequence in sequences:
+            for i, probability in enumerate(sequence.cc_probs):
+                f.write(f"{sequence.id}\t{i}\t{probability}\n")
