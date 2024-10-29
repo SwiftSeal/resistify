@@ -260,6 +260,10 @@ def coconat(sequences, database):
     log.debug("Extracting N-terminal sequences...")
     sequence_ids, lengths, chunk_ids, chunk_sequences = split_sequences(sequences)
 
+    # if no n-termini are found, return
+    if not sequence_ids:
+        return sequences
+
     prot_t5_embeddings = prot_t5_embedding(chunk_sequences, prot_t5_database)
     prot_t5_embeddings = merge_embeddings(chunk_ids, prot_t5_embeddings)
 
