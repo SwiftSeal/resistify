@@ -35,6 +35,28 @@ To get started with Resistify:
 resistify <input.fa> <output_directory>
 ```
 
+### CoCoNat-based CC annotation (EXPERIMENTAL)
+
+Version 0.5.0 has introduced an optional module that will use [CoCoNat](https://doi.org/10.1093/bioinformatics/btad495) to improve the identification of CC domains.
+To use this feature, you will first need to download their databases:
+
+```
+wget https://coconat.biocomp.unibo.it/static/data/coconat-plms.tar.gz
+tar xvzf coconat-plms.tar.gz
+```
+
+Then, simply provide a path to the database folder with the argument `--coconat`.
+CoCoNat will then be used to improve the annotation of coiled-coil domains in your input.
+
+This uses a stripped down version of CoCoNat - currently it will only identify CC domain boundaries and not predict residue-level registers or oligomerization states.
+
+### Ultra mode
+
+By default `Resistify` will perform an initial filter to remove non-NLRs prior to motif identification.
+Highly degraded or non-canonical NLRs may not be reported.
+If you wish to retain these, simply use `--ultra` mode to skip this step.
+You can use this to identify any NLR-associated motifs in a dataset.
+
 ## Results
 
 Your `input.fa` should contain your protein sequences of interest.
@@ -111,28 +133,6 @@ This file contains the coordinates of the domains identified by `Resistify`.
 | ZAR1 | LRR | 511 | 817 |	NA |	NA |	NLRexpress |
 
 This file contains the raw annotations for each sequence, and the method which was used to identify them.
-
-## CoCoNat-based CC annotation (EXPERIMENTAL)
-
-Version 0.5.0 has introduced an optional module that will use [CoCoNat](https://doi.org/10.1093/bioinformatics/btad495) to improve the identification of CC domains.
-To use this feature, you will first need to download their databases:
-
-```
-wget https://coconat.biocomp.unibo.it/static/data/coconat-plms.tar.gz
-tar xvzf coconat-plms.tar.gz
-```
-
-Then, simply provide a path to the database folder with the argument `--coconat`.
-CoCoNat will then be used to improve the annotation of coiled-coil domains in your input.
-
-This uses a stripped down version of CoCoNat - currently it will only identify CC domain boundaries and not predict residue-level registers or oligomerization states.
-
-## Ultra mode
-
-By default `Resistify` will perform an initial filter to remove non-NLRs prior to motif identification.
-Highly degraded or non-canonical NLRs may not be reported.
-If you wish to retain these, simply use `--ultra` mode to skip this step.
-You can use this to identify any NLR-associated motifs in a dataset.
 
 ## Output visualisation
 
