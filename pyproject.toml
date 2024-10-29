@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "resistify"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
   "scikit-learn==0.24.2",
   "cython<3",
