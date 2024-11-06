@@ -20,7 +20,7 @@ from resistify.nlrexpress import nlrexpress
 from resistify.annotations import Sequence
 from resistify.coconat import coconat
 
-__version__ = "0.5.1"
+__version__ = "0.5.2"
 
 
 def parse_args():
@@ -31,15 +31,25 @@ def parse_args():
         formatter_class=RichHelpFormatter,
     )
     parser.add_argument(
-        "-v", "--version", action="version", version=f"%(prog)s {__version__}"
+        "-v",
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
+        help="Show the version number and exit.",
     )
     parser.add_argument(
-        "-t", "--threads", help="Threads available to jackhmmer", default=2, type=int
+        "-t",
+        "--threads",
+        help="Total number of threads available for jackhmmer multiprocessing. By default, all available threads will be used.",
+        default=None,
+        type=int,
     )
-    parser.add_argument("--debug", help="Enable debug logging", action="store_true")
+    parser.add_argument(
+        "--debug", help="Enable debug logging for detailed output.", action="store_true"
+    )
     parser.add_argument(
         "--ultra",
-        help="Run in ultra mode, non-NLRs will be retained",
+        help="Run in ultra mode to retain non-NLR sequences.",
         action="store_true",
     )
     parser.add_argument(
@@ -50,36 +60,46 @@ def parse_args():
     )
     parser.add_argument(
         "--coconat",
-        help="!EXPERIMENTAL! Path to Coconat database. If provided, Coconat will be used to improve CC annotations.",
+        help="!EXPERIMENTAL! Path to the Coconat database. If provided, Coconat will be used to improve coiled-coil (CC) annotations.",
         default=None,
         type=str,
     )
     parser.add_argument(
         "--chunksize",
-        help="Number of sequences per split for jackhmmer",
+        help="Number of sequences per split for jackhmmer. Default is 5.",
         default=5,
         type=int,
     )
     parser.add_argument(
-        "--evalue", help="E-value threshold for hmmsearch", default="0.00001"
+        "--evalue",
+        help="E-value threshold for hmmsearch. Default is 0.00001.",
+        default="0.00001",
     )
     parser.add_argument(
-        "--lrr_gap", help="Minimum gap between LRR motifs", default=75, type=int
+        "--lrr_gap",
+        help="Minimum gap (in amino acids) between LRR motifs. Default is 75.",
+        default=75,
+        type=int,
     )
     parser.add_argument(
         "--lrr_length",
-        help="Minimum number of LRR motifs to be considered an LRR domain",
+        help="Minimum number of LRR motifs required to be considered an LRR domain. Default is 4.",
         default=4,
         type=int,
     )
     parser.add_argument(
         "--duplicate_gap",
-        help="Gap size (aa) to consider merging duplicate annotations",
+        help="Gap size (in amino acids) to consider merging duplicate annotations. Default is 100.",
         default=100,
         type=int,
     )
-    parser.add_argument("input", help="Input FASTA file")
-    parser.add_argument("outdir", help="Output directory")
+    parser.add_argument(
+        "input",
+        help="Path to the input FASTA file containing sequences to be analyzed.",
+    )
+    parser.add_argument(
+        "outdir", help="Path to the output directory where results will be saved."
+    )
 
     return parser.parse_args()
 
@@ -100,6 +120,14 @@ def main():
         log.info(
             f"CoCoNat database provided - this will be used to improve CC annotations."
         )
+
+    # Calculate threads to use
+    if args.threads is None:
+        # Use all available threads by default
+        thread_count = len(os.sched_getaffinity(0))
+        log.debug(f"Using {thread_count} threads by default.")
+    else:
+        thread_count = args.threads
 
     results_dir = create_output_directory(args.outdir)
 
@@ -149,7 +177,7 @@ def main():
         batch = nlrexpress(
             batch,
             args.chunksize,
-            args.threads,
+            thread_count,
         )
 
     classified_sequences = [sequence for batch in batches for sequence in batch]
