@@ -34,7 +34,7 @@ def parse_args():
         "-v", "--version", action="version", version=f"%(prog)s {__version__}"
     )
     parser.add_argument(
-        "-t", "--threads", help="Threads available to jackhmmer", default=2, type=int
+        "-t", "--threads", help="Total threads available for jackhmmer multiprocessing. By default all available threads will be used.", default=None, type=int
     )
     parser.add_argument("--debug", help="Enable debug logging", action="store_true")
     parser.add_argument(
@@ -101,6 +101,14 @@ def main():
             f"CoCoNat database provided - this will be used to improve CC annotations."
         )
 
+    # Calculate threads to use
+    if args.threads is None:
+        # Use all available threads by default
+        thread_count = len(os.sched_getaffinity(0))
+        log.debug(f"Using {thread_count} threads by default.")
+    else:
+        thread_count = args.threads
+
     results_dir = create_output_directory(args.outdir)
 
     sequences = parse_fasta(args.input)
@@ -149,7 +157,7 @@ def main():
         batch = nlrexpress(
             batch,
             args.chunksize,
-            args.threads,
+            thread_count,
         )
 
     classified_sequences = [sequence for batch in batches for sequence in batch]
