@@ -31,73 +31,74 @@ def parse_args():
         formatter_class=RichHelpFormatter,
     )
     parser.add_argument(
-        "-v", "--version", action="version", version=f"%(prog)s {__version__}",
-        help="Show the version number and exit."
+        "-v",
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
+        help="Show the version number and exit.",
     )
     parser.add_argument(
-        "-t", "--threads",
+        "-t",
+        "--threads",
         help="Total number of threads available for jackhmmer multiprocessing. By default, all available threads will be used.",
         default=None,
-        type=int
+        type=int,
     )
     parser.add_argument(
-        "--debug",
-        help="Enable debug logging for detailed output.",
-        action="store_true"
+        "--debug", help="Enable debug logging for detailed output.", action="store_true"
     )
     parser.add_argument(
         "--ultra",
         help="Run in ultra mode to retain non-NLR sequences.",
-        action="store_true"
+        action="store_true",
     )
     parser.add_argument(
         "--batch",
         help="Number of sequences to process in parallel. This can help reduce memory usage.",
         default=None,
-        type=int
+        type=int,
     )
     parser.add_argument(
         "--coconat",
         help="!EXPERIMENTAL! Path to the Coconat database. If provided, Coconat will be used to improve coiled-coil (CC) annotations.",
         default=None,
-        type=str
+        type=str,
     )
     parser.add_argument(
         "--chunksize",
         help="Number of sequences per split for jackhmmer. Default is 5.",
         default=5,
-        type=int
+        type=int,
     )
     parser.add_argument(
         "--evalue",
         help="E-value threshold for hmmsearch. Default is 0.00001.",
-        default="0.00001"
+        default="0.00001",
     )
     parser.add_argument(
         "--lrr_gap",
         help="Minimum gap (in amino acids) between LRR motifs. Default is 75.",
         default=75,
-        type=int
+        type=int,
     )
     parser.add_argument(
         "--lrr_length",
         help="Minimum number of LRR motifs required to be considered an LRR domain. Default is 4.",
         default=4,
-        type=int
+        type=int,
     )
     parser.add_argument(
         "--duplicate_gap",
         help="Gap size (in amino acids) to consider merging duplicate annotations. Default is 100.",
         default=100,
-        type=int
+        type=int,
     )
     parser.add_argument(
         "input",
-        help="Path to the input FASTA file containing sequences to be analyzed."
+        help="Path to the input FASTA file containing sequences to be analyzed.",
     )
     parser.add_argument(
-        "outdir",
-        help="Path to the output directory where results will be saved."
+        "outdir", help="Path to the output directory where results will be saved."
     )
 
     return parser.parse_args()
