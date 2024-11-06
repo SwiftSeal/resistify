@@ -83,7 +83,7 @@ def jackhmmer_subprocess(fasta, database):
         "-N",
         "2",  # number of iterations
         "--cpu",
-        "4",
+        "2",
         "-E",
         "1e-5",
         "--domE",
