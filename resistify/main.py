@@ -20,7 +20,7 @@ from resistify.nlrexpress import nlrexpress
 from resistify.annotations import Sequence
 from resistify.coconat import coconat
 
-__version__ = "1.0.0"  # Example version
+__version__ = "0.5.2"
 
 
 def parse_args():
