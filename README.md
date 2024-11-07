@@ -1,4 +1,4 @@
-# Resistify
+# Resistify 🍃
 ![Conda Version](https://img.shields.io/conda/vn/bioconda/resistify)
 ![Conda Downloads](https://img.shields.io/conda/dn/bioconda/resistify)
 
