@@ -246,49 +246,38 @@ def prepare_jackhmmer_data(sequences, hmm_it1, hmm_it2):
 
 
 def predict_motif(sequences, predictor):
-    # create a matrix for the predictors motif size
     log.info(f"Predicting {predictor} motifs...")
-    matrix = []
     motif_size = MOTIF_SPAN_LENGTHS[predictor]
+    total_length = sum(len(sequence.sequence) - (motif_size + 10) for sequence in sequences)
+    
+    # Preallocate the matrix with the correct size
+    matrix = np.zeros((total_length, (motif_size + 11) * len(sequences[0].jackhmmer_data[0])), dtype=float)
+    
+    index = 0
     for sequence in sequences:
         log.debug(f"Preparing matrix for {sequence.id}")
-        for i in range(len(sequence.sequence)):
-            # make sure we are within the sequence bounds
-            if i >= 5 and i < len(sequence.sequence) - (motif_size + 5):
-                features = sequence.jackhmmer_data
+        features = sequence.jackhmmer_data
+        for i in range(5, len(sequence.sequence) - (motif_size + 5)):
+            matrix[index] = np.concatenate([features[i + j] for j in range(-5, motif_size + 6)])
+            index += 1
 
-                matrix.append([])
-
-                # add the hmm values for this range
-                for j in range(-5, motif_size + 6):
-                    matrix[-1] += features[i + j]
-
-    matrix = np.array(matrix, dtype=float)
-    # load the model from model dictionary
-
-    model_path = os.path.join(
-        os.path.dirname(__file__), "data", motif_models[predictor]
-    )
-
+    # Load the model from model dictionary
+    model_path = os.path.join(os.path.dirname(__file__), "data", motif_models[predictor])
     model = pickle.load(open(model_path, "rb"))
-    # run the prediction
     log.debug("Running prediction")
     result = model.predict_proba(matrix)
     log.debug("Prediction complete")
 
-    # iterate through sequences and pull out any predictions with a probability > 0.8
     result_index = 0
     for sequence in sequences:
         log.debug(f"Adding motifs to {sequence.id}")
-        for i in range(len(sequence.sequence)):
-            # make sure we are within the sequence bounds
-            if i >= 5 and i < len(sequence.sequence) - (
-                MOTIF_SPAN_LENGTHS[predictor] + 5
-            ):
-                value = round(result[result_index][1], 4)
-                if value > 0.8:
-                    sequence.add_motif(Motif(predictor, value, i))
-                result_index += 1
+        for i in range(5, len(sequence.sequence) - (motif_size + 5)):
+            value = round(result[result_index][1], 4)
+            if value > 0.8:
+                sequence.add_motif(Motif(predictor, value, i))
+            result_index += 1
+
+    log.info(f"Finished predicting {predictor} motifs.")
 
 
 def nlrexpress(sequences, chunk_size, threads):
