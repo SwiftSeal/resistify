@@ -1,5 +1,4 @@
 # Resistify
-![PyPI - Version](https://img.shields.io/pypi/v/resistify)
 ![Conda Version](https://img.shields.io/conda/vn/bioconda/resistify)
 ![Conda Downloads](https://img.shields.io/conda/dn/bioconda/resistify)
 
@@ -19,13 +18,7 @@ Resistify is available on [Conda](https://anaconda.org/bioconda/resistify):
 Docker/Podman containers are also available through the [biocontainers repository](https://quay.io/repository/biocontainers/resistify?tab=tags).
 To use these with - for example - singularity, simply run:
 
-`singularity exec docker://quay.io/biocontainers/resistify:<tag-goes-here>`
-
-Alternatively, Resistify is also available on [PyPi](https://pypi.org/project/resistify/):
-
-`pip install resistify`
-
-Please note that Resistify requires [hmmer](http://hmmer.org) as a dependency which will need to be installed if using pip.
+`singularity exec docker://quay.io/biocontainers/resistify:<tag-goes-here>` 
 
 ## Usage
 
@@ -66,7 +59,7 @@ An `output_directory` will be created which will contain the results of your run
  - `domains.tsv` - A table of all the domains identified for each sequence.
  - `annotations.tsv` - A table of the raw annotations for each sequence.
  - `nbarc.fasta` - A fasta file of all the NB-ARC domains identified.
- - `nlrs.fasta` - A fasta file of all NLRs identified.
+ - `nlr.fasta` - A fasta file of all NLRs identified.
 
 As an example, let's look at the results of a `Resistify` run against the NLR [ZAR1](https://www.ncbi.nlm.nih.gov/protein/15230357).
 
