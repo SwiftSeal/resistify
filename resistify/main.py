@@ -19,6 +19,7 @@ from resistify.hmmsearch import hmmsearch
 from resistify.nlrexpress import nlrexpress
 from resistify.annotations import Sequence
 from resistify.coconat import coconat
+from resistify.tmbed.tmbed import tmbed
 
 __version__ = "0.5.2"
 
@@ -132,6 +133,9 @@ def main():
     results_dir = create_output_directory(args.outdir)
 
     sequences = parse_fasta(args.input)
+
+    tmbed(sequences)
+    exit()
 
     sequences = hmmsearch(sequences, args.evalue)
 
