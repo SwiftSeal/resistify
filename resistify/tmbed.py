@@ -388,14 +388,21 @@ def make_mask(embeddings, lengths):
     return mask
 
 def load_models(device):
+    model_files = [
+        "cv_0.pt",
+        "cv_1.pt",
+        "cv_2.pt",
+        "cv_3.pt",
+        "cv_4.pt",
+    ]
     models = []
-    root_path = Path(__file__).parent
-    model_path = Path(root_path, 'models')
 
-    for model_file in sorted(model_path.glob('*.pt')):
+    for model_file in model_files:
         model = Predictor()
-
-        model.load_state_dict(torch.load(model_file)['model'])
+        file_path = os.path.join(
+            os.path.dirname(__file__), "data", "tmbed_models", model_file
+        )
+        model.load_state_dict(torch.load(file_path)['model'])
 
         model = model.eval().to(device)
 
@@ -435,7 +442,7 @@ def tmbed(sequences):
     predictions = dict()
 
     # Need to sort sequences by length? Why?
-    sequences = sorted(sequences, key=lambda seq: len(seq.sequence), reverse = True)
+    sequences = sorted(sequences, key=lambda seq: len(seq.sequence))
 
     batches = make_batches(sequences, batch_size)
 
@@ -449,7 +456,7 @@ def tmbed(sequences):
             embeddings = encoder.embed(seqs)
         except torch.cuda.OutOfMemoryError:
             ids = ", ".join([sequence.id for sequence in batch])
-            log.warning(f"Your GPU ran out of memory when generating embeddings. The following sequences were skipped: {ids}")
+            log.warning(f"Your GPU ran out of memory when generating embeddings. So sad! Transmembrane domains will not be predicted for the following sequences: {ids}")
             continue
 
 

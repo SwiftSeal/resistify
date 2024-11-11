@@ -64,6 +64,7 @@ class Sequence:
             "bDaD1": [],
         }
         self.cc_probs = []
+        self.transmembrane_annotations = []
 
     def motif_string(self):
         sorted_motifs = [item for sublist in self.motifs.values() for item in sublist]

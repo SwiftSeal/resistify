@@ -19,7 +19,7 @@ from resistify.hmmsearch import hmmsearch
 from resistify.nlrexpress import nlrexpress
 from resistify.annotations import Sequence
 from resistify.coconat import coconat
-from resistify.tmbed.tmbed import tmbed
+from resistify.tmbed import tmbed
 
 __version__ = "0.5.2"
 
