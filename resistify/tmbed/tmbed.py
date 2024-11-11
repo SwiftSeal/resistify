@@ -15,7 +15,8 @@
 
 import os
 import numpy
-import pathimport random
+import math
+import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -434,7 +435,7 @@ def tmbed(sequences):
     predictions = dict()
 
     # Need to sort sequences by length? Why?
-    sequences = sorted(sequences, key=lambda seq: len(seq.sequence))
+    sequences = sorted(sequences, key=lambda seq: len(seq.sequence), reverse = True)
 
     batches = make_batches(sequences, batch_size)
 
@@ -442,10 +443,16 @@ def tmbed(sequences):
         batch = sequences[a:b]
 
         lengths = [len(sequence.sequence) for sequence in batch]
-        sequences = [sequence.sequence for sequence in batch]
-        print(sequences)
+        seqs = [sequence.sequence for sequence in batch]
 
-        embeddings = encoder.embed(sequences)
+        try:
+            embeddings = encoder.embed(seqs)
+        except torch.cuda.OutOfMemoryError:
+            ids = ", ".join([sequence.id for sequence in batch])
+            log.warning(f"Your GPU ran out of memory when generating embeddings. The following sequences were skipped: {ids}")
+            continue
+
+
         # CPU alternative, implement fallback?
         #encoder.to_cpu()
         #torch.cuda.empty_cache()
@@ -453,13 +460,10 @@ def tmbed(sequences):
 
         embeddings = embeddings.to(device=device)
         embeddings = embeddings.to(dtype=torch.float32)
-        print(embeddings)
 
         mask = make_mask(embeddings, lengths)
-        print(mask)
 
         probabilities = predict_sequences(models, embeddings, mask)
-        print(probabilities)
 
         # Why?
         mask = mask.cpu()
@@ -467,7 +471,27 @@ def tmbed(sequences):
 
         prediction = decoder(probabilities, mask).byte()
 
+        labels = {
+            0: "BETA",
+            1: "BETA",
+            2: "ALPHA HELIX",
+            3: "ALPHA HELIX",
+            4: "SIGNAL PEPTIDE",
+            5: "INSIDE",
+            6: "OUTSIDE"
+        }
+
         for idx, sequence in enumerate(batch):
             length = len(sequence.sequence)
-            pred_str = ''.join(str(v) for v in prediction[idx, :length].tolist())
-            print(pred_str)
+            predictions = [int(x) for x in prediction[idx, :length].tolist()]
+            start = 0
+            current_value = predictions[0]
+            for i in range(1, len(predictions)):
+                if predictions[i] != current_value:
+                    if current_value in labels:
+                        print(f"{sequence.id}: {labels[current_value]} from index {start} to {i - 1}")
+                    start = i
+                    current_value = predictions[i]
+        
+            if current_value in labels:
+                print(f"{sequence.id}: {labels[current_value]} from index {start} to {len(predictions) - 1}")
