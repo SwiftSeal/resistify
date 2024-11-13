@@ -236,7 +236,7 @@ def coconat(sequences, database):
     """
     Use Coconat to predict coiled-coil domains in the N-terminal regions of NLRs.
     """
-    log.debug("Validating Coconat database...")
+    log.debug("Validating CoCoNat database")
     if not os.path.isdir(database):
         log.error(f"Coconat database not found at {database}")
         sys.exit(1)
@@ -257,7 +257,7 @@ def coconat(sequences, database):
     biocrf_path = os.path.join(os.path.dirname(__file__), "bin", "biocrf-static")
     crf_model = os.path.join(os.path.dirname(__file__), "data", "crfModel")
 
-    log.debug("Extracting N-terminal sequences...")
+    log.debug("Extracting N-terminal sequences")
     sequence_ids, lengths, chunk_ids, chunk_sequences = split_sequences(sequences)
 
     # if no n-termini are found, return

@@ -358,7 +358,7 @@ def make_batches(sequences, batch_size):
     batch_size = abs(batch_size) ** 1.5
 
     for idx, sequence in enumerate(sequences):
-        seq_size = len(sequence.sequence) ** 1.5
+        seq_size = len(sequence.seq) ** 1.5
         max_size = max(seq_size, max_size)
 
         if (idx > 0) and (num_prot * max_size > batch_size):
@@ -442,15 +442,15 @@ def tmbed(sequences):
     predictions = dict()
 
     # Need to sort sequences by length? Why?
-    sequences = sorted(sequences, key=lambda seq: len(seq.sequence))
+    sorted_sequences = sorted(sequences, key=lambda sequence: len(sequence.seq))
 
-    batches = make_batches(sequences, batch_size)
+    batches = make_batches(sorted_sequences, batch_size)
 
     for a, b in batches:
-        batch = sequences[a:b]
+        batch = sorted_sequences[a:b]
 
-        lengths = [len(sequence.sequence) for sequence in batch]
-        seqs = [sequence.sequence for sequence in batch]
+        lengths = [len(sequence.seq) for sequence in batch]
+        seqs = [sequence.seq for sequence in batch]
 
         try:
             embeddings = encoder.embed(seqs)
@@ -489,7 +489,7 @@ def tmbed(sequences):
         }
 
         for idx, sequence in enumerate(batch):
-            length = len(sequence.sequence)
+            length = len(sequence.seq)
             predictions = [int(x) for x in prediction[idx, :length].tolist()]
             start = 0
             current_value = predictions[0]
@@ -502,3 +502,5 @@ def tmbed(sequences):
         
             if current_value in labels:
                 print(f"{sequence.id}: {labels[current_value]} from index {start} to {len(predictions) - 1}")
+    
+    return sequences

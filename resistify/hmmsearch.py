@@ -18,7 +18,7 @@ def hmmsearch(sequences, evalue):
     log.debug(f"Writing sequences to {input_fasta.name}")
     with open(input_fasta.name, "w") as f:
         for sequence in sequences:
-            f.write(f">{sequence.id}\n{sequence.sequence}\n")
+            f.write(f">{sequence.id}\n{sequence.seq}\n")
 
     cmd = [
         "hmmsearch",
@@ -76,3 +76,4 @@ def hmmsearch(sequences, evalue):
             sequence.add_annotation(annotation)
 
     return sequences
+

@@ -34,9 +34,9 @@ motif_translation = {
 
 
 class Sequence:
-    def __init__(self, id, sequence):
+    def __init__(self, id, seq):
         self.id = id
-        self.sequence = sequence
+        self.seq = seq
         self.classification = None
         self.mada = False
         self.madal = False
@@ -64,7 +64,6 @@ class Sequence:
             "bDaD1": [],
         }
         self.cc_probs = []
-        self.transmembrane_annotations = []
 
     def motif_string(self):
         sorted_motifs = [item for sublist in self.motifs.values() for item in sublist]
@@ -74,11 +73,11 @@ class Sequence:
             motif_string += motif_translation[motif.classification]
         return motif_string
 
-    def add_annotation(self, annotation):
+    def add_annotation(self, domain, start, end, evalue, score, source):
         """
         Add annotation and keep sorted by start position.
         """
-        self.annotations.append(annotation)
+        self.annotations.append(Annotation(domain, start, end, evalue, score, source))
         self.annotations.sort(key=lambda x: x.start)
 
     def add_motif(self, motif):
@@ -151,22 +150,23 @@ class Sequence:
     def get_nterminal(self):
         for annotation in self.annotations:
             if annotation.domain == "NB-ARC":
-                return self.sequence[: annotation.start]
+                return self.seq[: annotation.start]
 
     def classify(self):
         # create a simplified domain string
         domain_string = ""
         for annotation in self.annotations:
-            # skip non-core and flag
-            if annotation.domain == "MADA":
-                if annotation.score >= 20:
-                    self.mada = True
+            if annotation in short_IDs.keys():
+                # skip non-core and flag
+                if annotation.domain == "MADA":
+                    if annotation.score >= 20:
+                        self.mada = True
+                    else:
+                        self.madal = True
+                elif annotation.domain == "C-JID":
+                    self.cjid = True
                 else:
-                    self.madal = True
-            elif annotation.domain == "C-JID":
-                self.cjid = True
-            else:
-                domain_string += short_IDs[annotation.domain]
+                    domain_string += short_IDs[annotation.domain]
 
         # collapse adjacent identical domains for classification
         collapsed_domain_string = ""

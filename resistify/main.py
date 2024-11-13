@@ -134,39 +134,35 @@ def main():
 
     sequences = parse_fasta(args.input)
 
-    tmbed(sequences)
-    exit()
-
     sequences = hmmsearch(sequences, args.evalue)
 
-    for sequence in sequences:
+    for sequence in sequences.values():
         sequence.classify()
 
     # subset sequences based on classification
     if args.ultra:
         # do not subset sequences based on classification
         log.info(f"Running in ultra mode!")
-        classified_sequences = sequences
     else:
         # subset sequences based on classification
-        classified_sequences = [
+        sequences = [
             sequence for sequence in sequences if sequence.classification is not None
         ]
 
-        if not classified_sequences:
+        if not sequences:
             log.info(f"No sequences classified as potential NLRs!")
             sys.exit(0)
 
-        log.info(f"{len(classified_sequences)} sequences classified as potential NLRs!")
+        log.info(f"{len(sequences)} sequences classified as potential NLRs!")
 
     if args.batch is None:
-        batch_size = len(classified_sequences)
+        batch_size = len(sequences)
     else:
         batch_size = args.batch
 
     batches = [
-        classified_sequences[i : i + batch_size]
-        for i in range(0, len(classified_sequences), batch_size)
+        sequences[i : i + batch_size]
+        for i in range(0, len(sequences), batch_size)
     ]
 
     for batch in batches:
@@ -177,31 +173,31 @@ def main():
             for sequence in batch:
                 sequence.identify_cc_domains()
                 sequence.classify()
-
+    
         batch = nlrexpress(
             batch,
             args.chunksize,
             thread_count,
         )
 
-    classified_sequences = [sequence for batch in batches for sequence in batch]
-
-    for sequence in classified_sequences:
+    for sequence in sequences:
         sequence.identify_lrr_domains(args.lrr_gap, args.lrr_length)
         sequence.classify()
         sequence.merge_annotations(args.duplicate_gap)
+    
+    sequences = tmbed(sequences)
 
     log.info(f"Saving results to {results_dir}...")
-    result_table(classified_sequences, results_dir)
-    annotation_table(classified_sequences, results_dir)
-    domain_table(classified_sequences, results_dir)
-    motif_table(classified_sequences, results_dir)
-    extract_nbarc(classified_sequences, results_dir)
+    result_table(sequences, results_dir)
+    annotation_table(sequences, results_dir)
+    domain_table(sequences, results_dir)
+    motif_table(sequences, results_dir)
+    extract_nbarc(sequences, results_dir)
     save_fasta(
-        classified_sequences, os.path.join(results_dir, "nlr.fasta"), nlr_only=True
+        sequences, os.path.join(results_dir, "nlr.fasta"), nlr_only=True
     )
     if args.coconat:
-        coconat_table(classified_sequences, results_dir)
+        coconat_table(sequences, results_dir)
 
     log.info("Thank you for using Resistify!")
     log.info("If you used Resistify in your research, please cite the following:")
