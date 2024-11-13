@@ -42,7 +42,7 @@ def save_fasta(sequences, path, nlr_only=False):
             if nlr_only and sequence.classification is None:
                 continue
             file.write(f">{sequence.id}\n")
-            file.write(f"{sequence.sequence}\n")
+            file.write(f"{sequence.seq}\n")
     return path
 
 
@@ -84,7 +84,7 @@ def result_table(sequences, results_dir):
             table_writer.writerow(
                 [
                     sequence.id,
-                    len(sequence.sequence),
+                    len(sequence.seq),
                     sequence.motif_string(),
                     sequence.domain_string,
                     sequence.classification,
@@ -153,7 +153,7 @@ def motif_table(sequences, results_dir):
         for sequence in sequences:
             for motif in sequence.motifs:
                 for item in sequence.motifs[motif]:
-                    aa_sequence = sequence.sequence
+                    aa_sequence = sequence.seq
                     downstream_sequence = aa_sequence[item.position - 5 : item.position]
                     motif_sequence = aa_sequence[
                         item.position : item.position + MOTIF_SPAN_LENGTHS[motif]
@@ -188,7 +188,7 @@ def extract_nbarc(sequences, results_dir):
                 if annotation.domain == "NB-ARC":
                     file.write(f">{sequence.id}_{count}\n")
                     file.write(
-                        f"{sequence.sequence[annotation.start:annotation.end]}\n"
+                        f"{sequence.seq[annotation.start:annotation.end]}\n"
                     )
                     count += 1
 

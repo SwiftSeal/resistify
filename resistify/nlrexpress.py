@@ -67,7 +67,7 @@ def split_fasta(sequences, chunk_size):
         log.debug(f"Writing chunk to {chunk_path.name}")
         with open(chunk_path.name, "w") as f:
             for sequence in chunk:
-                f.write(f">{sequence.id}\n{sequence.sequence}\n")
+                f.write(f">{sequence.id}\n{sequence.seq}\n")
         fastas.append(chunk_path.name)
 
     return fastas
@@ -227,7 +227,7 @@ def prepare_jackhmmer_data(sequences, hmm_it1, hmm_it2):
         jackhmmer_data = []
 
         # for each amino acid in the sequence
-        for i, aa in enumerate(sequence.sequence):
+        for i, aa in enumerate(sequence.seq):
             # add a blank list for this amino acid
             jackhmmer_data.append([])
             for k, (key, val) in enumerate(hmm_it1[sequence.id][i].items()):
@@ -248,7 +248,7 @@ def prepare_jackhmmer_data(sequences, hmm_it1, hmm_it2):
 def predict_motif(sequences, predictor):
     log.info(f"Predicting {predictor} motifs...")
     motif_size = MOTIF_SPAN_LENGTHS[predictor]
-    total_length = sum(len(sequence.sequence) - (motif_size + 10) for sequence in sequences)
+    total_length = sum(len(sequence.seq) - (motif_size + 10) for sequence in sequences)
     
     # Preallocate the matrix with the correct size
     matrix = np.zeros((total_length, (motif_size + 11) * len(sequences[0].jackhmmer_data[0])), dtype=float)
@@ -257,7 +257,7 @@ def predict_motif(sequences, predictor):
     for sequence in sequences:
         log.debug(f"Preparing matrix for {sequence.id}")
         features = sequence.jackhmmer_data
-        for i in range(5, len(sequence.sequence) - (motif_size + 5)):
+        for i in range(5, len(sequence.seq) - (motif_size + 5)):
             matrix[index] = np.concatenate([features[i + j] for j in range(-5, motif_size + 6)])
             index += 1
 
@@ -271,7 +271,7 @@ def predict_motif(sequences, predictor):
     result_index = 0
     for sequence in sequences:
         log.debug(f"Adding motifs to {sequence.id}")
-        for i in range(5, len(sequence.sequence) - (motif_size + 5)):
+        for i in range(5, len(sequence.seq) - (motif_size + 5)):
             value = round(result[result_index][1], 4)
             if value > 0.8:
                 sequence.add_motif(Motif(predictor, value, i))

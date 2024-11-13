@@ -48,7 +48,6 @@ def hmmsearch(sequences, evalue):
         log.error(f"hmmsearch not found. Have you installed it?")
         sys.exit(1)
 
-    hmmsearch_results = {}
     for record in SearchIO.parse(output_file.name, "hmmsearch3-domtab"):
         for hit in record:
             for hsp in hit:
@@ -59,21 +58,16 @@ def hmmsearch(sequences, evalue):
                 if record.id == "RPW8" and hsp.bitscore < 20:
                     continue
 
-                hmmsearch_results.setdefault(hit.id, []).append(
-                    Annotation(
-                        record.id,
-                        hsp.env_start,
-                        hsp.env_end,
-                        hsp.evalue,
-                        hsp.bitscore,
-                        "HMM",
-                    )
-                )
-
-    for sequence in sequences:
-        annotations = hmmsearch_results.get(sequence.id, [])
-        for annotation in annotations:
-            sequence.add_annotation(annotation)
+                for sequence in sequences:
+                    if sequence.id == hit.id:
+                        sequence.add_annotation(
+                            record.id,
+                            hsp.env_start,
+                            hsp.env_end,
+                            hsp.evalue,
+                            hsp.bitscore,
+                            "HMM",
+                        )
 
     return sequences
 

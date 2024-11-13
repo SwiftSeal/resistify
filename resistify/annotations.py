@@ -109,14 +109,14 @@ class Sequence:
                 if start is not None:
                     log.debug(f"Adding CC domain in {self.id} from {start} to {end}")
                     self.add_annotation(
-                        Annotation("CC", start, end, "NA", "NA", "Coconat")
+                        "CC", start, end, "NA", "NA", "Coconat"
                     )
                     start = None  # Reset start for the next region
 
         # If we ended in a dip region, capture the final one
         if start is not None:
             log.debug(f"Adding CC domain in {self.id} from {start} to {end}")
-            self.add_annotation(Annotation("CC", start, end, "NA", "NA", "Coconat"))
+            self.add_annotation("CC", start, end, "NA", "NA", "Coconat")
 
     def identify_lrr_domains(self, lrr_gap, lrr_length):
         """
@@ -138,14 +138,14 @@ class Sequence:
             else:
                 if count >= lrr_length:
                     self.add_annotation(
-                        Annotation("LRR", start, end, "NA", "NA", "NLRexpress")
+                        "LRR", start, end, "NA", "NA", "NLRexpress"
                     )
                 start = motif.position
                 end = motif.position
                 count = 0
 
         if count >= lrr_length:
-            self.add_annotation(Annotation("LRR", start, end, "NA", "NA", "NLRexpress"))
+            self.add_annotation("LRR", start, end, "NA", "NA", "NLRexpress")
 
     def get_nterminal(self):
         for annotation in self.annotations:
@@ -156,7 +156,7 @@ class Sequence:
         # create a simplified domain string
         domain_string = ""
         for annotation in self.annotations:
-            if annotation in short_IDs.keys():
+            if annotation.domain in short_IDs.keys():
                 # skip non-core and flag
                 if annotation.domain == "MADA":
                     if annotation.score >= 20:
@@ -197,14 +197,12 @@ class Sequence:
             for motif in self.motifs["extEDVID"]:
                 if motif.position < nbarc_start:
                     self.add_annotation(
-                        Annotation(
                             "CC",
                             motif.position,
                             motif.position + 1,
                             "NA",
                             "NA",
                             "NLRexpress",
-                        )
                     )
                     self.classification = "C" + self.classification
                     continue
@@ -219,14 +217,12 @@ class Sequence:
             if len(TIR_motifs) > 0:
                 TIR_motifs.sort(key=lambda x: x.position)
                 self.add_annotation(
-                    Annotation(
-                        "TIR",
-                        TIR_motifs[0].position,
-                        TIR_motifs[-1].position,
-                        "NA",
-                        "NA",
-                        "NLRexpress",
-                    )
+                    "TIR",
+                    TIR_motifs[0].position,
+                    TIR_motifs[-1].position,
+                    "NA",
+                    "NA",
+                    "NLRexpress",
                 )
                 self.classification = "T" + self.classification
 

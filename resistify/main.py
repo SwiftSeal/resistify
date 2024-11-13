@@ -136,7 +136,7 @@ def main():
 
     sequences = hmmsearch(sequences, args.evalue)
 
-    for sequence in sequences.values():
+    for sequence in sequences:
         sequence.classify()
 
     # subset sequences based on classification
@@ -179,6 +179,8 @@ def main():
             args.chunksize,
             thread_count,
         )
+    
+    sequences = [sequence for batch in batches for sequence in batch]
 
     for sequence in sequences:
         sequence.identify_lrr_domains(args.lrr_gap, args.lrr_length)
