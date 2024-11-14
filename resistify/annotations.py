@@ -2,6 +2,8 @@ import logging
 
 log = logging.getLogger(__name__)
 
+nlr_classifications = ["RNL", "CNL", "TNL", "RN", "CN", "TN", "NL", "N"]
+
 short_IDs = {
     "CC": "C",
     "RPW8": "R",
@@ -37,6 +39,7 @@ class Sequence:
     def __init__(self, id, seq):
         self.id = id
         self.seq = seq
+        self.type = None
         self.classification = None
         self.mada = False
         self.madal = False
@@ -64,6 +67,7 @@ class Sequence:
             "bDaD1": [],
         }
         self.cc_probs = []
+        self.transmembrane_predictions = None
 
     def motif_string(self):
         sorted_motifs = [item for sublist in self.motifs.values() for item in sublist]
@@ -152,7 +156,7 @@ class Sequence:
             if annotation.domain == "NB-ARC":
                 return self.seq[: annotation.start]
 
-    def classify(self):
+    def classify_nlr(self):
         # create a simplified domain string
         domain_string = ""
         for annotation in self.annotations:
@@ -180,8 +184,7 @@ class Sequence:
         log.debug(f"Collapsed domain string for {self.id}: {collapsed_domain_string}")
 
         # classify based on primary architecture - first match wins (go team CNL!)
-        classifications = ["RNL", "CNL", "TNL", "RN", "CN", "TN", "NL", "N"]
-        for classification in classifications:
+        for classification in nlr_classifications:
             if classification in collapsed_domain_string:
                 self.classification = classification
                 break
@@ -225,10 +228,66 @@ class Sequence:
                     "NLRexpress",
                 )
                 self.classification = "T" + self.classification
+        
+        if self.classification in nlr_classifications:
+            self.type = "NLR"
+    
+    def classify_rlp(self):
+        """
+        Extract features indicative of a RLK/RLP based on TMBed topology.
+        Update protein with relevant topology information
+        """
+        single_pass_alpha_tm = False
+        tm_detected = False
+        tm_start = None
+        tm_end = None
+        signal_peptide = False
+        
+        # If Beta-helixes or IN -> OUT transitions are detected, assume not relevant
+        if any(state in self.transmembrane_predictions for state in ["B", "b", "H"]):
+            return
+        
+        for i, state in enumerate(self.transmembrane_predictions):
+            # set initial states
+            if i == 0:
+                previous_state = state
+                state_start = 0
+                continue
 
+            if state != previous_state:
+                length = i - state_start
+                if previous_state == "S" and length > 5:
+                    signal_peptide = True
+                elif previous_state ==  "h":
+                    if tm_detected:
+                        return
+                    tm_start = state_start
+                    tm_end = i - 1
+                    tm_detected = True
+                
+                previous_state = state
+                state_start = i
+        
+        if previous_state == "h" and not tm_detected:
+            tm_start = state_start
+            tm_end = i
+            tm_detected = True
+        
+        # As all passed, assume we have a single-pass alpha helix protein
+        # Detect downstream kinase
+
+        self.type = "RLP"
+
+        for annotation in self.annotations:
+            if annotation.domain == "Pkinase" and annotation.start > tm_end:
+                self.type = "RLK"
+
+        self.classification = "dunno"
+        
     def merge_annotations(self, duplicate_gap):
         """
         Merge overlapping annotations of the same domain.
+
         Don't trust e-values etc - they're inherited from the first annotation.
         """
         merged_annotations = []
@@ -281,3 +340,14 @@ class Motif:
         self.classification = classification
         self.probability = probability
         self.position = int(position)
+
+def classify_sequences(sequences, lrr_gap, lrr_length, duplicate_gap, ultra):
+    for sequence in sequences:
+        sequence.identify_lrr_domains(lrr_gap, lrr_length)
+        sequence.merge_annotations(duplicate_gap)
+        sequence.classify_nlr()
+
+        if ultra and sequence.type is None:
+            sequence.classify_rlp()
+    
+    return sequences

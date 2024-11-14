@@ -14,10 +14,11 @@ from resistify.utility import (
     motif_table,
     extract_nbarc,
     coconat_table,
+    rlp_table
 )
 from resistify.hmmsearch import hmmsearch
 from resistify.nlrexpress import nlrexpress
-from resistify.annotations import Sequence
+from resistify.annotations import classify_sequences
 from resistify.coconat import coconat
 from resistify.tmbed import tmbed
 
@@ -136,61 +137,21 @@ def main():
 
     sequences = hmmsearch(sequences, args.evalue)
 
-    for sequence in sequences:
-        sequence.classify()
+    sequences = nlrexpress(
+        sequences,
+        args.chunksize,
+        thread_count,
+    )
 
-    # subset sequences based on classification
     if args.ultra:
-        # do not subset sequences based on classification
-        log.info(f"Running in ultra mode!")
-    else:
-        # subset sequences based on classification
-        sequences = [
-            sequence for sequence in sequences if sequence.classification is not None
-        ]
+        log.info("Predicting transmembrane domains")
+        sequences = tmbed(sequences)
 
-        if not sequences:
-            log.info(f"No sequences classified as potential NLRs!")
-            sys.exit(0)
-
-        log.info(f"{len(sequences)} sequences classified as potential NLRs!")
-
-    if args.batch is None:
-        batch_size = len(sequences)
-    else:
-        batch_size = args.batch
-
-    batches = [
-        sequences[i : i + batch_size]
-        for i in range(0, len(sequences), batch_size)
-    ]
-
-    for batch in batches:
-        log.info(f"Processing batch of {len(batch)} sequences...")
-        if args.coconat:
-            log.info(f"Running CoCoNat...")
-            batch = coconat(batch, args.coconat)
-            for sequence in batch:
-                sequence.identify_cc_domains()
-                sequence.classify()
-    
-        batch = nlrexpress(
-            batch,
-            args.chunksize,
-            thread_count,
-        )
-    
-    sequences = [sequence for batch in batches for sequence in batch]
-
-    for sequence in sequences:
-        sequence.identify_lrr_domains(args.lrr_gap, args.lrr_length)
-        sequence.classify()
-        sequence.merge_annotations(args.duplicate_gap)
-    
-    sequences = tmbed(sequences)
+    sequences = classify_sequences(sequences, args.lrr_gap, args.lrr_length, args.duplicate_gap, args.ultra)
 
     log.info(f"Saving results to {results_dir}...")
     result_table(sequences, results_dir)
+    rlp_table(sequences, results_dir)
     annotation_table(sequences, results_dir)
     domain_table(sequences, results_dir)
     motif_table(sequences, results_dir)

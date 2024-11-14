@@ -76,24 +76,25 @@ def result_table(sequences, results_dir):
         ]
 
         for sequence in sequences:
-            n_nbarc_motifs = 0
-            for motif in nbarc_motifs:
-                if len(sequence.motifs[motif]) > 0:
-                    n_nbarc_motifs += 1
+            if sequence.type == "NLR":         
+                n_nbarc_motifs = 0
+                for motif in nbarc_motifs:
+                    if len(sequence.motifs[motif]) > 0:
+                        n_nbarc_motifs += 1
 
-            table_writer.writerow(
-                [
-                    sequence.id,
-                    len(sequence.seq),
-                    sequence.motif_string(),
-                    sequence.domain_string,
-                    sequence.classification,
-                    n_nbarc_motifs,
-                    sequence.mada,
-                    sequence.madal,
-                    sequence.cjid,
-                ]
-            )
+                table_writer.writerow(
+                    [
+                        sequence.id,
+                        len(sequence.seq),
+                        sequence.motif_string(),
+                        sequence.domain_string,
+                        sequence.classification,
+                        n_nbarc_motifs,
+                        sequence.mada,
+                        sequence.madal,
+                        sequence.cjid,
+                    ]
+                )
 
 
 def domain_table(sequences, results_dir):
@@ -199,3 +200,29 @@ def coconat_table(sequences, results_dir):
         for sequence in sequences:
             for i, probability in enumerate(sequence.cc_probs):
                 f.write(f"{sequence.id}\t{i}\t{probability}\n")
+
+def rlp_table(sequences, results_dir):
+    output_path = os.path.join(results_dir, "rlp_results.tsv")
+    with open(output_path, "w") as f:
+        table_writer = csv.writer(f, delimiter="\t")
+        table_writer.writerow(
+            [
+                "Sequence",
+                "topology_string",
+                "Type",
+                "Classification",
+            ]
+        )
+        for sequence in sequences:
+            if sequence.type == "RLP" or sequence.type == "RLK":
+                table_writer.writerow(
+                    [
+                        sequence.id,
+                        sequence.transmembrane_predictions,
+                        sequence.type,
+                        sequence.classification,
+                    ]
+                )
+
+
+

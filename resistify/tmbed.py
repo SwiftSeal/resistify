@@ -402,6 +402,7 @@ def load_models(device):
         file_path = os.path.join(
             os.path.dirname(__file__), "data", "tmbed_models", model_file
         )
+        log.debug(f"Loading model {file_path}")
         model.load_state_dict(torch.load(file_path)['model'])
 
         model = model.eval().to(device)
@@ -435,17 +436,17 @@ def tmbed(sequences):
 
     log.debug("Loading encoder")
     encoder = T5Encoder("resistify_models/prott5/", torch.cuda.is_available())
+    log.debug("Loading decoder")
     decoder = Decoder()
 
     models = load_models(device)
-
-    predictions = dict()
 
     # Need to sort sequences by length? Why?
     sorted_sequences = sorted(sequences, key=lambda sequence: len(sequence.seq))
 
     batches = make_batches(sorted_sequences, batch_size)
 
+    prediction_results = {}
     for a, b in batches:
         batch = sorted_sequences[a:b]
 
@@ -453,6 +454,7 @@ def tmbed(sequences):
         seqs = [sequence.seq for sequence in batch]
 
         try:
+            log.debug("Creating embeddings")
             embeddings = encoder.embed(seqs)
         except torch.cuda.OutOfMemoryError:
             ids = ", ".join([sequence.id for sequence in batch])
@@ -478,29 +480,14 @@ def tmbed(sequences):
 
         prediction = decoder(probabilities, mask).byte()
 
-        labels = {
-            0: "BETA",
-            1: "BETA",
-            2: "ALPHA HELIX",
-            3: "ALPHA HELIX",
-            4: "SIGNAL PEPTIDE",
-            5: "INSIDE",
-            6: "OUTSIDE"
-        }
+        pred_map = {0: 'B', 1: 'b', 2: 'H', 3: 'h', 4: 'S', 5: 'i', 6: 'o'}
 
         for idx, sequence in enumerate(batch):
             length = len(sequence.seq)
-            predictions = [int(x) for x in prediction[idx, :length].tolist()]
-            start = 0
-            current_value = predictions[0]
-            for i in range(1, len(predictions)):
-                if predictions[i] != current_value:
-                    if current_value in labels:
-                        print(f"{sequence.id}: {labels[current_value]} from index {start} to {i - 1}")
-                    start = i
-                    current_value = predictions[i]
+            prediction_results[sequence.id] = tuple(pred_map[int(x)] for x in prediction[idx, :length])
         
-            if current_value in labels:
-                print(f"{sequence.id}: {labels[current_value]} from index {start} to {len(predictions) - 1}")
-    
+    for sequence in sequences:
+        log.debug(f"Adding TM predictions to {sequence.id}")
+        sequence.transmembrane_predictions = prediction_results[sequence.id]
+
     return sequences
