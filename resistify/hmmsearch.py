@@ -41,7 +41,7 @@ accession_families = {
     "PF00704": "GH18",
     "PF00182": "GH19",
     "PF00188": "CAP",
-    "PF16101": "PRIMA1"
+    "PF16101": "PRIMA1",
 }
 
 
@@ -87,7 +87,7 @@ def hmmsearch(sequences, evalue):
     sequence_dict = {sequence.id: sequence for sequence in sequences}
 
     for record in SearchIO.parse(output_file.name, "hmmsearch3-domtab"):
-        accession = record.accession.split('.')[0]
+        accession = record.accession.split(".")[0]
         record_name = accession_families[accession]
 
         for hit in record:
@@ -109,4 +109,3 @@ def hmmsearch(sequences, evalue):
                     )
 
     return sequences
-

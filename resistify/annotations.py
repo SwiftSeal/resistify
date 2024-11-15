@@ -131,9 +131,7 @@ class Sequence:
                 # If we were in a dipping region and now the condition is false, record the region
                 if start is not None:
                     log.debug(f"Adding CC domain in {self.id} from {start} to {end}")
-                    self.add_annotation(
-                        "CC", start, end, "NA", "NA", "Coconat"
-                    )
+                    self.add_annotation("CC", start, end, "NA", "NA", "Coconat")
                     start = None  # Reset start for the next region
 
         # If we ended in a dip region, capture the final one
@@ -160,9 +158,7 @@ class Sequence:
                 count += 1
             else:
                 if count >= lrr_length:
-                    self.add_annotation(
-                        "LRR", start, end, "NA", "NA", "NLRexpress"
-                    )
+                    self.add_annotation("LRR", start, end, "NA", "NA", "NLRexpress")
                 start = motif.position
                 end = motif.position
                 count = 0
@@ -219,12 +215,12 @@ class Sequence:
             for motif in self.motifs["extEDVID"]:
                 if motif.position < nbarc_start:
                     self.add_annotation(
-                            "CC",
-                            motif.position,
-                            motif.position + 1,
-                            "NA",
-                            "NA",
-                            "NLRexpress",
+                        "CC",
+                        motif.position,
+                        motif.position + 1,
+                        "NA",
+                        "NA",
+                        "NLRexpress",
                     )
                     self.classification = "C" + self.classification
                     continue
@@ -247,10 +243,10 @@ class Sequence:
                     "NLRexpress",
                 )
                 self.classification = "T" + self.classification
-        
+
         if self.classification in nlr_classifications:
             self.type = "NLR"
-    
+
     def classify_rlp(self):
         """
         Extract features indicative of a RLK/RLP based on TMBed topology.
@@ -262,18 +258,18 @@ class Sequence:
         tm_end = None
         inside_count, outside_count = 0, 0
         n_terminal_length = 0
-        
+
         # If Beta-helixes or IN -> OUT transitions are detected, assume not relevant
         if any(state in self.transmembrane_predictions for state in ["B", "b", "H"]):
             return
-        
+
         for i, state in enumerate(self.transmembrane_predictions):
             # set initial states
             if i == 0:
                 previous_state = state
                 state_start = 0
                 continue
-            
+
             if not tm_detected:
                 n_terminal_length += 1
                 if state == "i":
@@ -285,31 +281,31 @@ class Sequence:
                 length = i - state_start
                 if previous_state == "S" and length > 5:
                     self.signal_peptide = True
-                elif previous_state ==  "h":
+                elif previous_state == "h":
                     if tm_detected:
                         return
                     tm_start = state_start
                     tm_end = i - 1
                     tm_detected = True
-                
+
                 previous_state = state
                 state_start = i
-        
+
         if previous_state == "h" and not tm_detected:
             tm_start = state_start
             tm_end = i
             tm_detected = True
-        
+
         if tm_detected is False:
             return
-        
+
         if n_terminal_length < 50:
             return
-        
+
         if inside_count > outside_count:
             # super rough
             return
-        
+
         # As all passed, assume we have a single-pass alpha helix protein
         # Detect downstream kinase
 
@@ -321,11 +317,11 @@ class Sequence:
                 self.type = "RLK"
             if annotation.domain in rlp_external_domains and annotation.end < tm_start:
                 external_domains.add(annotation.domain)
-        
+
         external_domains = ";".join(external_domains)
 
         self.classification = external_domains
-        
+
     def merge_annotations(self, duplicate_gap):
         """
         Merge overlapping annotations of the same domain.
@@ -383,6 +379,7 @@ class Motif:
         self.probability = probability
         self.position = int(position)
 
+
 def classify_sequences(sequences, lrr_gap, lrr_length, duplicate_gap, ultra):
     for sequence in sequences:
         sequence.identify_lrr_domains(lrr_gap, lrr_length)
@@ -391,5 +388,5 @@ def classify_sequences(sequences, lrr_gap, lrr_length, duplicate_gap, ultra):
 
         if ultra and sequence.type is None:
             sequence.classify_rlp()
-    
+
     return sequences

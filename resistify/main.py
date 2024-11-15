@@ -14,7 +14,7 @@ from resistify.utility import (
     motif_table,
     extract_nbarc,
     coconat_table,
-    rlp_table
+    rlp_table,
 )
 from resistify.hmmsearch import hmmsearch
 from resistify.nlrexpress import nlrexpress
@@ -147,7 +147,9 @@ def main():
         log.info("Predicting transmembrane domains")
         sequences = tmbed(sequences)
 
-    sequences = classify_sequences(sequences, args.lrr_gap, args.lrr_length, args.duplicate_gap, args.ultra)
+    sequences = classify_sequences(
+        sequences, args.lrr_gap, args.lrr_length, args.duplicate_gap, args.ultra
+    )
 
     log.info(f"Saving results to {results_dir}...")
     result_table(sequences, results_dir)
@@ -156,9 +158,7 @@ def main():
     domain_table(sequences, results_dir)
     motif_table(sequences, results_dir)
     extract_nbarc(sequences, results_dir)
-    save_fasta(
-        sequences, os.path.join(results_dir, "nlr.fasta"), nlr_only=True
-    )
+    save_fasta(sequences, os.path.join(results_dir, "nlr.fasta"), nlr_only=True)
     if args.coconat:
         coconat_table(sequences, results_dir)
 

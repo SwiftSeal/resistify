@@ -28,6 +28,8 @@ from transformers import T5EncoderModel, T5Tokenizer
 from pathlib import Path
 
 log = logging.getLogger(__name__)
+
+
 class Decoder(nn.Module):
 
     def __init__(self):
@@ -47,27 +49,27 @@ class Decoder(nn.Module):
             start_transitions[i] = 0  # B1a, B1b, H1a, H1b, S1, i, o
 
         for i in range(4):
-            transitions[0+i, 1+i] = 0    # Bxa -> Bya
-            transitions[5+i, 6+i] = 0    # Bxb -> Byb
-            transitions[10+i, 11+i] = 0  # Hxa -> Hya
-            transitions[15+i, 16+i] = 0  # Hxb -> Hyb
-            transitions[20+i, 21+i] = 0  # Sx  -> Sy
+            transitions[0 + i, 1 + i] = 0  # Bxa -> Bya
+            transitions[5 + i, 6 + i] = 0  # Bxb -> Byb
+            transitions[10 + i, 11 + i] = 0  # Hxa -> Hya
+            transitions[15 + i, 16 + i] = 0  # Hxb -> Hyb
+            transitions[20 + i, 21 + i] = 0  # Sx  -> Sy
 
         for i in [4, 9, 14, 19, 24]:
             transitions[i, i] = 0  # X5 -> X5
 
-        transitions[4, -1] = 0    # B5a -> o
-        transitions[9, -2] = 0    # B5b -> i
-        transitions[14, -1] = 0   # H5a -> o
-        transitions[19, -2] = 0   # H5b -> i
+        transitions[4, -1] = 0  # B5a -> o
+        transitions[9, -2] = 0  # B5b -> i
+        transitions[14, -1] = 0  # H5a -> o
+        transitions[19, -2] = 0  # H5b -> i
         transitions[24, -2:] = 0  # S5  -> (i, o)
 
-        transitions[-2, 0] = 0    # i -> B1a
-        transitions[-2, 10] = 0   # i -> H1a
+        transitions[-2, 0] = 0  # i -> B1a
+        transitions[-2, 10] = 0  # i -> H1a
         transitions[-2, -2:] = 0  # i -> (i, o)
 
-        transitions[-1, 5] = 0    # o -> B1b
-        transitions[-1, 15] = 0   # o -> H1b
+        transitions[-1, 5] = 0  # o -> B1b
+        transitions[-1, 15] = 0  # o -> H1b
         transitions[-1, -2:] = 0  # o -> (i, o)
 
         for i in [4, 9, 14, 19, 24, -2, -1]:
@@ -76,21 +78,19 @@ class Decoder(nn.Module):
         repeats = torch.tensor([10, 10, 5, 1, 1], dtype=torch.int32)
 
         mapping = torch.arange(7, dtype=torch.int32)
-        mapping = mapping.repeat_interleave(torch.tensor([5, 5,  # B
-                                                          5, 5,  # H
-                                                          5,     # S
-                                                          1,     # i
-                                                          1]))   # o
+        mapping = mapping.repeat_interleave(
+            torch.tensor([5, 5, 5, 5, 5, 1, 1])  # B  # H  # S  # i
+        )  # o
 
         assert repeats.sum() == num_tags
         assert mapping.shape == (num_tags,)
 
-        self.register_buffer('transitions', tensor=transitions)
-        self.register_buffer('end_transitions', tensor=end_transitions)
-        self.register_buffer('start_transitions', tensor=start_transitions)
+        self.register_buffer("transitions", tensor=transitions)
+        self.register_buffer("end_transitions", tensor=end_transitions)
+        self.register_buffer("start_transitions", tensor=start_transitions)
 
-        self.register_buffer('repeats', tensor=repeats)
-        self.register_buffer('mapping', tensor=mapping)
+        self.register_buffer("repeats", tensor=repeats)
+        self.register_buffer("mapping", tensor=mapping)
 
     def forward(self, emissions, mask):
         mask = mask.transpose(0, 1).bool()
@@ -110,13 +110,14 @@ class Decoder(nn.Module):
 
         score = self.start_transitions + emissions[0]
 
-        history = torch.zeros((seq_length, batch_size, num_tags),
-                              dtype=torch.long, device=device)
+        history = torch.zeros(
+            (seq_length, batch_size, num_tags), dtype=torch.long, device=device
+        )
 
         for i in range(1, seq_length):
-            next_score = (self.transitions
-                          + score.unsqueeze(2)
-                          + emissions[i].unsqueeze(1))
+            next_score = (
+                self.transitions + score.unsqueeze(2) + emissions[i].unsqueeze(1)
+            )
 
             next_score, indices = next_score.max(dim=1)
 
@@ -132,17 +133,19 @@ class Decoder(nn.Module):
 
         history = history.transpose(1, 0)
 
-        history.scatter_(1,
-                         seq_ends.view(-1, 1, 1).expand(-1, 1, num_tags),
-                         end_tag.view(-1, 1, 1).expand(-1, 1, num_tags))
+        history.scatter_(
+            1,
+            seq_ends.view(-1, 1, 1).expand(-1, 1, num_tags),
+            end_tag.view(-1, 1, 1).expand(-1, 1, num_tags),
+        )
 
         history = history.transpose(1, 0)
 
-        best_tags = torch.zeros((batch_size, 1), dtype=torch.long,
-                                device=device)
+        best_tags = torch.zeros((batch_size, 1), dtype=torch.long, device=device)
 
-        best_tags_arr = torch.zeros((seq_length, batch_size), dtype=torch.long,
-                                    device=device)
+        best_tags_arr = torch.zeros(
+            (seq_length, batch_size), dtype=torch.long, device=device
+        )
 
         for idx in range(seq_length - 1, -1, -1):
             best_tags = torch.gather(history[idx], 1, best_tags)
@@ -150,6 +153,7 @@ class Decoder(nn.Module):
             best_tags_arr[idx] = best_tags.view(batch_size)
 
         return best_tags_arr.transpose(0, 1)
+
 
 class T5Encoder:
 
@@ -161,15 +165,14 @@ class T5Encoder:
             self._load_models(model_path, torch.float32)
             self.encoder_model = self.encoder_model.eval()
 
-        self.aa_map = str.maketrans('BJOUZ', 'XXXXX')
-
+        self.aa_map = str.maketrans("BJOUZ", "XXXXX")
 
     def _load_models(self, model_path, dtype):
-        self.tokenizer = T5Tokenizer.from_pretrained(model_path,
-                                                     do_lower_case=False)
+        self.tokenizer = T5Tokenizer.from_pretrained(model_path, do_lower_case=False)
 
-        self.encoder_model = T5EncoderModel.from_pretrained(model_path,
-                                                            torch_dtype=dtype)
+        self.encoder_model = T5EncoderModel.from_pretrained(
+            model_path, torch_dtype=dtype
+        )
 
     def device(self):
         return self.encoder_model.device
@@ -183,20 +186,22 @@ class T5Encoder:
     def embed(self, sequences):
         sequences = [s.upper().translate(self.aa_map) for s in sequences]
 
-        tokens = [' '.join(list(s)) for s in sequences]
-        tokens = self.tokenizer.batch_encode_plus(tokens,
-                                                  padding='longest',
-                                                  add_special_tokens=True)
+        tokens = [" ".join(list(s)) for s in sequences]
+        tokens = self.tokenizer.batch_encode_plus(
+            tokens, padding="longest", add_special_tokens=True
+        )
 
         device = self.encoder_model.device
-        input_ids = torch.tensor(tokens['input_ids'], device=device)
-        attention_mask = torch.tensor(tokens['attention_mask'], device=device)
+        input_ids = torch.tensor(tokens["input_ids"], device=device)
+        attention_mask = torch.tensor(tokens["attention_mask"], device=device)
 
         with torch.no_grad():
-            embeddings = self.encoder_model(input_ids=input_ids,
-                                            attention_mask=attention_mask)
+            embeddings = self.encoder_model(
+                input_ids=input_ids, attention_mask=attention_mask
+            )
 
         return embeddings.last_hidden_state.detach()
+
 
 class SeqNorm(nn.Module):
 
@@ -207,11 +212,11 @@ class SeqNorm(nn.Module):
             self.bias = nn.Parameter(torch.zeros(1, channels, 1, 1))
             self.weight = nn.Parameter(torch.ones(1, channels, 1, 1))
         else:
-            self.register_parameter('bias', None)
-            self.register_parameter('weight', None)
+            self.register_parameter("bias", None)
+            self.register_parameter("weight", None)
 
-        self.register_buffer(name='eps', tensor=torch.tensor(float(eps)))
-        self.register_buffer(name='channels', tensor=torch.tensor(channels))
+        self.register_buffer(name="eps", tensor=torch.tensor(float(eps)))
+        self.register_buffer(name="channels", tensor=torch.tensor(channels))
 
     def forward(self, x, mask):
         mask_rsum = 1.0 / (mask.sum(dim=(2, 3), keepdims=True) * self.channels)
@@ -233,24 +238,34 @@ class SeqNorm(nn.Module):
 
 
 class Conv(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, stride=1,
-                 padding=0, dilation=1, groups=1, padding_mode='zeros'):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        kernel_size,
+        stride=1,
+        padding=0,
+        dilation=1,
+        groups=1,
+        padding_mode="zeros",
+    ):
         super().__init__()
 
         self.func = nn.ReLU(inplace=True)
 
-        self.norm = SeqNorm(channels=out_channels,
-                            eps=1e-6, affine=True)
+        self.norm = SeqNorm(channels=out_channels, eps=1e-6, affine=True)
 
-        self.conv = nn.Conv2d(in_channels=in_channels,
-                              out_channels=out_channels,
-                              kernel_size=(kernel_size, 1),
-                              stride=(stride, 1),
-                              padding=(padding, 0),
-                              dilation=(dilation, 1),
-                              groups=groups,
-                              bias=False,
-                              padding_mode=padding_mode)
+        self.conv = nn.Conv2d(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=(kernel_size, 1),
+            stride=(stride, 1),
+            padding=(padding, 0),
+            dilation=(dilation, 1),
+            groups=groups,
+            bias=False,
+            padding_mode=padding_mode,
+        )
 
         # Init Conv Params
         nn.init.xavier_uniform_(self.conv.weight)
@@ -258,7 +273,7 @@ class Conv(nn.Module):
     def forward(self, x, mask):
         x = self.func(self.norm(self.conv(x), mask))
 
-        return (x * mask)
+        return x * mask
 
 
 class CNN(nn.Module):
@@ -273,7 +288,7 @@ class CNN(nn.Module):
 
         self.dropout = nn.Dropout2d(p=0.50, inplace=True)
 
-        self.output = nn.Conv2d(3*channels, 5, 1, 1, 0)
+        self.output = nn.Conv2d(3 * channels, 5, 1, 1, 0)
 
         # Init Output Params
         nn.init.zeros_(self.output.bias)
@@ -291,7 +306,7 @@ class CNN(nn.Module):
 
         x = self.output(x)
 
-        return (x * mask)
+        return x * mask
 
 
 class Predictor(nn.Module):
@@ -303,7 +318,7 @@ class Predictor(nn.Module):
 
         filter_kernel = gaussian_kernel(kernel_size=7, std=1.0)
 
-        self.register_buffer(name='filter_kernel', tensor=filter_kernel)
+        self.register_buffer(name="filter_kernel", tensor=filter_kernel)
 
     def forward(self, x, mask):
         B, N, C = x.shape
@@ -316,13 +331,14 @@ class Predictor(nn.Module):
 
         x = x.view(B, 5, N)
 
-        x = F.pad(x, pad=(3, 3), mode='constant', value=0.0)
+        x = F.pad(x, pad=(3, 3), mode="constant", value=0.0)
 
         x = x.unfold(dimension=2, size=7, step=1)
 
-        x = torch.einsum('bcnm,m->bcn', x, self.filter_kernel)
+        x = torch.einsum("bcnm,m->bcn", x, self.filter_kernel)
 
         return x
+
 
 def seed_all(seed):
     random.seed(seed)
@@ -332,17 +348,17 @@ def seed_all(seed):
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
 
+
 def gaussian(x, std):
     pi = torch.tensor(math.pi)
-    s2 = 2.0*torch.tensor(std).square()
+    s2 = 2.0 * torch.tensor(std).square()
     x2 = torch.tensor(x).square().neg()
 
     return torch.exp(x2 / s2) * torch.rsqrt(s2 * pi)
 
 
 def gaussian_kernel(kernel_size, std=1.0):
-    kernel = [gaussian(i - (kernel_size // 2), std)
-              for i in range(kernel_size)]
+    kernel = [gaussian(i - (kernel_size // 2), std) for i in range(kernel_size)]
 
     kernel = torch.tensor(kernel)
     kernel = kernel / kernel.sum()
@@ -378,14 +394,13 @@ def make_batches(sequences, batch_size):
 def make_mask(embeddings, lengths):
     B, N, _ = embeddings.shape
 
-    mask = torch.zeros((B, N),
-                       dtype=embeddings.dtype,
-                       device=embeddings.device)
+    mask = torch.zeros((B, N), dtype=embeddings.dtype, device=embeddings.device)
 
     for idx, length in enumerate(lengths):
         mask[idx, :length] = 1.0
 
     return mask
+
 
 def load_models(device):
     model_files = [
@@ -403,7 +418,7 @@ def load_models(device):
             os.path.dirname(__file__), "data", "tmbed_models", model_file
         )
         log.debug(f"Loading model {file_path}")
-        model.load_state_dict(torch.load(file_path)['model'])
+        model.load_state_dict(torch.load(file_path)["model"])
 
         model = model.eval().to(device)
 
@@ -428,10 +443,11 @@ def predict_sequences(models, embeddings, mask):
 
     return pred.detach()
 
+
 def tmbed(sequences):
     batch_size = 4000
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     log.debug(f"Device is {device}")
 
     log.debug("Loading encoder")
@@ -458,14 +474,15 @@ def tmbed(sequences):
             embeddings = encoder.embed(seqs)
         except torch.cuda.OutOfMemoryError:
             ids = ", ".join([sequence.id for sequence in batch])
-            log.warning(f"Your GPU ran out of memory when generating embeddings. So sad! Transmembrane domains will not be predicted for the following sequences: {ids}")
+            log.warning(
+                f"Your GPU ran out of memory when generating embeddings. So sad! Transmembrane domains will not be predicted for the following sequences: {ids}"
+            )
             continue
 
-
         # CPU alternative, implement fallback?
-        #encoder.to_cpu()
-        #torch.cuda.empty_cache()
-        #embeddings = encoder.embed(sequences)
+        # encoder.to_cpu()
+        # torch.cuda.empty_cache()
+        # embeddings = encoder.embed(sequences)
 
         embeddings = embeddings.to(device=device)
         embeddings = embeddings.to(dtype=torch.float32)
@@ -480,12 +497,14 @@ def tmbed(sequences):
 
         prediction = decoder(probabilities, mask).byte()
 
-        pred_map = {0: 'B', 1: 'b', 2: 'H', 3: 'h', 4: 'S', 5: 'i', 6: 'o'}
+        pred_map = {0: "B", 1: "b", 2: "H", 3: "h", 4: "S", 5: "i", 6: "o"}
 
         for idx, sequence in enumerate(batch):
             length = len(sequence.seq)
-            prediction_results[sequence.id] = "".join(pred_map[int(x)] for x in prediction[idx, :length])
-        
+            prediction_results[sequence.id] = "".join(
+                pred_map[int(x)] for x in prediction[idx, :length]
+            )
+
     for sequence in sequences:
         log.debug(f"Adding TM predictions to {sequence.id}")
         sequence.transmembrane_predictions = prediction_results[sequence.id]

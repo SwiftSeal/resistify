@@ -76,7 +76,7 @@ def result_table(sequences, results_dir):
         ]
 
         for sequence in sequences:
-            if sequence.type == "NLR":         
+            if sequence.type == "NLR":
                 n_nbarc_motifs = 0
                 for motif in nbarc_motifs:
                     if len(sequence.motifs[motif]) > 0:
@@ -188,9 +188,7 @@ def extract_nbarc(sequences, results_dir):
             for annotation in sequence.merged_annotations:
                 if annotation.domain == "NB-ARC":
                     file.write(f">{sequence.id}_{count}\n")
-                    file.write(
-                        f"{sequence.seq[annotation.start:annotation.end]}\n"
-                    )
+                    file.write(f"{sequence.seq[annotation.start:annotation.end]}\n")
                     count += 1
 
 
@@ -200,6 +198,7 @@ def coconat_table(sequences, results_dir):
         for sequence in sequences:
             for i, probability in enumerate(sequence.cc_probs):
                 f.write(f"{sequence.id}\t{i}\t{probability}\n")
+
 
 def rlp_table(sequences, results_dir):
     output_path = os.path.join(results_dir, "rlp_results.tsv")
@@ -225,6 +224,3 @@ def rlp_table(sequences, results_dir):
                         sequence.transmembrane_predictions,
                     ]
                 )
-
-
-

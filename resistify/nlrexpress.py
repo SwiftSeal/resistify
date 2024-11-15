@@ -117,6 +117,7 @@ def parse_jackhmmer(file, iteration=False):
 
     return hmm_dict
 
+
 def nlrexpress(sequences, chunk_size, threads):
 
     models = load_models()
@@ -125,17 +126,20 @@ def nlrexpress(sequences, chunk_size, threads):
             os.path.dirname(__file__), "data", "nlrexpress.fasta"
         )
         shutil.copyfile(nlrexpress_database, jackhmmer_db.name)
-    
-    batches = [sequences[i:i + chunk_size] for i in range(0, len(sequences), chunk_size)]
+
+    batches = [
+        sequences[i : i + chunk_size] for i in range(0, len(sequences), chunk_size)
+    ]
 
     args = [(batch, jackhmmer_db.name, models) for batch in batches]
 
     with Pool(-(-threads // 2)) as pool:
         result_batches = pool.starmap(nlrexpress_subprocess, args)
-    
+
     sequences = [seq for batch in result_batches for seq in batch]
 
     return sequences
+
 
 def load_models():
     models = {}
@@ -145,101 +149,102 @@ def load_models():
         models[predictor] = model
     return models
 
+
 def nlrexpress_subprocess(sequences, jackhmmer_db, models):
-        temp_dir = tempfile.TemporaryDirectory()
-        fasta_path = os.path.join(temp_dir.name, "seq.fa")
-        iteration_1_path = fasta_path + ".out-1.hmm"
-        iteration_2_path = fasta_path + ".out-2.hmm"
+    temp_dir = tempfile.TemporaryDirectory()
+    fasta_path = os.path.join(temp_dir.name, "seq.fa")
+    iteration_1_path = fasta_path + ".out-1.hmm"
+    iteration_2_path = fasta_path + ".out-2.hmm"
 
-        with open(fasta_path, "w") as f:
-            for sequence in sequences:
-                f.write(f">{sequence.id}\n{sequence.seq}\n")
-        
-        cmd = [
-            "jackhmmer",
-            "--noali",
-            "-N",
-            "2",  # number of iterations
-            "--cpu",
-            "2",
-            "-E",
-            "1e-5",
-            "--domE",
-            "1e-5",
-            "--chkhmm",
-            fasta_path + ".out",
-            fasta_path,
-            jackhmmer_db,
-        ]
-
-        try:
-            log.debug(f"Running jackhmmer on {fasta_path}")
-            subprocess.run(
-                cmd,
-                check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                universal_newlines=True,
-            )
-        except subprocess.CalledProcessError as e:
-            log.error(f"Error running jackhmmer:\nStderr: {e.stderr}\nStdout:{e.stdout}")
-            sys.exit(1)
-        
-        iteration_1 = parse_jackhmmer(iteration_1_path, iteration=False)
-
-        if os.path.exists(iteration_2_path):
-            iteration_2 = parse_jackhmmer(iteration_2_path, iteration=True)
-        else:
-            iteration_2 = parse_jackhmmer(iteration_1_path, iteration=False)
-
-        jackhmmer_results = {}
-        
+    with open(fasta_path, "w") as f:
         for sequence in sequences:
-            log.debug(f"Preparing jackhmmer data for {sequence.id}")
-            # make blank list for this sequence
-            jackhmmer_data = []
+            f.write(f">{sequence.id}\n{sequence.seq}\n")
 
-            # for each amino acid in the sequence
-            for i, aa in enumerate(sequence.seq):
-                # add a blank list for this amino acid
-                jackhmmer_data.append([])
+    cmd = [
+        "jackhmmer",
+        "--noali",
+        "-N",
+        "2",  # number of iterations
+        "--cpu",
+        "2",
+        "-E",
+        "1e-5",
+        "--domE",
+        "1e-5",
+        "--chkhmm",
+        fasta_path + ".out",
+        fasta_path,
+        jackhmmer_db,
+    ]
+
+    try:
+        log.debug(f"Running jackhmmer on {fasta_path}")
+        subprocess.run(
+            cmd,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+        )
+    except subprocess.CalledProcessError as e:
+        log.error(f"Error running jackhmmer:\nStderr: {e.stderr}\nStdout:{e.stdout}")
+        sys.exit(1)
+
+    iteration_1 = parse_jackhmmer(iteration_1_path, iteration=False)
+
+    if os.path.exists(iteration_2_path):
+        iteration_2 = parse_jackhmmer(iteration_2_path, iteration=True)
+    else:
+        iteration_2 = parse_jackhmmer(iteration_1_path, iteration=False)
+
+    jackhmmer_results = {}
+
+    for sequence in sequences:
+        log.debug(f"Preparing jackhmmer data for {sequence.id}")
+        # make blank list for this sequence
+        jackhmmer_data = []
+
+        # for each amino acid in the sequence
+        for i, aa in enumerate(sequence.seq):
+            # add a blank list for this amino acid
+            jackhmmer_data.append([])
+            for k, (key, val) in enumerate(iteration_1[sequence.id][i].items()):
+                jackhmmer_data[-1].append(val)
+
+            if sequence.id in iteration_2:
+                for k, (key, val) in enumerate(iteration_2[sequence.id][i].items()):
+                    jackhmmer_data[-1].append(val)
+            else:
                 for k, (key, val) in enumerate(iteration_1[sequence.id][i].items()):
                     jackhmmer_data[-1].append(val)
 
-                if sequence.id in iteration_2:
-                    for k, (key, val) in enumerate(iteration_2[sequence.id][i].items()):
-                        jackhmmer_data[-1].append(val)
-                else:
-                    for k, (key, val) in enumerate(iteration_1[sequence.id][i].items()):
-                        jackhmmer_data[-1].append(val)
-            
-            jackhmmer_results[sequence.id] = jackhmmer_data
-        
-        for predictor, model in models.items():
-            motif_size = MOTIF_SPAN_LENGTHS[predictor]
-            matrix = []
-            for sequence in sequences:
-                sequence_length = len(sequence.seq)
-                for i in range(sequence_length):
-                    if i >= 5 and i < sequence_length - (motif_size + 5):
-                        matrix.append([])
-                        for j in range(-5, motif_size + 6):
-                            matrix[-1] += jackhmmer_results[sequence.id][i + j]
-            
-            matrix = np.array(matrix, dtype = float)
+        jackhmmer_results[sequence.id] = jackhmmer_data
 
-            result = model.predict_proba(matrix)
+    for predictor, model in models.items():
+        motif_size = MOTIF_SPAN_LENGTHS[predictor]
+        matrix = []
+        for sequence in sequences:
+            sequence_length = len(sequence.seq)
+            for i in range(sequence_length):
+                if i >= 5 and i < sequence_length - (motif_size + 5):
+                    matrix.append([])
+                    for j in range(-5, motif_size + 6):
+                        matrix[-1] += jackhmmer_results[sequence.id][i + j]
 
-            result_index = 0
-            for sequence in sequences:
-                sequence_length = len(sequence.seq)
-                for i in range(sequence_length):
-                    if i >= 5 and i < sequence_length - (motif_size + 5):
-                        value = round(result[result_index][1], 4)
-                        if value > 0.8:
-                            sequence.add_motif(predictor, value, i)
-                        result_index += 1
-        
-        temp_dir.cleanup()
+        matrix = np.array(matrix, dtype=float)
 
-        return sequences
+        result = model.predict_proba(matrix)
+
+        result_index = 0
+        for sequence in sequences:
+            sequence_length = len(sequence.seq)
+            for i in range(sequence_length):
+                if i >= 5 and i < sequence_length - (motif_size + 5):
+                    value = round(result[result_index][1], 4)
+                    if value > 0.8:
+                        sequence.add_motif(predictor, value, i)
+                    result_index += 1
+
+    temp_dir.cleanup()
+
+    return sequences
