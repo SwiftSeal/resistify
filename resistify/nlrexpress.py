@@ -121,6 +121,7 @@ def jackhmmer(fastas, threads):
         # run jackhmmer on each chunk
         log.info(f"Running jackhmmer, this could take a while...")
         args = [(fasta, temp_database.name) for fasta in fastas]
+
         with Pool(-(-threads // 2)) as pool:
             pool.starmap(jackhmmer_subprocess, args)
 
