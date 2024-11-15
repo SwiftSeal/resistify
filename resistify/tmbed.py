@@ -484,7 +484,7 @@ def tmbed(sequences):
 
         for idx, sequence in enumerate(batch):
             length = len(sequence.seq)
-            prediction_results[sequence.id] = tuple(pred_map[int(x)] for x in prediction[idx, :length])
+            prediction_results[sequence.id] = "".join(pred_map[int(x)] for x in prediction[idx, :length])
         
     for sequence in sequences:
         log.debug(f"Adding TM predictions to {sequence.id}")

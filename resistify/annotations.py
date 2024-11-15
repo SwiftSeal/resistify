@@ -4,6 +4,24 @@ log = logging.getLogger(__name__)
 
 nlr_classifications = ["RNL", "CNL", "TNL", "RN", "CN", "TN", "NL", "N"]
 
+rlp_external_domains = [
+    "LRR",
+    "G-LecRLK",
+    "L-LecRLK",
+    "C-LecRLK",
+    "WAK",
+    "CrRLK1L",
+    "LysM",
+    "CRK",
+    "Thaumatin",
+    "CR-like",
+    "SPARK",
+    "GH18",
+    "GH19",
+    "CAP",
+    "PRIMA1",
+]
+
 short_IDs = {
     "CC": "C",
     "RPW8": "R",
@@ -68,6 +86,7 @@ class Sequence:
         }
         self.cc_probs = []
         self.transmembrane_predictions = None
+        self.signal_peptide = False
 
     def motif_string(self):
         sorted_motifs = [item for sublist in self.motifs.values() for item in sublist]
@@ -84,8 +103,8 @@ class Sequence:
         self.annotations.append(Annotation(domain, start, end, evalue, score, source))
         self.annotations.sort(key=lambda x: x.start)
 
-    def add_motif(self, motif):
-        self.motifs[motif.classification].append(motif)
+    def add_motif(self, predictor, value, i):
+        self.motifs[predictor].append(Motif(predictor, value, i))
 
     def identify_cc_domains(self):
         """
@@ -241,7 +260,6 @@ class Sequence:
         tm_detected = False
         tm_start = None
         tm_end = None
-        signal_peptide = False
         
         # If Beta-helixes or IN -> OUT transitions are detected, assume not relevant
         if any(state in self.transmembrane_predictions for state in ["B", "b", "H"]):
@@ -257,7 +275,7 @@ class Sequence:
             if state != previous_state:
                 length = i - state_start
                 if previous_state == "S" and length > 5:
-                    signal_peptide = True
+                    self.signal_peptide = True
                 elif previous_state ==  "h":
                     if tm_detected:
                         return
@@ -273,16 +291,24 @@ class Sequence:
             tm_end = i
             tm_detected = True
         
+        if tm_detected is False:
+            return
+        
         # As all passed, assume we have a single-pass alpha helix protein
         # Detect downstream kinase
 
         self.type = "RLP"
 
+        external_domains = []
         for annotation in self.annotations:
             if annotation.domain == "Pkinase" and annotation.start > tm_end:
                 self.type = "RLK"
+            if annotation.domain in rlp_external_domains and annotation.end < tm_start:
+                external_domains.append(annotation.domain)
+        
+        external_domains = ";".join(external_domains)
 
-        self.classification = "dunno"
+        self.classification = external_domains
         
     def merge_annotations(self, duplicate_gap):
         """

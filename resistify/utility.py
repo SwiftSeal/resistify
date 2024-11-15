@@ -208,9 +208,10 @@ def rlp_table(sequences, results_dir):
         table_writer.writerow(
             [
                 "Sequence",
-                "topology_string",
                 "Type",
                 "Classification",
+                "Signal_peptide",
+                "topology_string",
             ]
         )
         for sequence in sequences:
@@ -218,9 +219,10 @@ def rlp_table(sequences, results_dir):
                 table_writer.writerow(
                     [
                         sequence.id,
-                        sequence.transmembrane_predictions,
                         sequence.type,
                         sequence.classification,
+                        sequence.signal_peptide,
+                        sequence.transmembrane_predictions,
                     ]
                 )
 
