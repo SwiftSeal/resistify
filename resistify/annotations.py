@@ -260,6 +260,8 @@ class Sequence:
         tm_detected = False
         tm_start = None
         tm_end = None
+        inside_count, outside_count = 0, 0
+        n_terminal_length = 0
         
         # If Beta-helixes or IN -> OUT transitions are detected, assume not relevant
         if any(state in self.transmembrane_predictions for state in ["B", "b", "H"]):
@@ -271,6 +273,13 @@ class Sequence:
                 previous_state = state
                 state_start = 0
                 continue
+            
+            if not tm_detected:
+                n_terminal_length += 1
+                if state == "i":
+                    inside_count += 1
+                elif state == "o":
+                    outside_count += 1
 
             if state != previous_state:
                 length = i - state_start
@@ -294,17 +303,24 @@ class Sequence:
         if tm_detected is False:
             return
         
+        if n_terminal_length < 50:
+            return
+        
+        if inside_count > outside_count:
+            # super rough
+            return
+        
         # As all passed, assume we have a single-pass alpha helix protein
         # Detect downstream kinase
 
         self.type = "RLP"
 
-        external_domains = []
+        external_domains = set()
         for annotation in self.annotations:
-            if annotation.domain == "Pkinase" and annotation.start > tm_end:
+            if annotation.domain == "PKinase" and annotation.start > tm_end:
                 self.type = "RLK"
             if annotation.domain in rlp_external_domains and annotation.end < tm_start:
-                external_domains.append(annotation.domain)
+                external_domains.add(annotation.domain)
         
         external_domains = ";".join(external_domains)
 
