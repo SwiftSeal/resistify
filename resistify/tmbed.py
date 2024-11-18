@@ -25,8 +25,6 @@ import logging
 
 from transformers import T5EncoderModel, T5Tokenizer
 
-from pathlib import Path
-
 log = logging.getLogger(__name__)
 
 

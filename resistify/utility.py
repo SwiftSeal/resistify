@@ -36,10 +36,10 @@ def parse_fasta(path):
     return sequences
 
 
-def save_fasta(sequences, path, nlr_only=False):
+def save_fasta(sequences, path, classified_only=False):
     with open(path, "w") as file:
         for sequence in sequences:
-            if nlr_only and sequence.classification is None:
+            if classified_only and sequence.classification is None:
                 continue
             file.write(f">{sequence.id}\n")
             file.write(f"{sequence.seq}\n")

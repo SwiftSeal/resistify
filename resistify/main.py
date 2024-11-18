@@ -18,92 +18,200 @@ from resistify.utility import (
 )
 from resistify.hmmsearch import hmmsearch
 from resistify.nlrexpress import nlrexpress
-from resistify.annotations import classify_sequences
 from resistify.coconat import coconat
 from resistify.tmbed import tmbed
 
 __version__ = "0.5.2"
 
-
 def parse_args():
     parser = argparse.ArgumentParser(
         description="""
-        Resistify is a tool for identifying and classifying NLR resistance genes in plant genomes.
+        Resistify is a tool for identifying and classifying resistance genes in plant genomes.
         """,
         formatter_class=RichHelpFormatter,
     )
+
+    # Add global arguments
     parser.add_argument(
         "-v",
         "--version",
         action="version",
-        version=f"%(prog)s {__version__}",
+        version=f"v{__version__}",
         help="Show the version number and exit.",
-    )
-    parser.add_argument(
-        "-t",
-        "--threads",
-        help="Total number of threads available for jackhmmer multiprocessing. By default, all available threads will be used.",
-        default=None,
-        type=int,
     )
     parser.add_argument(
         "--debug", help="Enable debug logging for detailed output.", action="store_true"
     )
-    parser.add_argument(
-        "--ultra",
-        help="Run in ultra mode to retain non-NLR sequences.",
+
+    # Add subparsers
+    subparsers = parser.add_subparsers(dest="command", required=True, help="Subcommands")
+    
+    # NLR subparser
+    nlr_parser = subparsers.add_parser(
+        "nlr",
+        help="Identify and classify NLR resistance genes.",
+        formatter_class=RichHelpFormatter,
+    )
+    nlr_parser.add_argument(
+        "--retain",
+        help="Non-NLRs will be retained for motif prediction and reported in the final output.",
         action="store_true",
     )
-    parser.add_argument(
+    nlr_parser.add_argument(
         "--batch",
         help="Number of sequences to process in parallel. This can help reduce memory usage.",
         default=None,
         type=int,
     )
-    parser.add_argument(
+    nlr_parser.add_argument(
         "--coconat",
         help="!EXPERIMENTAL! Path to the Coconat database. If provided, Coconat will be used to improve coiled-coil (CC) annotations.",
         default=None,
         type=str,
     )
-    parser.add_argument(
+    nlr_parser.add_argument(
         "--chunksize",
         help="Number of sequences per split for jackhmmer. Default is 5.",
         default=5,
         type=int,
     )
-    parser.add_argument(
+    nlr_parser.add_argument(
         "--evalue",
         help="E-value threshold for hmmsearch. Default is 0.00001.",
         default="0.00001",
     )
-    parser.add_argument(
+    nlr_parser.add_argument(
         "--lrr_gap",
         help="Minimum gap (in amino acids) between LRR motifs. Default is 75.",
         default=75,
         type=int,
     )
-    parser.add_argument(
+    nlr_parser.add_argument(
         "--lrr_length",
         help="Minimum number of LRR motifs required to be considered an LRR domain. Default is 4.",
         default=4,
         type=int,
     )
-    parser.add_argument(
+    nlr_parser.add_argument(
         "--duplicate_gap",
         help="Gap size (in amino acids) to consider merging duplicate annotations. Default is 100.",
         default=100,
         type=int,
     )
-    parser.add_argument(
+    nlr_parser.add_argument(
         "input",
         help="Path to the input FASTA file containing sequences to be analyzed.",
     )
-    parser.add_argument(
+    nlr_parser.add_argument(
         "outdir", help="Path to the output directory where results will be saved."
     )
 
+    # PRR subparser
+    prr_parser = subparsers.add_parser(
+        "prr",
+        help="Identify and classify PRR resistance genes (coming soon).",
+        formatter_class=RichHelpFormatter,
+    )
+    prr_parser.add_argument(
+        "input",
+        help="Path to the input FASTA file containing sequences to be analyzed.",
+    )
+    prr_parser.add_argument(
+        "outdir", help="Path to the output directory where results will be saved."
+    )
+    prr_parser.add_argument(
+        "--lrr_gap",
+        help="Minimum gap (in amino acids) between LRR motifs. Default is 75.",
+        default=75,
+        type=int,
+    )
+    prr_parser.add_argument(
+        "--lrr_length",
+        help="Minimum number of LRR motifs required to be considered an LRR domain. Default is 4.",
+        default=4,
+        type=int,
+    )
+    prr_parser.add_argument(
+        "--duplicate_gap",
+        help="Gap size (in amino acids) to consider merging duplicate annotations. Default is 100.",
+        default=100,
+        type=int,
+    )
+    prr_parser.add_argument(
+        "--evalue",
+        help="E-value threshold for hmmsearch. Default is 0.00001.",
+        default="0.00001",
+    )
+    prr_parser.add_argument(
+        "--chunksize",
+        help="Number of sequences per split for jackhmmer. Default is 5.",
+        default=5,
+        type=int,
+    )
+    # PRR-specific arguments can be added later
+
     return parser.parse_args()
+
+def nlr(args, log):
+    sequences = parse_fasta(args.input)
+    log.info("Let's see if you have any NLRs!")
+    sequences = hmmsearch(sequences, "nlr", args.evalue)
+    if not args.retain:
+        sequences = [sequence for sequence in sequences if sequence.has_nbarc()]
+        if len(sequences) == 0:
+            log.error("No NLRs detected! Maybe try --retain?")
+            sys.exit(1)
+        else:
+            log.info(f"{len(sequences)} NLRs identified...")
+    else:
+        log.info("NLRexpress will be run against all input sequences...")
+
+    log.info("Executing NLRexpress - this will take a while...")
+    sequences = nlrexpress(
+        sequences,
+        "all",
+        args.chunksize,
+    )
+    log.info("Classifying sequences...")
+    for sequence in sequences:
+        sequence.identify_lrr_domains(args.lrr_gap, args.lrr_length)
+        sequence.merge_annotations(args.duplicate_gap)
+        sequence.classify_nlr()
+
+    results_dir = create_output_directory(args.outdir)
+    log.info(f"Saving results to {results_dir}")
+    result_table(sequences, results_dir)
+    annotation_table(sequences, results_dir)
+    domain_table(sequences, results_dir)
+    motif_table(sequences, results_dir)
+    extract_nbarc(sequences, results_dir)
+    save_fasta(sequences, os.path.join(results_dir, "nlr.fasta"), classified_only=True)
+
+def prr(args, log):
+    log.info("Let's see if you have any PRRs!")
+    sequences = parse_fasta(args.input)
+    sequences = hmmsearch(sequences, "prr", args.evalue)
+    sequences = nlrexpress(
+        sequences,
+        "lrr",
+        args.chunksize,
+    )
+    log.info("Predicting transmembrane domains...")
+    sequences = tmbed(sequences)
+
+    sequences = [sequence for sequence in sequences if sequence.is_rlp()]
+    for sequence in sequences:
+        sequence.identify_lrr_domains(args.lrr_gap, args.lrr_length)
+        sequence.merge_annotations(args.duplicate_gap)
+        sequence.classify_rlp()
+    
+    results_dir = create_output_directory(args.outdir)
+    log.info(f"Saving results to {results_dir}")
+    rlp_table(sequences, results_dir)
+    annotation_table(sequences, results_dir)
+    domain_table(sequences, results_dir)
+    motif_table(sequences, results_dir)
+    save_fasta(sequences, os.path.join(results_dir, "prr.fasta"), classified_only=True)
 
 
 def main():
@@ -118,55 +226,19 @@ def main():
     log = logging.getLogger("rich")
     log.info(f"Welcome to Resistify version {__version__}!")
 
-    if args.coconat:
-        log.info(
-            f"CoCoNat database provided - this will be used to improve CC annotations."
-        )
-
-    # Calculate threads to use
-    if args.threads is None:
-        # Use all available threads by default
-        thread_count = len(os.sched_getaffinity(0))
-        log.debug(f"Using {thread_count} threads by default.")
+    if args.command == "nlr":
+        nlr(args, log)
+    elif args.command == "prr":
+        prr(args, log)
     else:
-        thread_count = args.threads
-
-    results_dir = create_output_directory(args.outdir)
-
-    sequences = parse_fasta(args.input)
-
-    sequences = hmmsearch(sequences, args.evalue)
-
-    sequences = nlrexpress(
-        sequences,
-        args.chunksize,
-        thread_count,
-    )
-
-    if args.ultra:
-        log.info("Predicting transmembrane domains")
-        sequences = tmbed(sequences)
-
-    sequences = classify_sequences(
-        sequences, args.lrr_gap, args.lrr_length, args.duplicate_gap, args.ultra
-    )
-
-    log.info(f"Saving results to {results_dir}...")
-    result_table(sequences, results_dir)
-    rlp_table(sequences, results_dir)
-    annotation_table(sequences, results_dir)
-    domain_table(sequences, results_dir)
-    motif_table(sequences, results_dir)
-    extract_nbarc(sequences, results_dir)
-    save_fasta(sequences, os.path.join(results_dir, "nlr.fasta"), nlr_only=True)
-    if args.coconat:
-        coconat_table(sequences, results_dir)
+        log.error(f"Unknown command: {args.command}")
+        sys.exit(1)
 
     log.info("Thank you for using Resistify!")
     log.info("If you used Resistify in your research, please cite the following:")
     log.info(" - Resistify: https://doi.org/10.1101/2024.02.14.580321")
     log.info(" - NLRexpress: https://doi.org/10.3389/fpls.2022.975888")
-    log.info(" - CoCoNat: https://doi.org/10.1093/bioinformatics/btad495 (if used)")
+    #log.info(" - CoCoNat: https://doi.org/10.1093/bioinformatics/btad495 (if used)")
 
 
 if __name__ == "__main__":

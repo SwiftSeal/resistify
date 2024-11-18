@@ -7,7 +7,6 @@ import logging
 import tempfile
 from sklearn.neural_network import MLPClassifier
 from multiprocessing import Pool
-from resistify.annotations import Motif
 import shutil
 
 log = logging.getLogger(__name__)
@@ -118,9 +117,11 @@ def parse_jackhmmer(file, iteration=False):
     return hmm_dict
 
 
-def nlrexpress(sequences, chunk_size, threads):
+def nlrexpress(sequences, search_type, chunk_size):
+    threads = len(os.sched_getaffinity(0))
 
-    models = load_models()
+    models = load_models(search_type)
+
     with tempfile.NamedTemporaryFile(delete=False) as jackhmmer_db:
         nlrexpress_database = os.path.join(
             os.path.dirname(__file__), "data", "nlrexpress.fasta"
@@ -141,12 +142,17 @@ def nlrexpress(sequences, chunk_size, threads):
     return sequences
 
 
-def load_models():
+def load_models(search_type):
     models = {}
-    for predictor, path in motif_models.items():
-        model_path = os.path.join(os.path.dirname(__file__), "data", path)
+    if search_type == "all":
+        for predictor, path in motif_models.items():
+            model_path = os.path.join(os.path.dirname(__file__), "data", path)
+            model = pickle.load(open(model_path, "rb"))
+            models[predictor] = model
+    elif search_type == "lrr":
+        model_path = os.path.join(os.path.dirname(__file__), "data", motif_models["LxxLxL"])
         model = pickle.load(open(model_path, "rb"))
-        models[predictor] = model
+        models["LxxLxL"] = model
     return models
 
 
@@ -220,7 +226,9 @@ def nlrexpress_subprocess(sequences, jackhmmer_db, models):
 
         jackhmmer_results[sequence.id] = jackhmmer_data
 
+    print(models)
     for predictor, model in models.items():
+        log.debug(f"Generating matrix for {predictor}")
         motif_size = MOTIF_SPAN_LENGTHS[predictor]
         matrix = []
         for sequence in sequences:
@@ -233,6 +241,7 @@ def nlrexpress_subprocess(sequences, jackhmmer_db, models):
 
         matrix = np.array(matrix, dtype=float)
 
+        log.debug(f"Predicting probabilities for {predictor}")
         result = model.predict_proba(matrix)
 
         result_index = 0
@@ -242,6 +251,7 @@ def nlrexpress_subprocess(sequences, jackhmmer_db, models):
                 if i >= 5 and i < sequence_length - (motif_size + 5):
                     value = round(result[result_index][1], 4)
                     if value > 0.8:
+                        log.debug(f"Adding {predictor} motif to {sequence.id}")
                         sequence.add_motif(predictor, value, i)
                     result_index += 1
 

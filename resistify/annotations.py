@@ -170,6 +170,11 @@ class Sequence:
         for annotation in self.annotations:
             if annotation.domain == "NB-ARC":
                 return self.seq[: annotation.start]
+    
+    def has_nbarc(self):
+        for annotation in self.annotations:
+            if annotation.domain == "NB-ARC":
+                return True
 
     def classify_nlr(self):
         # create a simplified domain string
@@ -246,22 +251,15 @@ class Sequence:
 
         if self.classification in nlr_classifications:
             self.type = "NLR"
-
-    def classify_rlp(self):
-        """
-        Extract features indicative of a RLK/RLP based on TMBed topology.
-        Update protein with relevant topology information
-        """
-        single_pass_alpha_tm = False
+    
+    def is_rlp(self):
         tm_detected = False
-        tm_start = None
-        tm_end = None
         inside_count, outside_count = 0, 0
         n_terminal_length = 0
 
         # If Beta-helixes or IN -> OUT transitions are detected, assume not relevant
         if any(state in self.transmembrane_predictions for state in ["B", "b", "H"]):
-            return
+            return False
 
         for i, state in enumerate(self.transmembrane_predictions):
             # set initial states
@@ -283,33 +281,43 @@ class Sequence:
                     self.signal_peptide = True
                 elif previous_state == "h":
                     if tm_detected:
-                        return
-                    tm_start = state_start
-                    tm_end = i - 1
+                        return False
+                    self.add_annotation("transmembrane", state_start, i - 1, "NA", "NA", "tmbed")
                     tm_detected = True
 
                 previous_state = state
                 state_start = i
 
         if previous_state == "h" and not tm_detected:
-            tm_start = state_start
-            tm_end = i
+            self.add_annotation("transmembrane", state_start, i - 1, "NA", "NA", "tmbed")
             tm_detected = True
 
         if tm_detected is False:
-            return
+            return False
 
         if n_terminal_length < 50:
-            return
+            return False
 
         if inside_count > outside_count:
             # super rough
-            return
-
+            return False
+    
         # As all passed, assume we have a single-pass alpha helix protein
-        # Detect downstream kinase
-
         self.type = "RLP"
+        return True
+        
+
+
+    def classify_rlp(self):
+        """
+        Extract features indicative of a RLK/RLP based on TMBed topology.
+        Update protein with relevant topology information
+        """
+
+        for annotation in self.annotations:
+            if annotation.domain == "transmembrane":
+                tm_end = annotation.end
+                tm_start = annotation.start
 
         external_domains = set()
         for annotation in self.annotations:
@@ -378,15 +386,3 @@ class Motif:
         self.classification = classification
         self.probability = probability
         self.position = int(position)
-
-
-def classify_sequences(sequences, lrr_gap, lrr_length, duplicate_gap, ultra):
-    for sequence in sequences:
-        sequence.identify_lrr_domains(lrr_gap, lrr_length)
-        sequence.merge_annotations(duplicate_gap)
-        sequence.classify_nlr()
-
-        if ultra and sequence.type is None:
-            sequence.classify_rlp()
-
-    return sequences

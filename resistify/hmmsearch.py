@@ -45,8 +45,11 @@ accession_families = {
 }
 
 
-def hmmsearch(sequences, evalue):
-    hmmsearch_db = os.path.join(os.path.dirname(__file__), "data", "nlrdb.hmm")
+def hmmsearch(sequences, search_type, evalue):
+    if search_type == "nlr":
+        hmmsearch_db = os.path.join(os.path.dirname(__file__), "data", "nlrdb.hmm")
+    elif search_type == "prr":
+        hmmsearch_db = os.path.join(os.path.dirname(__file__), "data", "prrdb.hmm")
     output_file = tempfile.NamedTemporaryFile()
 
     input_fasta = tempfile.NamedTemporaryFile()
@@ -67,7 +70,6 @@ def hmmsearch(sequences, evalue):
         input_fasta.name,
     ]
 
-    log.info(f"Running hmmsearch...")
     try:
         subprocess.run(
             cmd,
@@ -76,7 +78,6 @@ def hmmsearch(sequences, evalue):
             stderr=subprocess.PIPE,
             universal_newlines=True,
         )
-        log.info(f"hmmsearch completed successfully...")
     except subprocess.CalledProcessError as e:
         log.error(f"Error running hmmsearch:\nStderr: {e.stderr}\nStdout:{e.stdout}")
         sys.exit(1)
