@@ -14,14 +14,13 @@ from resistify.utility import (
     motif_table,
     extract_nbarc,
     coconat_table,
-    rlp_table,
 )
 from resistify.hmmsearch import hmmsearch
 from resistify.nlrexpress import nlrexpress
 from resistify.coconat import coconat
 from resistify.tmbed import tmbed
 
-__version__ = "0.5.2"
+__version__ = "0.6.0"
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -108,7 +107,7 @@ def parse_args():
     # PRR subparser
     prr_parser = subparsers.add_parser(
         "prr",
-        help="Identify and classify PRR resistance genes (coming soon).",
+        help="Identify and classify PRR resistance genes.",
         formatter_class=RichHelpFormatter,
     )
     prr_parser.add_argument(
@@ -165,7 +164,6 @@ def nlr(args, log):
     else:
         log.info("NLRexpress will be run against all input sequences...")
 
-    log.info("Executing NLRexpress - this will take a while...")
     sequences = nlrexpress(
         sequences,
         "all",
@@ -181,14 +179,14 @@ def nlr(args, log):
     if args.coconat:
         log.info("Running CoCoNat to identify additional CC domains...")
         sequences = coconat(sequences)
-        # Need to integrate additional evidence - this is pretty crude
+        # Need to integrate additional evidence properly - this is pretty crude
         for sequence in sequences:
             sequence.merge_annotations(args.duplicate_gap)
             sequence.classify_nlr()
 
     results_dir = create_output_directory(args.outdir)
     log.info(f"Saving results to {results_dir}")
-    result_table(sequences, results_dir)
+    result_table(sequences, results_dir, "nlr")
     annotation_table(sequences, results_dir)
     domain_table(sequences, results_dir)
     motif_table(sequences, results_dir)
@@ -206,7 +204,7 @@ def prr(args, log):
         "lrr",
         args.chunksize,
     )
-    log.info("Predicting transmembrane domains...")
+
     sequences = tmbed(sequences) # Right for some reason if this precedes nlrexpress(), it freezes? dunno why but just make sure it's downstream...
 
     sequences = [sequence for sequence in sequences if sequence.is_rlp()]
@@ -219,7 +217,7 @@ def prr(args, log):
     
     results_dir = create_output_directory(args.outdir)
     log.info(f"Saving results to {results_dir}")
-    rlp_table(sequences, results_dir)
+    result_table(sequences, results_dir, "prr")
     annotation_table(sequences, results_dir)
     domain_table(sequences, results_dir)
     motif_table(sequences, results_dir)
@@ -250,7 +248,10 @@ def main():
     log.info("If you used Resistify in your research, please cite the following:")
     log.info(" - Resistify: https://doi.org/10.1101/2024.02.14.580321")
     log.info(" - NLRexpress: https://doi.org/10.3389/fpls.2022.975888")
-    #log.info(" - CoCoNat: https://doi.org/10.1093/bioinformatics/btad495 (if used)")
+    if args.coconat:
+        log.info(" - CoCoNat: https://doi.org/10.1093/bioinformatics/btad495")
+    if args.command == "prr":
+        log.info(" - TMbed: https://doi.org/10.1186/s12859-022-04873-x")
 
 
 if __name__ == "__main__":
