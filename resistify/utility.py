@@ -46,55 +46,75 @@ def save_fasta(sequences, path, classified_only=False):
     return path
 
 
-def result_table(sequences, results_dir):
+def result_table(sequences, results_dir, type):
     with open(os.path.join(results_dir, "results.tsv"), "w") as file:
         table_writer = csv.writer(file, delimiter="\t")
-        table_writer.writerow(
-            [
-                "Sequence",
-                "Length",
-                "Motifs",
-                "Domains",
-                "Classification",
-                "NBARC_motifs",
-                "MADA",
-                "MADAL",
-                "CJID",
+        if type == "nlr":
+            table_writer.writerow(
+                [
+                    "Sequence",
+                    "Length",
+                    "Motifs",
+                    "Domains",
+                    "Classification",
+                    "NBARC_motifs",
+                    "MADA",
+                    "MADAL",
+                    "CJID",
+                ]
+            )
+
+            nbarc_motifs = [
+                "VG",
+                "P-loop",
+                "RNSB-A",
+                "Walker-B",
+                "RNSB-B",
+                "RNSB-C",
+                "RNSB-D",
+                "GLPL",
+                "MHD",
             ]
-        )
 
-        nbarc_motifs = [
-            "VG",
-            "P-loop",
-            "RNSB-A",
-            "Walker-B",
-            "RNSB-B",
-            "RNSB-C",
-            "RNSB-D",
-            "GLPL",
-            "MHD",
-        ]
+            for sequence in sequences:
+                if sequence.type == "NLR":
+                    n_nbarc_motifs = 0
+                    for motif in nbarc_motifs:
+                        if len(sequence.motifs[motif]) > 0:
+                            n_nbarc_motifs += 1
 
-        for sequence in sequences:
-            if sequence.type == "NLR":
-                n_nbarc_motifs = 0
-                for motif in nbarc_motifs:
-                    if len(sequence.motifs[motif]) > 0:
-                        n_nbarc_motifs += 1
-
-                table_writer.writerow(
-                    [
-                        sequence.id,
-                        len(sequence.seq),
-                        sequence.motif_string(),
-                        sequence.domain_string,
-                        sequence.classification,
-                        n_nbarc_motifs,
-                        sequence.mada,
-                        sequence.madal,
-                        sequence.cjid,
-                    ]
-                )
+                    table_writer.writerow(
+                        [
+                            sequence.id,
+                            len(sequence.seq),
+                            sequence.motif_string(),
+                            sequence.domain_string,
+                            sequence.classification,
+                            n_nbarc_motifs,
+                            sequence.mada,
+                            sequence.madal,
+                            sequence.cjid,
+                        ]
+                    )
+        elif type == "prr":
+            table_writer.writerow(
+                [
+                    "Sequence",
+                    "Type",
+                    "Classification",
+                    "Signal_peptide",
+                ]
+            )
+            for sequence in sequences:
+                if sequence.type == "RLP" or sequence.type == "RLK":
+                    table_writer.writerow(
+                        [
+                            sequence.id,
+                            sequence.type,
+                            sequence.classification,
+                            sequence.signal_peptide,
+                        ]
+                    )
 
 
 def domain_table(sequences, results_dir):
@@ -198,29 +218,3 @@ def coconat_table(sequences, results_dir):
         for sequence in sequences:
             for i, probability in enumerate(sequence.cc_probs):
                 f.write(f"{sequence.id}\t{i}\t{probability}\n")
-
-
-def rlp_table(sequences, results_dir):
-    output_path = os.path.join(results_dir, "rlp_results.tsv")
-    with open(output_path, "w") as f:
-        table_writer = csv.writer(f, delimiter="\t")
-        table_writer.writerow(
-            [
-                "Sequence",
-                "Type",
-                "Classification",
-                "Signal_peptide",
-                "topology_string",
-            ]
-        )
-        for sequence in sequences:
-            if sequence.type == "RLP" or sequence.type == "RLK":
-                table_writer.writerow(
-                    [
-                        sequence.id,
-                        sequence.type,
-                        sequence.classification,
-                        sequence.signal_peptide,
-                        sequence.transmembrane_predictions,
-                    ]
-                )
