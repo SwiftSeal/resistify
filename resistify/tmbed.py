@@ -449,7 +449,7 @@ def tmbed(sequences):
     log.debug(f"Device is {device}")
 
     log.debug("Loading encoder")
-    encoder = T5Encoder("resistify_models/prott5/", torch.cuda.is_available())
+    encoder = T5Encoder("Rostlab/prot_t5_xl_half_uniref50-enc", torch.cuda.is_available())
     log.debug("Loading decoder")
     decoder = Decoder()
 
