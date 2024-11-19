@@ -226,7 +226,6 @@ def nlrexpress_subprocess(sequences, jackhmmer_db, models):
 
         jackhmmer_results[sequence.id] = jackhmmer_data
 
-    print(models)
     for predictor, model in models.items():
         log.debug(f"Generating matrix for {predictor}")
         motif_size = MOTIF_SPAN_LENGTHS[predictor]

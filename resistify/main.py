@@ -66,8 +66,7 @@ def parse_args():
     nlr_parser.add_argument(
         "--coconat",
         help="!EXPERIMENTAL! Path to the Coconat database. If provided, Coconat will be used to improve coiled-coil (CC) annotations.",
-        default=None,
-        type=str,
+        action="store_true"
     )
     nlr_parser.add_argument(
         "--chunksize",
@@ -99,11 +98,11 @@ def parse_args():
         type=int,
     )
     nlr_parser.add_argument(
-        "input",
-        help="Path to the input FASTA file containing sequences to be analyzed.",
+        "-o", "--outdir", help="Path to the output directory where results will be saved.", default=os.getcwd()
     )
     nlr_parser.add_argument(
-        "outdir", help="Path to the output directory where results will be saved."
+        "input",
+        help="Path to the input FASTA file containing sequences to be analyzed.",
     )
 
     # PRR subparser
@@ -117,7 +116,7 @@ def parse_args():
         help="Path to the input FASTA file containing sequences to be analyzed.",
     )
     prr_parser.add_argument(
-        "outdir", help="Path to the output directory where results will be saved."
+        "-o", "--outdir", help="Path to the output directory where results will be saved.", default=os.getcwd()
     )
     prr_parser.add_argument(
         "--lrr_gap",
@@ -154,7 +153,7 @@ def parse_args():
 
 def nlr(args, log):
     sequences = parse_fasta(args.input)
-    log.info("Let's see if you have any NLRs!")
+    log.info("Searching for NLRs...")
     sequences = hmmsearch(sequences, "nlr", args.evalue)
     if not args.retain:
         sequences = [sequence for sequence in sequences if sequence.has_nbarc()]
@@ -172,11 +171,20 @@ def nlr(args, log):
         "all",
         args.chunksize,
     )
+
     log.info("Classifying sequences...")
     for sequence in sequences:
         sequence.identify_lrr_domains(args.lrr_gap, args.lrr_length)
         sequence.merge_annotations(args.duplicate_gap)
         sequence.classify_nlr()
+
+    if args.coconat:
+        log.info("Running CoCoNat to identify additional CC domains...")
+        sequences = coconat(sequences)
+        # Need to integrate additional evidence - this is pretty crude
+        for sequence in sequences:
+            sequence.merge_annotations(args.duplicate_gap)
+            sequence.classify_nlr()
 
     results_dir = create_output_directory(args.outdir)
     log.info(f"Saving results to {results_dir}")
@@ -186,9 +194,11 @@ def nlr(args, log):
     motif_table(sequences, results_dir)
     extract_nbarc(sequences, results_dir)
     save_fasta(sequences, os.path.join(results_dir, "nlr.fasta"), classified_only=True)
+    if args.coconat:
+        coconat_table(sequences, results_dir)
 
 def prr(args, log):
-    log.info("Let's see if you have any PRRs!")
+    log.info("Searching for PRRs...")
     sequences = parse_fasta(args.input)
     sequences = hmmsearch(sequences, "prr", args.evalue)
     sequences = nlrexpress(
@@ -197,9 +207,11 @@ def prr(args, log):
         args.chunksize,
     )
     log.info("Predicting transmembrane domains...")
-    sequences = tmbed(sequences)
+    sequences = tmbed(sequences) # Right for some reason if this precedes nlrexpress(), it freezes? dunno why but just make sure it's downstream...
 
     sequences = [sequence for sequence in sequences if sequence.is_rlp()]
+
+    log.info("Classifying sequences...")
     for sequence in sequences:
         sequence.identify_lrr_domains(args.lrr_gap, args.lrr_length)
         sequence.merge_annotations(args.duplicate_gap)
