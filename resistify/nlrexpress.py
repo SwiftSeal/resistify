@@ -134,6 +134,7 @@ def nlrexpress(sequences, search_type, chunk_size):
 
     args = [(batch, jackhmmer_db.name, models) for batch in batches]
 
+    log.info("Running NLRexpress - this could take a while...")
     with Pool(-(-threads // 2)) as pool:
         result_batches = pool.starmap(nlrexpress_subprocess, args)
 

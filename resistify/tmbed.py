@@ -26,6 +26,7 @@ import logging
 from transformers import T5EncoderModel, T5Tokenizer
 
 log = logging.getLogger(__name__)
+logging.getLogger("transformers").setLevel(logging.CRITICAL)
 
 
 class Decoder(nn.Module):
@@ -443,6 +444,7 @@ def predict_sequences(models, embeddings, mask):
 
 
 def tmbed(sequences):
+    log.info("Predicting transmembrane domains...")
     batch_size = 4000
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

@@ -71,6 +71,7 @@ def hmmsearch(sequences, search_type, evalue):
     ]
 
     try:
+        log.info(f"Running hmmsearch for {search_type} domains...")
         subprocess.run(
             cmd,
             check=True,
