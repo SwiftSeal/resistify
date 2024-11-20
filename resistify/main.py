@@ -181,6 +181,7 @@ def nlr(args, log):
         sequences = coconat(sequences)
         # Need to integrate additional evidence properly - this is pretty crude
         for sequence in sequences:
+            sequence.identify_cc_domains()
             sequence.merge_annotations(args.duplicate_gap)
             sequence.classify_nlr()
 

@@ -69,17 +69,6 @@ class MMModelLSTM(nn.Module):
         return x
 
 
-PROT_T5_FILES = [
-    "config.json",
-    "pytorch_model.bin",
-    "special_tokens_map.json",
-    "spiece.model",
-    "tokenizer_config.json",
-]
-
-ESM2_FILES = ["esm2_t33_650M_UR50D-contact-regression.pt", "esm2_t33_650M_UR50D.pt"]
-
-
 def split_sequences(sequences):
     sequence_ids, lengths, chunk_ids, chunk_sequences = [], [], [], []
     for sequence in sequences:
@@ -104,73 +93,101 @@ def split_sequences(sequences):
     return sequence_ids, lengths, chunk_ids, chunk_sequences
 
 
-def prot_t5_embedding(sequences):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = T5EncoderModel.from_pretrained("Rostlab/prot_t5_xl_half_uniref50-enc").to(device)
-    tokenizer = T5Tokenizer.from_pretrained("Rostlab/prot_t5_xl_half_uniref50-enc")
+class EmbeddingProcessor:
+    def __init__(self):
+        # Initialize devices and models only once
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        
+        # ProtT5 Model
+        self.prot_t5_model = T5EncoderModel.from_pretrained("Rostlab/prot_t5_xl_half_uniref50-enc").to(self.device)
+        self.prot_t5_tokenizer = T5Tokenizer.from_pretrained("Rostlab/prot_t5_xl_half_uniref50-enc")
+        
+        # ESM Model
+        self.esm_model, self.esm_alphabet = esm.pretrained.esm2_t33_650M_UR50D()
+        self.esm_model.eval()
+        self.batch_converter = self.esm_alphabet.get_batch_converter()
 
-    lengths = [len(sequence) for sequence in sequences]
-    sequences = [
-        " ".join(list(re.sub(r"[UZOB]", "X", sequence))) for sequence in sequences
-    ]
-    ids = tokenizer.batch_encode_plus(
-        sequences, add_special_tokens=True, padding="longest"
-    )
-    input_ids = torch.tensor(ids["input_ids"]).to(device)
-    attention_mask = torch.tensor(ids["attention_mask"]).to(device)
-    log.debug("Computing ProtT5 embeddings...")
-    with torch.no_grad():
-        embedding_repr = model(input_ids=input_ids, attention_mask=attention_mask)
+    def process_prot_t5_embedding(self, sequences):
+        """
+        Compute ProtT5 embeddings for given sequences.
+        
+        Args:
+            sequences (list): List of protein sequences
+        
+        Returns:
+            list: List of numpy embeddings
+        """
+        lengths = [len(sequence) for sequence in sequences]
+        sequences = [
+            " ".join(list(re.sub(r"[UZOB]", "X", sequence))) for sequence in sequences
+        ]
+        
+        ids = self.prot_t5_tokenizer.batch_encode_plus(
+            sequences, add_special_tokens=True, padding="longest"
+        )
+        input_ids = torch.tensor(ids["input_ids"]).to(self.device)
+        attention_mask = torch.tensor(ids["attention_mask"]).to(self.device)
+        
+        with torch.no_grad():
+            embedding_repr = self.prot_t5_model(input_ids=input_ids, attention_mask=attention_mask)
 
-    embeddings = [
-        embedding_repr.last_hidden_state[i, : lengths[i]].detach().cpu().numpy()
-        for i in range(len(sequences))
-    ]
-    log.debug(
-        f"Embedding for Prot5 completed, length of embeddings is {len(embeddings)}"
-    )
-    return embeddings
+        embeddings = [
+            embedding_repr.last_hidden_state[i, : lengths[i]].detach().cpu().numpy()
+            for i in range(len(sequences))
+        ]
+        
+        return embeddings
 
+    def process_esm_embedding(self, sequences, sequence_ids):
+        """
+        Compute ESM embeddings for given sequences.
+        
+        Args:
+            sequences (list): List of protein sequences
+            sequence_ids (list): List of sequence identifiers
+        
+        Returns:
+            list: List of numpy embeddings
+        """
+        batch_labels, batch_strs, batch_tokens = self.batch_converter(
+            list(zip(sequence_ids, sequences))
+        )
 
-def esm_embedding(sequences, sequence_ids):
-    model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
-    batch_converter = alphabet.get_batch_converter()
-    model.eval()
+        batch_lens = (batch_tokens != self.esm_alphabet.padding_idx).sum(1)
 
-    batch_labels, batch_strs, batch_tokens = batch_converter(
-        list(zip(sequence_ids, sequences))
-    )
+        with torch.no_grad():
+            results = self.esm_model(batch_tokens, repr_layers=[33], return_contacts=False)
 
-    batch_lens = (batch_tokens != alphabet.padding_idx).sum(1)
+        token_representations = results["representations"][33]
 
-    with torch.no_grad():
-        results = model(batch_tokens, repr_layers=[33], return_contacts=False)
-
-    token_representations = results["representations"][33]
-
-    embeddings = [
-        token_representations[i, 1 : tokens_len - 1].detach().cpu().numpy()
-        for i, tokens_len in enumerate(batch_lens)
-    ]
-
-    log.debug(
-        f"Embedding for ESM2 completed, length of embeddings is {len(embeddings)}"
-    )
-
-    return embeddings
-
+        embeddings = [
+            token_representations[i, 1 : tokens_len - 1].detach().cpu().numpy()
+            for i, tokens_len in enumerate(batch_lens)
+        ]
+        
+        return embeddings
 
 def merge_embeddings(sequence_ids, chunk_ids, prot_t5_embeddings, esm_embeddings):
+    """
+    Merge embeddings for chunked sequences.
+    
+    Args:
+        sequence_ids (list): List of original sequence IDs
+        chunk_ids (list): List of chunk IDs
+        prot_t5_embeddings (list): List of ProtT5 embeddings
+        esm_embeddings (list): List of ESM embeddings
+    
+    Returns:
+        list: List of merged torch embeddings
+    """
     previous = None
     merged_prot, merged_esm = [], []
     for i, chunk_id in enumerate(chunk_ids):
         sequence_id = chunk_id.rsplit("_", 1)[0]
         if sequence_id != previous:
-            log.debug(f"Creating new merged embedding for {sequence_id}")
             merged_prot.append(prot_t5_embeddings[i])
             merged_esm.append(esm_embeddings[i])
         else:
-            log.debug(f"Merging embedding for {sequence_id}")
             merged_prot[-1] = np.vstack((merged_prot[-1], prot_t5_embeddings[i]))
             merged_esm[-1] = np.vstack((merged_esm[-1], esm_embeddings[i]))
         previous = sequence_id
@@ -181,28 +198,44 @@ def merge_embeddings(sequence_ids, chunk_ids, prot_t5_embeddings, esm_embeddings
     ]
     return merged
 
+def coconat_embeddings(sequences, embedding_processor, register_model):
+    """
+    Compute embeddings for sequences using pre-loaded models.
+    
+    Args:
+        sequences (list): List of sequences to process
+        embedding_processor (EmbeddingProcessor): Initialized embedding processor
+    
+    Returns:
+        tuple: Processed sequences, merged embeddings, lengths, chunk_ids
+    """
+    biocrf_path = os.path.join(os.path.dirname(__file__), "bin", "biocrf-static")
+    crf_model = os.path.join(os.path.dirname(__file__), "data", "crfModel")
 
-def predict_register_probability(lengths, merged, registers_model):
-    output_path = tempfile.NamedTemporaryFile()
-    log.debug("Loading registers model...")
-    checkpoint = torch.load(registers_model)
-    model = MMModelLSTM()
-    model.load_state_dict(checkpoint["state_dict"])
-    model.eval()
-    prediction = model(merged, lengths).detach().cpu().numpy()
-    with open(output_path.name, "w") as outfile:
+    sequence_ids, lengths, chunk_ids, chunk_sequences = split_sequences(sequences)
+
+    # Compute embeddings
+    prot_t5_embeddings = embedding_processor.process_prot_t5_embedding(chunk_sequences)
+    esm_embeddings = embedding_processor.process_esm_embedding(chunk_sequences, chunk_ids)
+
+    # Merge embeddings
+    merged = merge_embeddings(sequence_ids, chunk_ids, prot_t5_embeddings, esm_embeddings)
+    merged = torch.nn.utils.rnn.pad_sequence(merged, batch_first=True)
+
+    prediction = register_model(merged, lengths).detach().cpu().numpy()
+
+    temp_dir = tempfile.TemporaryDirectory()
+    prediction_file = os.path.join(temp_dir.name, "predictions")
+    output_file = os.path.join(temp_dir.name, "out")
+    prefix_path = os.path.join(temp_dir.name, "crf")
+
+    with open(prediction_file, "w") as outfile:
         for i in range(prediction.shape[0]):
             for j in range(lengths[i]):
                 prediction_values = " ".join([str(x) for x in prediction[i, j]])
                 outfile.write(f"{prediction_values} i\n")
             outfile.write("\n")
-    return output_path
-
-
-def crf(sequence_ids, register_path, biocrf_path, crf_model):
-    output_path = tempfile.NamedTemporaryFile()
-    prefix_directory = tempfile.TemporaryDirectory()
-    prefix_path = os.path.join(prefix_directory.name, "crf")
+        
     subprocess.call(
         [
             f"{biocrf_path}",
@@ -214,17 +247,15 @@ def crf(sequence_ids, register_path, biocrf_path, crf_model):
             "-d",
             "posterior-viterbi-sum",
             "-o",
-            f"{output_path.name}",
+            f"{output_file}",
             "-q",
             f"{prefix_path}",
-            f"{register_path.name}",
+            f"{prediction_file}",
         ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        #stdout=subprocess.PIPE,
+        #stderr=subprocess.PIPE,
     )
 
-    # A prefix file is created for each sequence (or sequence chunk).
-    # Iterate through the sequence ids and extract the first column of the prefix file - these are the per-residue probabilities.
     cc_probabilities = {}
 
     for i, sequence_id in enumerate(sequence_ids):
@@ -234,33 +265,27 @@ def crf(sequence_ids, register_path, biocrf_path, crf_model):
         cc_probability = 1 - probability_matrix[:, 0]
         cc_probabilities[sequence_id] = cc_probability
 
+
     return cc_probabilities
 
 def coconat(sequences):
     registers_model = os.path.join(os.path.dirname(__file__), "data", "dlModel.ckpt")
-    biocrf_path = os.path.join(os.path.dirname(__file__), "bin", "biocrf-static")
-    crf_model = os.path.join(os.path.dirname(__file__), "data", "crfModel")
 
-    log.debug("Extracting N-terminal sequences")
-    sequence_ids, lengths, chunk_ids, chunk_sequences = split_sequences(sequences)
-
-    prot_t5_embeddings = prot_t5_embedding(chunk_sequences)
-    esm_embeddings = esm_embedding(chunk_sequences, chunk_ids)
-
-    merged = merge_embeddings(sequence_ids, chunk_ids, prot_t5_embeddings, esm_embeddings)
-
-    merged = torch.nn.utils.rnn.pad_sequence(merged, batch_first=True)
-
-    register_path = predict_register_probability(lengths, merged, registers_model)
-
-    cc_probabilities = crf(sequence_ids, register_path, biocrf_path, crf_model)
-
-    merged = merged.detach().cpu().numpy()
-
-    for sequence in sequences:
-        if sequence.id in cc_probabilities:
-            sequence.cc_probs = cc_probabilities[sequence.id]
-            sequence.identify_cc_domains()
+    log.debug("Loading embedder...")
+    embedding_processor = EmbeddingProcessor()
+    log.debug("Loading registers model...")
+    checkpoint = torch.load(registers_model)
+    register_model = MMModelLSTM()
+    register_model.load_state_dict(checkpoint["state_dict"])
+    register_model.eval()
+    
+    for i in range(0, len(sequences), 5):
+        log.debug("Processing batch...")
+        batch = sequences[i:i+5]
+        cc_probabilities = coconat_embeddings(batch, embedding_processor, register_model)
+        for sequence in sequences:
+            if sequence.id in cc_probabilities.keys():
+                sequence.cc_probs = cc_probabilities[sequence.id]
 
     return sequences
 
