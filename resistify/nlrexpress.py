@@ -150,7 +150,9 @@ def load_models(search_type):
             model = pickle.load(open(model_path, "rb"))
             models[predictor] = model
     elif search_type == "lrr":
-        model_path = os.path.join(os.path.dirname(__file__), "data", motif_models["LxxLxL"])
+        model_path = os.path.join(
+            os.path.dirname(__file__), "data", motif_models["LxxLxL"]
+        )
         model = pickle.load(open(model_path, "rb"))
         models["LxxLxL"] = model
     return models

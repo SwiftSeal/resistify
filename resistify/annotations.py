@@ -171,7 +171,7 @@ class Sequence:
             if annotation.domain == "NB-ARC":
                 return self.seq[: annotation.start]
         return None
-    
+
     def has_nbarc(self):
         for annotation in self.annotations:
             if annotation.domain == "NB-ARC":
@@ -255,7 +255,7 @@ class Sequence:
 
         if self.classification in nlr_classifications:
             self.type = "NLR"
-    
+
     def is_rlp(self):
         tm_detected = False
         inside_count, outside_count = 0, 0
@@ -286,14 +286,18 @@ class Sequence:
                 elif previous_state == "h":
                     if tm_detected:
                         return False
-                    self.add_annotation("transmembrane", state_start, i - 1, "NA", "NA", "tmbed")
+                    self.add_annotation(
+                        "transmembrane", state_start, i - 1, "NA", "NA", "tmbed"
+                    )
                     tm_detected = True
 
                 previous_state = state
                 state_start = i
 
         if previous_state == "h" and not tm_detected:
-            self.add_annotation("transmembrane", state_start, i - 1, "NA", "NA", "tmbed")
+            self.add_annotation(
+                "transmembrane", state_start, i - 1, "NA", "NA", "tmbed"
+            )
             tm_detected = True
 
         if tm_detected is False:
@@ -305,12 +309,10 @@ class Sequence:
         if inside_count > outside_count:
             # super rough
             return False
-    
+
         # As all passed, assume we have a single-pass alpha helix protein
         self.type = "RLP"
         return True
-        
-
 
     def classify_rlp(self):
         """

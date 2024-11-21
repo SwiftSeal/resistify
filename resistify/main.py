@@ -22,6 +22,7 @@ from resistify.tmbed import tmbed
 
 __version__ = "0.6.0"
 
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="""
@@ -43,8 +44,10 @@ def parse_args():
     )
 
     # Add subparsers
-    subparsers = parser.add_subparsers(dest="command", required=True, help="Subcommands")
-    
+    subparsers = parser.add_subparsers(
+        dest="command", required=True, help="Subcommands"
+    )
+
     # NLR subparser
     nlr_parser = subparsers.add_parser(
         "nlr",
@@ -65,7 +68,7 @@ def parse_args():
     nlr_parser.add_argument(
         "--coconat",
         help="!EXPERIMENTAL! Path to the Coconat database. If provided, Coconat will be used to improve coiled-coil (CC) annotations.",
-        action="store_true"
+        action="store_true",
     )
     nlr_parser.add_argument(
         "--chunksize",
@@ -97,7 +100,10 @@ def parse_args():
         type=int,
     )
     nlr_parser.add_argument(
-        "-o", "--outdir", help="Path to the output directory where results will be saved.", default=os.getcwd()
+        "-o",
+        "--outdir",
+        help="Path to the output directory where results will be saved.",
+        default=os.getcwd(),
     )
     nlr_parser.add_argument(
         "input",
@@ -115,7 +121,10 @@ def parse_args():
         help="Path to the input FASTA file containing sequences to be analyzed.",
     )
     prr_parser.add_argument(
-        "-o", "--outdir", help="Path to the output directory where results will be saved.", default=os.getcwd()
+        "-o",
+        "--outdir",
+        help="Path to the output directory where results will be saved.",
+        default=os.getcwd(),
     )
     prr_parser.add_argument(
         "--lrr_gap",
@@ -149,6 +158,7 @@ def parse_args():
     # PRR-specific arguments can be added later
 
     return parser.parse_args()
+
 
 def nlr(args, log):
     sequences = parse_fasta(args.input)
@@ -184,7 +194,7 @@ def nlr(args, log):
 
     results_dir = create_output_directory(args.outdir)
     log.info(f"Saving results to {results_dir}")
-    result_table(sequences, results_dir, "nlr", retain = args.retain)
+    result_table(sequences, results_dir, "nlr", retain=args.retain)
     annotation_table(sequences, results_dir)
     domain_table(sequences, results_dir)
     motif_table(sequences, results_dir)
@@ -192,6 +202,7 @@ def nlr(args, log):
     save_fasta(sequences, os.path.join(results_dir, "nlr.fasta"), classified_only=True)
     if args.coconat:
         coconat_table(sequences, results_dir)
+
 
 def prr(args, log):
     log.info("Searching for PRRs...")
@@ -203,7 +214,9 @@ def prr(args, log):
         args.chunksize,
     )
 
-    sequences = tmbed(sequences) # Right for some reason if this precedes nlrexpress(), it freezes? dunno why but just make sure it's downstream...
+    sequences = tmbed(
+        sequences
+    )  # Right for some reason if this precedes nlrexpress(), it freezes? dunno why but just make sure it's downstream...
 
     sequences = [sequence for sequence in sequences if sequence.is_rlp()]
 
@@ -212,7 +225,7 @@ def prr(args, log):
         sequence.identify_lrr_domains(args.lrr_gap, args.lrr_length)
         sequence.merge_annotations(args.duplicate_gap)
         sequence.classify_rlp()
-    
+
     results_dir = create_output_directory(args.outdir)
     log.info(f"Saving results to {results_dir}")
     result_table(sequences, results_dir, "prr")

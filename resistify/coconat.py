@@ -69,11 +69,15 @@ class EmbeddingProcessor:
     def __init__(self):
         # Initialize devices and models only once
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        
+
         # ProtT5 Model
-        self.prot_t5_model = T5EncoderModel.from_pretrained("Rostlab/prot_t5_xl_half_uniref50-enc").to(self.device)
-        self.prot_t5_tokenizer = T5Tokenizer.from_pretrained("Rostlab/prot_t5_xl_half_uniref50-enc")
-        
+        self.prot_t5_model = T5EncoderModel.from_pretrained(
+            "Rostlab/prot_t5_xl_half_uniref50-enc"
+        ).to(self.device)
+        self.prot_t5_tokenizer = T5Tokenizer.from_pretrained(
+            "Rostlab/prot_t5_xl_half_uniref50-enc"
+        )
+
         # ESM Model
         self.esm_model, self.esm_alphabet = esm.pretrained.esm2_t33_650M_UR50D()
         self.esm_model.eval()
@@ -82,10 +86,10 @@ class EmbeddingProcessor:
     def process_prot_t5_embedding(self, sequences):
         """
         Compute ProtT5 embeddings for given sequences.
-        
+
         Args:
             sequences (list): List of protein sequences
-        
+
         Returns:
             list: List of numpy embeddings
         """
@@ -93,21 +97,23 @@ class EmbeddingProcessor:
         sequences = [
             " ".join(list(re.sub(r"[UZOB]", "X", sequence))) for sequence in sequences
         ]
-        
+
         ids = self.prot_t5_tokenizer.batch_encode_plus(
             sequences, add_special_tokens=True, padding="longest"
         )
         input_ids = torch.tensor(ids["input_ids"]).to(self.device)
         attention_mask = torch.tensor(ids["attention_mask"]).to(self.device)
-        
+
         with torch.no_grad():
-            embedding_repr = self.prot_t5_model(input_ids=input_ids, attention_mask=attention_mask)
+            embedding_repr = self.prot_t5_model(
+                input_ids=input_ids, attention_mask=attention_mask
+            )
 
         embeddings = [
             embedding_repr.last_hidden_state[i, : lengths[i]].detach().cpu().numpy()
             for i in range(len(sequences))
         ]
-        
+
         return embeddings
 
     def process_esm_embedding(self, chunk_ids, chunk_seqs):
@@ -118,7 +124,9 @@ class EmbeddingProcessor:
         batch_lens = (batch_tokens != self.esm_alphabet.padding_idx).sum(1)
 
         with torch.no_grad():
-            results = self.esm_model(batch_tokens, repr_layers=[33], return_contacts=False)
+            results = self.esm_model(
+                batch_tokens, repr_layers=[33], return_contacts=False
+            )
 
         token_representations = results["representations"][33]
 
@@ -126,7 +134,7 @@ class EmbeddingProcessor:
             token_representations[i, 1 : tokens_len - 1].detach().cpu().numpy()
             for i, tokens_len in enumerate(batch_lens)
         ]
-        
+
         return embeddings
 
 
@@ -142,12 +150,12 @@ def coconat(sequences):
     register_model = MMModelLSTM()
     register_model.load_state_dict(checkpoint["state_dict"])
     register_model.eval()
-    
+
     for chunk_start in range(0, len(sequences), 5):
         log.debug("Processing batch...")
-        
+
         chunk_ids, chunk_seqs, chunk_lengths = [], [], []
-        for sequence in sequences[chunk_start:chunk_start+5]:
+        for sequence in sequences[chunk_start : chunk_start + 5]:
             n_terminal_seq = sequence.get_nterminal()
             if n_terminal_seq is None:
                 log.debug(f"{sequence.id} has no N-terminus, skipping...")
@@ -156,19 +164,21 @@ def coconat(sequences):
                 log.debug(f"{sequence.id} N-terminus too short for CoCoNat")
                 continue
             elif len(n_terminal_seq) >= 1022:
-                log.warning(f"{sequence.id} N-terminus quite long, errors might occur...")
+                log.warning(
+                    f"{sequence.id} N-terminus quite long, errors might occur..."
+                )
 
             chunk_ids.append(sequence.id)
             chunk_seqs.append(n_terminal_seq)
             chunk_lengths.append(len(n_terminal_seq))
-        
 
         if len(chunk_ids) == 0:
             continue
 
-
         prot_t5_embeddings = embedding_processor.process_prot_t5_embedding(chunk_seqs)
-        esm_embeddings = embedding_processor.process_esm_embedding(chunk_ids, chunk_seqs)
+        esm_embeddings = embedding_processor.process_esm_embedding(
+            chunk_ids, chunk_seqs
+        )
 
         merged = [
             torch.from_numpy(np.hstack((prot_t5_embeddings[i], esm_embeddings[i])))
@@ -215,7 +225,9 @@ def coconat(sequences):
         cc_probabilities = {}
 
         for i, sequence_id in enumerate(chunk_ids):
-            log.debug(f"Loading crf probabilities for {sequence_id} in {prefix_path}_{i}")
+            log.debug(
+                f"Loading crf probabilities for {sequence_id} in {prefix_path}_{i}"
+            )
             probability_matrix = np.loadtxt(f"{prefix_path}_{i}")
             # extract first column
             cc_probability = 1 - probability_matrix[:, 0]
@@ -226,7 +238,3 @@ def coconat(sequences):
                 sequence.cc_probs = cc_probabilities[sequence.id]
 
     return sequences
-
-
-
-

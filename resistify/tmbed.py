@@ -30,7 +30,6 @@ logging.getLogger("transformers").setLevel(logging.CRITICAL)
 
 
 class Decoder(nn.Module):
-
     def __init__(self):
         super().__init__()
 
@@ -155,7 +154,6 @@ class Decoder(nn.Module):
 
 
 class T5Encoder:
-
     def __init__(self, model_path, use_gpu=True):
         if use_gpu and torch.cuda.is_available():
             self._load_models(model_path, torch.float16)
@@ -203,7 +201,6 @@ class T5Encoder:
 
 
 class SeqNorm(nn.Module):
-
     def __init__(self, channels, eps=1e-6, affine=True):
         super().__init__()
 
@@ -276,7 +273,6 @@ class Conv(nn.Module):
 
 
 class CNN(nn.Module):
-
     def __init__(self, channels):
         super().__init__()
 
@@ -309,7 +305,6 @@ class CNN(nn.Module):
 
 
 class Predictor(nn.Module):
-
     def __init__(self, channels=64):
         super().__init__()
 
@@ -451,7 +446,9 @@ def tmbed(sequences):
     log.debug(f"Device is {device}")
 
     log.debug("Loading encoder")
-    encoder = T5Encoder("Rostlab/prot_t5_xl_half_uniref50-enc", torch.cuda.is_available())
+    encoder = T5Encoder(
+        "Rostlab/prot_t5_xl_half_uniref50-enc", torch.cuda.is_available()
+    )
     log.debug("Loading decoder")
     decoder = Decoder()
 

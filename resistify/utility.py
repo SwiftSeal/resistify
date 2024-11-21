@@ -29,7 +29,9 @@ def parse_fasta(path):
                 log.error(f"Internal stop codon detected in sequence {record.id}")
                 sys.exit(1)
             if len(sequence_str) > 100000:
-                log.warning(f"Sequence {record.id} is too long (>100k aa). This sequence will not be analysed!")
+                log.warning(
+                    f"Sequence {record.id} is too long (>100k aa). This sequence will not be analysed!"
+                )
                 continue
             sequences.append(Sequence(record.id, sequence_str))
 
@@ -46,7 +48,7 @@ def save_fasta(sequences, path, classified_only=False):
     return path
 
 
-def result_table(sequences, results_dir, type, retain = False):
+def result_table(sequences, results_dir, type, retain=False):
     with open(os.path.join(results_dir, "results.tsv"), "w") as file:
         table_writer = csv.writer(file, delimiter="\t")
         if type == "nlr":
@@ -180,8 +182,7 @@ def motif_table(sequences, results_dir):
                         item.position : item.position + MOTIF_SPAN_LENGTHS[motif]
                     ]
                     upstream_sequence = aa_sequence[
-                        item.position
-                        + MOTIF_SPAN_LENGTHS[motif] : item.position
+                        item.position + MOTIF_SPAN_LENGTHS[motif] : item.position
                         + MOTIF_SPAN_LENGTHS[motif]
                         + 5
                     ]
