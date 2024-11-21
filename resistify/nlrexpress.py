@@ -5,7 +5,6 @@ import pickle
 import os
 import logging
 import tempfile
-from sklearn.neural_network import MLPClassifier
 from multiprocessing import Pool
 import shutil
 
@@ -93,7 +92,7 @@ def parse_jackhmmer(file, iteration=False):
                     name = name[:-3]
                 hmm_dict[name] = []
                 # There is an extra field in the iteration file, so we need to skip an extra line
-                if iteration == False:
+                if not iteration:
                     i += 14
                 else:
                     i += 15

@@ -6,12 +6,8 @@ import numpy as np
 import torch.nn as nn
 import subprocess
 import logging
-import sys
 import os
 import tempfile
-import csv
-from resistify.annotations import Annotation
-import warnings
 
 log = logging.getLogger(__name__)
 logging.getLogger("transformers").setLevel(logging.CRITICAL)

@@ -2,7 +2,6 @@ import subprocess
 import sys
 import os
 import logging
-from resistify.annotations import Annotation
 from Bio import SearchIO
 import tempfile
 
@@ -83,7 +82,7 @@ def hmmsearch(sequences, search_type, evalue):
         log.error(f"Error running hmmsearch:\nStderr: {e.stderr}\nStdout:{e.stdout}")
         sys.exit(1)
     except FileNotFoundError:
-        log.error(f"hmmsearch not found. Have you installed it?")
+        log.error("hmmsearch not found. Have you installed it?")
         sys.exit(1)
 
     sequence_dict = {sequence.id: sequence for sequence in sequences}
