@@ -170,8 +170,7 @@ class Sequence:
         for annotation in self.annotations:
             if annotation.domain == "NB-ARC":
                 return self.seq[: annotation.start]
-            else:
-                return None
+        return None
     
     def has_nbarc(self):
         for annotation in self.annotations:

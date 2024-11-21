@@ -211,7 +211,9 @@ def coconat(sequences):
                 f"{prefix_path}",
                 f"{prediction_file}",
             ],
-            check=True
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         )
 
         cc_probabilities = {}

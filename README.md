@@ -22,7 +22,7 @@ It uses a re-implementation of [TMbed](https://github.com/BernhoferM/TMbed) to p
 Feel free to give it a try and I'm happy to take on suggestions!
 Due to other commitments I can't currently benchmark this properly and make no guarantees to its accuracy.
 
-Both the CoCoNat and TMbed predictor can make use of GPUs, which I reccommend for their improved performance.
+Both the CoCoNat and TMbed predictor can make use of GPUs, which I recommend for their improved performance.
 I expect the addition of GPU-capabilities to add a bunch of *exciting* new errors, so please raise an issue if anything goes wrong.
 
 ## Installation
@@ -59,7 +59,8 @@ It'll be a bit slower!
 
 If you want to increase the sensitivity of coiled-coil domain annotation, you can use the option `--coconat`.
 This will use [CoCoNat](https://doi.org/10.1093/bioinformatics/btad495) to predict coiled-coil domains.
-This feature is currently unstable and quite memory intensive on CPUs!
+In practice, I wouldn't expect this mode to pick up on a significant number of missed CC domains, but it can pick up on super-cryptic CCs and also helps expand/standardise the annotated CC domain regions.
+
 
 #### How does it work?
 
@@ -82,7 +83,7 @@ and `Resistify` will identify and classify PRRs, and return some files:
  - `annotations.tsv` - A table of the raw annotations for each sequence.
  - `prr.fasta` - A fasta file of all PRRs identified.
 
- This mode used [TMBed](https://doi.org/10.1186/s12859-022-04873-x) to predict transmembrane domains.
+ This mode uses [TMBed](https://doi.org/10.1186/s12859-022-04873-x) to predict transmembrane domains.
  It greatly benefits from GPU acceleration - running with CPUs only will be extremely slow and memory intensive.
  
 
@@ -191,7 +192,7 @@ myplot <- myplot +
 
 ### Domain plotting
 
-Somtimes, it might be of interest to plot the distribution of domains and motifs across each NLR.
+Sometimes, it might be of interest to plot the distribution of domains and motifs across each NLR.
 Achieving this with `Resistify` is quite simple:
 
 ```{R}

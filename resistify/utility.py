@@ -46,7 +46,7 @@ def save_fasta(sequences, path, classified_only=False):
     return path
 
 
-def result_table(sequences, results_dir, type):
+def result_table(sequences, results_dir, type, retain = False):
     with open(os.path.join(results_dir, "results.tsv"), "w") as file:
         table_writer = csv.writer(file, delimiter="\t")
         if type == "nlr":
@@ -77,7 +77,7 @@ def result_table(sequences, results_dir, type):
             ]
 
             for sequence in sequences:
-                if sequence.type == "NLR":
+                if sequence.type == "NLR" or retain:
                     n_nbarc_motifs = 0
                     for motif in nbarc_motifs:
                         if len(sequence.motifs[motif]) > 0:
