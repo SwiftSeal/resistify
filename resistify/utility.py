@@ -29,8 +29,8 @@ def parse_fasta(path):
                 log.error(f"Internal stop codon detected in sequence {record.id}")
                 sys.exit(1)
             if len(sequence_str) > 100000:
-                log.error(f"Sequence {record.id} is too long (>100000 aa)")
-                sys.exit(1)
+                log.warning(f"Sequence {record.id} is too long (>100k aa). This sequence will not be analysed!")
+                continue
             sequences.append(Sequence(record.id, sequence_str))
 
     return sequences

@@ -170,20 +170,17 @@ def nlr(args, log):
         args.chunksize,
     )
 
-    log.info("Classifying sequences...")
-    for sequence in sequences:
-        sequence.identify_lrr_domains(args.lrr_gap, args.lrr_length)
-        sequence.merge_annotations(args.duplicate_gap)
-        sequence.classify_nlr()
-
     if args.coconat:
         log.info("Running CoCoNat to identify additional CC domains...")
         sequences = coconat(sequences)
-        # Need to integrate additional evidence properly - this is pretty crude
-        for sequence in sequences:
+
+    log.info("Classifying sequences...")
+    for sequence in sequences:
+        sequence.identify_lrr_domains(args.lrr_gap, args.lrr_length)
+        if args.coconat:
             sequence.identify_cc_domains()
-            sequence.merge_annotations(args.duplicate_gap)
-            sequence.classify_nlr()
+        sequence.merge_annotations(args.duplicate_gap)
+        sequence.classify_nlr()
 
     results_dir = create_output_directory(args.outdir)
     log.info(f"Saving results to {results_dir}")

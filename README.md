@@ -1,9 +1,29 @@
 # Resistify 🍃
+
 ![Conda Version](https://img.shields.io/conda/vn/bioconda/resistify)
 ![Conda Downloads](https://img.shields.io/conda/dn/bioconda/resistify)
 
 Resistify is a program which rapidly identifies and classifies plant resistance genes from protein sequences.
 It is designed to be lightweight and easy to use.
+
+*More than 2,500 downloads - thank you all!*
+
+## What's new in v0.6.0?
+
+The release of `v0.6.0` has brought a number of changes to `Resistify`.
+First, you'll note that there are now two modes available - NLR and PRR - which identify NLRs and PRRs respectively.
+
+The NLR pipeline is largely the same, but has recieved multiple performance improvements which should allow it to utilise more threads simultaneously and significantly reduce memory usage.
+As a result of these changes, the `--threads` mode has now been removed which was a bit of a lie anyway, as numpy would use them all regardless.
+The `--ultra` setting has been replaced with `--retain`, which particularly benefits from these changes as previously its memory usage could be very high!
+
+The PRR pipeline is new to `Resistify` and is currently in development.
+It uses a re-implementation of [TMbed](https://github.com/BernhoferM/TMbed) to predict transmembrane domains, from which it will identify and classify RLP/RLKs according to a [recently described classification system](https://doi.org/10.1016/j.molp.2024.02.014).
+Feel free to give it a try and I'm happy to take on suggestions!
+Due to other commitments I can't currently benchmark this properly and make no guarantees to its accuracy.
+
+Both the CoCoNat and TMbed predictor can make use of GPUs, which I reccommend for their improved performance.
+I expect the addition of GPU-capabilities to add a bunch of *exciting* new errors, so please raise an issue if anything goes wrong.
 
 ## Installation
 
@@ -39,7 +59,7 @@ It'll be a bit slower!
 
 If you want to increase the sensitivity of coiled-coil domain annotation, you can use the option `--coconat`.
 This will use [CoCoNat](https://doi.org/10.1093/bioinformatics/btad495) to predict coiled-coil domains.
-This feature is currently unstable and quite memory intensive!
+This feature is currently unstable and quite memory intensive on CPUs!
 
 #### How does it work?
 

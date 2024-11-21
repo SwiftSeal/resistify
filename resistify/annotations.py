@@ -170,6 +170,8 @@ class Sequence:
         for annotation in self.annotations:
             if annotation.domain == "NB-ARC":
                 return self.seq[: annotation.start]
+            else:
+                return None
     
     def has_nbarc(self):
         for annotation in self.annotations:
@@ -202,6 +204,9 @@ class Sequence:
             collapsed_domain_string = "".join(collapsed_domain_string)
 
         log.debug(f"Collapsed domain string for {self.id}: {collapsed_domain_string}")
+
+        # Absolutely mawkit, but catch RC collapsed string which will occur when coconat is applied to rpw8
+        collapsed_domain_string = collapsed_domain_string.replace("RC", "R")
 
         # classify based on primary architecture - first match wins (go team CNL!)
         for classification in nlr_classifications:

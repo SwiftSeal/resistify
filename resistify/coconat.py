@@ -69,30 +69,6 @@ class MMModelLSTM(nn.Module):
         return x
 
 
-def split_sequences(sequences):
-    sequence_ids, lengths, chunk_ids, chunk_sequences = [], [], [], []
-    for sequence in sequences:
-        if sequence.classification in ["N", "CN", "NL", "CNL"]:
-            nterminal_sequence = sequence.get_nterminal()
-            # Probably arbitrary, but 5 is unlikely to affect results
-            if len(nterminal_sequence) < 5:
-                log.debug(f"{sequence.id} N-terminal too short, will not be processed")
-                continue
-            sequence_ids.append(sequence.id)
-            lengths.append(len(nterminal_sequence))
-            if len(nterminal_sequence) >= 1022:
-                log.debug(
-                    f"N-terminus of {sequence.id} is too long, splitting into chunks..."
-                )
-                for i in range(0, len(nterminal_sequence), 1022):
-                    chunk_ids.append(f"{sequence.id}_{i}")
-                    chunk_sequences.append(nterminal_sequence[i : i + 1022])
-            else:
-                chunk_ids.append(f"{sequence.id}_0")
-                chunk_sequences.append(nterminal_sequence)
-    return sequence_ids, lengths, chunk_ids, chunk_sequences
-
-
 class EmbeddingProcessor:
     def __init__(self):
         # Initialize devices and models only once
@@ -138,19 +114,9 @@ class EmbeddingProcessor:
         
         return embeddings
 
-    def process_esm_embedding(self, sequences, sequence_ids):
-        """
-        Compute ESM embeddings for given sequences.
-        
-        Args:
-            sequences (list): List of protein sequences
-            sequence_ids (list): List of sequence identifiers
-        
-        Returns:
-            list: List of numpy embeddings
-        """
+    def process_esm_embedding(self, chunk_ids, chunk_seqs):
         batch_labels, batch_strs, batch_tokens = self.batch_converter(
-            list(zip(sequence_ids, sequences))
+            list(zip(chunk_ids, chunk_seqs))
         )
 
         batch_lens = (batch_tokens != self.esm_alphabet.padding_idx).sum(1)
@@ -167,109 +133,11 @@ class EmbeddingProcessor:
         
         return embeddings
 
-def merge_embeddings(sequence_ids, chunk_ids, prot_t5_embeddings, esm_embeddings):
-    """
-    Merge embeddings for chunked sequences.
-    
-    Args:
-        sequence_ids (list): List of original sequence IDs
-        chunk_ids (list): List of chunk IDs
-        prot_t5_embeddings (list): List of ProtT5 embeddings
-        esm_embeddings (list): List of ESM embeddings
-    
-    Returns:
-        list: List of merged torch embeddings
-    """
-    previous = None
-    merged_prot, merged_esm = [], []
-    for i, chunk_id in enumerate(chunk_ids):
-        sequence_id = chunk_id.rsplit("_", 1)[0]
-        if sequence_id != previous:
-            merged_prot.append(prot_t5_embeddings[i])
-            merged_esm.append(esm_embeddings[i])
-        else:
-            merged_prot[-1] = np.vstack((merged_prot[-1], prot_t5_embeddings[i]))
-            merged_esm[-1] = np.vstack((merged_esm[-1], esm_embeddings[i]))
-        previous = sequence_id
-    
-    merged = [
-        torch.from_numpy(np.hstack((merged_prot[i], merged_esm[i])))
-        for i in range(len(sequence_ids))
-    ]
-    return merged
-
-def coconat_embeddings(sequences, embedding_processor, register_model):
-    """
-    Compute embeddings for sequences using pre-loaded models.
-    
-    Args:
-        sequences (list): List of sequences to process
-        embedding_processor (EmbeddingProcessor): Initialized embedding processor
-    
-    Returns:
-        tuple: Processed sequences, merged embeddings, lengths, chunk_ids
-    """
-    biocrf_path = os.path.join(os.path.dirname(__file__), "bin", "biocrf-static")
-    crf_model = os.path.join(os.path.dirname(__file__), "data", "crfModel")
-
-    sequence_ids, lengths, chunk_ids, chunk_sequences = split_sequences(sequences)
-
-    # Compute embeddings
-    prot_t5_embeddings = embedding_processor.process_prot_t5_embedding(chunk_sequences)
-    esm_embeddings = embedding_processor.process_esm_embedding(chunk_sequences, chunk_ids)
-
-    # Merge embeddings
-    merged = merge_embeddings(sequence_ids, chunk_ids, prot_t5_embeddings, esm_embeddings)
-    merged = torch.nn.utils.rnn.pad_sequence(merged, batch_first=True)
-
-    prediction = register_model(merged, lengths).detach().cpu().numpy()
-
-    temp_dir = tempfile.TemporaryDirectory()
-    prediction_file = os.path.join(temp_dir.name, "predictions")
-    output_file = os.path.join(temp_dir.name, "out")
-    prefix_path = os.path.join(temp_dir.name, "crf")
-
-    with open(prediction_file, "w") as outfile:
-        for i in range(prediction.shape[0]):
-            for j in range(lengths[i]):
-                prediction_values = " ".join([str(x) for x in prediction[i, j]])
-                outfile.write(f"{prediction_values} i\n")
-            outfile.write("\n")
-        
-    subprocess.call(
-        [
-            f"{biocrf_path}",
-            "-test",
-            "-m",
-            f"{crf_model}",
-            "-w",
-            "7",
-            "-d",
-            "posterior-viterbi-sum",
-            "-o",
-            f"{output_file}",
-            "-q",
-            f"{prefix_path}",
-            f"{prediction_file}",
-        ],
-        #stdout=subprocess.PIPE,
-        #stderr=subprocess.PIPE,
-    )
-
-    cc_probabilities = {}
-
-    for i, sequence_id in enumerate(sequence_ids):
-        log.debug(f"Loading crf probabilities for {sequence_id} in {prefix_path}_{i}")
-        probability_matrix = np.loadtxt(f"{prefix_path}_{i}")
-        # extract first column
-        cc_probability = 1 - probability_matrix[:, 0]
-        cc_probabilities[sequence_id] = cc_probability
-
-
-    return cc_probabilities
 
 def coconat(sequences):
     registers_model = os.path.join(os.path.dirname(__file__), "data", "dlModel.ckpt")
+    biocrf_path = os.path.join(os.path.dirname(__file__), "bin", "biocrf-static")
+    crf_model = os.path.join(os.path.dirname(__file__), "data", "crfModel")
 
     log.debug("Loading embedder...")
     embedding_processor = EmbeddingProcessor()
@@ -279,10 +147,82 @@ def coconat(sequences):
     register_model.load_state_dict(checkpoint["state_dict"])
     register_model.eval()
     
-    for i in range(0, len(sequences), 5):
+    for chunk_start in range(0, len(sequences), 5):
         log.debug("Processing batch...")
-        batch = sequences[i:i+5]
-        cc_probabilities = coconat_embeddings(batch, embedding_processor, register_model)
+        
+        chunk_ids, chunk_seqs, chunk_lengths = [], [], []
+        for sequence in sequences[chunk_start:chunk_start+5]:
+            n_terminal_seq = sequence.get_nterminal()
+            if n_terminal_seq is None:
+                log.debug(f"{sequence.id} has no N-terminus, skipping...")
+                continue
+            elif len(n_terminal_seq) < 5:
+                log.debug(f"{sequence.id} N-terminus too short for CoCoNat")
+                continue
+            elif len(n_terminal_seq) >= 1022:
+                log.warning(f"{sequence.id} N-terminus quite long, errors might occur...")
+
+            chunk_ids.append(sequence.id)
+            chunk_seqs.append(n_terminal_seq)
+            chunk_lengths.append(len(n_terminal_seq))
+        
+
+        if len(chunk_ids) == 0:
+            continue
+
+
+        prot_t5_embeddings = embedding_processor.process_prot_t5_embedding(chunk_seqs)
+        esm_embeddings = embedding_processor.process_esm_embedding(chunk_ids, chunk_seqs)
+
+        merged = [
+            torch.from_numpy(np.hstack((prot_t5_embeddings[i], esm_embeddings[i])))
+            for i in range(len(chunk_ids))
+        ]
+
+        merged = torch.nn.utils.rnn.pad_sequence(merged, batch_first=True)
+
+        prediction = register_model(merged, chunk_lengths).detach().cpu().numpy()
+
+        temp_dir = tempfile.TemporaryDirectory()
+        prediction_file = os.path.join(temp_dir.name, "predictions")
+        output_file = os.path.join(temp_dir.name, "out")
+        prefix_path = os.path.join(temp_dir.name, "crf")
+
+        with open(prediction_file, "w") as outfile:
+            for i in range(prediction.shape[0]):
+                for j in range(chunk_lengths[i]):
+                    prediction_values = " ".join([str(x) for x in prediction[i, j]])
+                    outfile.write(f"{prediction_values} i\n")
+                outfile.write("\n")
+
+        subprocess.run(
+            [
+                f"{biocrf_path}",
+                "-test",
+                "-m",
+                f"{crf_model}",
+                "-w",
+                "7",
+                "-d",
+                "posterior-viterbi-sum",
+                "-o",
+                f"{output_file}",
+                "-q",
+                f"{prefix_path}",
+                f"{prediction_file}",
+            ],
+            check=True
+        )
+
+        cc_probabilities = {}
+
+        for i, sequence_id in enumerate(chunk_ids):
+            log.debug(f"Loading crf probabilities for {sequence_id} in {prefix_path}_{i}")
+            probability_matrix = np.loadtxt(f"{prefix_path}_{i}")
+            # extract first column
+            cc_probability = 1 - probability_matrix[:, 0]
+            cc_probabilities[sequence_id] = cc_probability
+
         for sequence in sequences:
             if sequence.id in cc_probabilities.keys():
                 sequence.cc_probs = cc_probabilities[sequence.id]
