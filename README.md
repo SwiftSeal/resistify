@@ -3,24 +3,26 @@
 ![Conda Version](https://img.shields.io/conda/vn/bioconda/resistify)
 ![Conda Downloads](https://img.shields.io/conda/dn/bioconda/resistify)
 
+*More than 2,500 downloads - thank you all!*
+
 Resistify is a program which rapidly identifies and classifies plant resistance genes from protein sequences.
 It is designed to be lightweight and easy to use.
 
-*More than 2,500 downloads - thank you all!*
+![A screenshot of the help interface of resistify](assets/terminal.png)
 
 ## What's new in v0.6.0?
 
 The release of `v0.6.0` has brought a number of changes to `Resistify`.
 First, you'll note that there are now two modes available - NLR and PRR - which identify NLRs and PRRs respectively.
 
-The NLR pipeline is largely the same, but has recieved multiple performance improvements which should allow it to utilise more threads simultaneously and significantly reduce memory usage.
+The NLR pipeline is largely the same, but has received multiple performance improvements which should allow it to utilise more threads simultaneously and significantly reduce memory usage.
 As a result of these changes, the `--threads` mode has now been removed which was a bit of a lie anyway, as numpy would use them all regardless.
 The `--ultra` setting has been renamed as `--retain`.
 
 The PRR pipeline is new to `Resistify` and is currently in development.
 It uses a re-implementation of [TMbed](https://github.com/BernhoferM/TMbed) to predict transmembrane domains, from which it will identify and classify RLP/RLKs according to a [recently described classification system](https://doi.org/10.1016/j.molp.2024.02.014).
 Feel free to give it a try and offer suggestions!
-Due to other commitments I can't currently benchmark this properly and make no guarantees to its accuracy.
+Due to other commitments I can't currently benchmark this properly and make no guarantees to its accuracy yet.
 
 ## Installation
 
@@ -88,6 +90,7 @@ By default, `Resistify` will automatically download the models required for CoCo
 If you'd like to manually install the databases instead, you can use the `resistify download_models` utility to download these to a directory of your choice.
 To provide these local models to the CoCoNat and TMbed processes, simply pass the path of the models directory via the `--models` argument.
 Approximately 13G of disk space is required.
+If you only intend to use the NLR module without `--coconat`, no external databases will be downloaded.
 
 ## Results
 
