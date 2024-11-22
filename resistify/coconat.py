@@ -8,9 +8,12 @@ import subprocess
 import logging
 import os
 import tempfile
+import warnings
 
 log = logging.getLogger(__name__)
 logging.getLogger("transformers").setLevel(logging.CRITICAL)
+
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 class TransposeX(nn.Module):
@@ -66,22 +69,39 @@ class MMModelLSTM(nn.Module):
 
 
 class EmbeddingProcessor:
-    def __init__(self):
+    def __init__(self, models_path):
         # Initialize devices and models only once
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        log.debug(f"Device is {self.device}")
 
-        # ProtT5 Model
-        self.prot_t5_model = T5EncoderModel.from_pretrained(
-            "Rostlab/prot_t5_xl_half_uniref50-enc"
-        ).to(self.device)
-        self.prot_t5_tokenizer = T5Tokenizer.from_pretrained(
-            "Rostlab/prot_t5_xl_half_uniref50-enc"
-        )
+        if models_path is not None:
+            # ProtT5 Model
+            self.prot_t5_model = T5EncoderModel.from_pretrained(
+                os.path.join(models_path, "prott5")
+            ).to(self.device)
+            self.prot_t5_tokenizer = T5Tokenizer.from_pretrained(
+                os.path.join(models_path, "prott5")
+            )
 
-        # ESM Model
-        self.esm_model, self.esm_alphabet = esm.pretrained.esm2_t33_650M_UR50D()
+            # ESM Model
+            self.esm_model, self.esm_alphabet = esm.pretrained.load_model_and_alphabet(
+                os.path.join(models_path, "esm", "esm2_t33_650M_UR50D.pt")
+            )
+        else:
+            # ProtT5 Model
+            self.prot_t5_model = T5EncoderModel.from_pretrained(
+                "Rostlab/prot_t5_xl_half_uniref50-enc"
+            ).to(self.device)
+            self.prot_t5_tokenizer = T5Tokenizer.from_pretrained(
+                "Rostlab/prot_t5_xl_half_uniref50-enc"
+            )
+
+            # ESM Model
+            self.esm_model, self.esm_alphabet = esm.pretrained.esm2_t33_650M_UR50D()
+
         self.esm_model.eval()
         self.batch_converter = self.esm_alphabet.get_batch_converter()
+
 
     def process_prot_t5_embedding(self, sequences):
         """
@@ -138,13 +158,13 @@ class EmbeddingProcessor:
         return embeddings
 
 
-def coconat(sequences):
+def coconat(sequences, models_path: str):
     registers_model = os.path.join(os.path.dirname(__file__), "data", "dlModel.ckpt")
     biocrf_path = os.path.join(os.path.dirname(__file__), "bin", "biocrf-static")
     crf_model = os.path.join(os.path.dirname(__file__), "data", "crfModel")
 
     log.debug("Loading embedder...")
-    embedding_processor = EmbeddingProcessor()
+    embedding_processor = EmbeddingProcessor(models_path)
     log.debug("Loading registers model...")
     checkpoint = torch.load(registers_model)
     register_model = MMModelLSTM()

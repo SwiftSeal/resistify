@@ -12,8 +12,6 @@ dependencies = [
   "rich",
   "rich-argparse",
   "torch",
-  "torchvision",
-  "torchaudio",
   "fair-esm",
   "transformers==4.31.0",
   "sentencepiece",

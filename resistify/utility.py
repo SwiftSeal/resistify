@@ -2,6 +2,9 @@ import sys
 import os
 import csv
 import logging
+import json
+import hashlib
+import requests
 from Bio import SeqIO
 from resistify.annotations import Sequence
 
@@ -219,3 +222,84 @@ def coconat_table(sequences, results_dir):
         for sequence in sequences:
             for i, probability in enumerate(sequence.cc_probs):
                 f.write(f"{sequence.id}\t{i}\t{probability}\n")
+
+def download_files(base_download_path):
+    """
+    Download files from a JSON configuration file to specified directories.
+    
+    Args:
+        config_path (str): Path to the JSON configuration file
+        base_download_path (str): Base path where model directories will be created
+    
+    Returns:
+        dict: Updated configuration with downloaded file paths and SHA256 sums
+    """
+    config_path = os.path.join(os.path.dirname(__file__), "data", "model_paths.json")
+
+    # Read the configuration
+    with open(config_path, 'r') as f:
+        config = json.load(f)
+    
+    # Ensure base download path exists
+    os.makedirs(base_download_path, exist_ok=True)
+    
+    # Process each model's files
+    for model_name, model_config in config.items():
+        # Create model-specific directory
+        model_dir = os.path.join(base_download_path, model_config['directory'])
+        os.makedirs(model_dir, exist_ok=True)
+        
+        # Download each file
+        for file_info in model_config['files']:
+            url = file_info['url']
+            filename = os.path.basename(url)
+            local_path = os.path.join(model_dir, filename)
+            
+            # Download file
+            response = requests.get(url, stream=True)
+            response.raise_for_status()
+            
+            with open(local_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            
+            # Calculate SHA256
+            with open(local_path, 'rb') as f:
+                file_hash = hashlib.sha256()
+                for chunk in iter(lambda: f.read(4096), b""):
+                    file_hash.update(chunk)
+            
+            # Update file info with local path and hash
+            file_info['local_path'] = local_path
+            file_info['sha256'] = file_hash.hexdigest()
+    
+    return config
+
+def verify_files(base_download_path: str):
+    # Initialize results
+    config_path = os.path.join(os.path.dirname(__file__), "data", "model_paths.json")
+
+    with open(config_path, 'r') as f:
+        config = json.load(f)
+    
+    # Check each model's files
+    for model_name, model_config in config.items():
+        model_dir = os.path.join(base_download_path, model_config['directory'])
+        
+        # Check if model directory exists
+        if not os.path.exists(model_dir):
+            log.error(f"Directory not found for {model_name}: {model_dir}")
+            sys.exit(1)
+        
+        # Check each file
+        for file_info in model_config['files']:
+            url = file_info['url']
+            filename = os.path.basename(url)
+            local_path = os.path.join(model_dir, filename)
+            
+            # Check if file exists
+            if not os.path.exists(local_path):
+                log.error(f"File not found: {local_path}")
+                sys.exit(1)
+    
+    return

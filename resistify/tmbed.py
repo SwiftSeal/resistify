@@ -154,22 +154,31 @@ class Decoder(nn.Module):
 
 
 class T5Encoder:
-    def __init__(self, model_path, use_gpu=True):
+    def __init__(self, models_path, use_gpu=True):
         if use_gpu and torch.cuda.is_available():
-            self._load_models(model_path, torch.float16)
+            self._load_models(models_path, torch.float16)
             self.encoder_model = self.encoder_model.eval().cuda()
         else:
-            self._load_models(model_path, torch.float32)
+            self._load_models(models_path, torch.float32)
             self.encoder_model = self.encoder_model.eval()
 
         self.aa_map = str.maketrans("BJOUZ", "XXXXX")
 
-    def _load_models(self, model_path, dtype):
-        self.tokenizer = T5Tokenizer.from_pretrained(model_path, do_lower_case=False)
-
-        self.encoder_model = T5EncoderModel.from_pretrained(
-            model_path, torch_dtype=dtype
-        )
+    def _load_models(self, models_path, dtype):
+        if models_path is not None:
+            self.tokenizer = T5Tokenizer.from_pretrained(
+                os.path.join(models_path, "prott5"),
+                do_lower_case=False,
+            )
+            self.encoder_model = T5EncoderModel.from_pretrained(
+                os.path.join(models_path, "prott5"),
+                torch_dtype=dtype,
+            )
+        else:
+            self.tokenizer = T5Tokenizer.from_pretrained("Rostlab/prot_t5_xl_half_uniref50-enc", do_lower_case=False)
+            self.encoder_model = T5EncoderModel.from_pretrained(
+                "Rostlab/prot_t5_xl_half_uniref50-enc", torch_dtype=dtype
+            )
 
     def device(self):
         return self.encoder_model.device
@@ -438,16 +447,16 @@ def predict_sequences(models, embeddings, mask):
     return pred.detach()
 
 
-def tmbed(sequences):
+def tmbed(sequences, models_path):
     log.info("Predicting transmembrane domains...")
     batch_size = 4000
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     log.debug(f"Device is {device}")
 
-    log.debug("Loading encoder")
+    log.debug("Loading encoder") 
     encoder = T5Encoder(
-        "Rostlab/prot_t5_xl_half_uniref50-enc", torch.cuda.is_available()
+        models_path, torch.cuda.is_available()
     )
     log.debug("Loading decoder")
     decoder = Decoder()

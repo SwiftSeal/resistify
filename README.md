@@ -15,19 +15,16 @@ First, you'll note that there are now two modes available - NLR and PRR - which 
 
 The NLR pipeline is largely the same, but has recieved multiple performance improvements which should allow it to utilise more threads simultaneously and significantly reduce memory usage.
 As a result of these changes, the `--threads` mode has now been removed which was a bit of a lie anyway, as numpy would use them all regardless.
-The `--ultra` setting has been replaced with `--retain`, which particularly benefits from these changes as previously its memory usage could be very high!
+The `--ultra` setting has been renamed as `--retain`.
 
 The PRR pipeline is new to `Resistify` and is currently in development.
 It uses a re-implementation of [TMbed](https://github.com/BernhoferM/TMbed) to predict transmembrane domains, from which it will identify and classify RLP/RLKs according to a [recently described classification system](https://doi.org/10.1016/j.molp.2024.02.014).
-Feel free to give it a try and I'm happy to take on suggestions!
+Feel free to give it a try and offer suggestions!
 Due to other commitments I can't currently benchmark this properly and make no guarantees to its accuracy.
-
-Both the CoCoNat and TMbed predictor can make use of GPUs, which I recommend for their improved performance.
-I expect the addition of GPU-capabilities to add a bunch of *exciting* new errors, so please raise an issue if anything goes wrong.
 
 ## Installation
 
-Resistify is available on [Conda](https://anaconda.org/bioconda/resistify):
+`Resistify` is available on [Conda](https://anaconda.org/bioconda/resistify):
 
 `conda install -c bioconda resistify`
 
@@ -61,7 +58,6 @@ If you want to increase the sensitivity of coiled-coil domain annotation, you ca
 This will use [CoCoNat](https://doi.org/10.1093/bioinformatics/btad495) to predict coiled-coil domains.
 In practice, I wouldn't expect this mode to pick up on a significant number of missed CC domains, but it can pick up on super-cryptic CCs and also helps expand/standardise the annotated CC domain regions.
 
-
 #### How does it work?
 
 `Resistify` carries out an initial search for common NLR domains to quickly filter and annotate the input sequences.
@@ -85,7 +81,13 @@ and `Resistify` will identify and classify PRRs, and return some files:
 
  This mode uses [TMBed](https://doi.org/10.1186/s12859-022-04873-x) to predict transmembrane domains.
  It greatly benefits from GPU acceleration - running with CPUs only will be extremely slow and memory intensive.
- 
+
+
+### Downloading model data
+
+By default, `Resistify` will automatically download the models required for CoConat and TMbed to your `$HOME/.cache` directory.
+If you'd like to manually install the databases instead, you can use the `resistify download_models` utility to download these to a directory of your choice.
+To provide these local models to the CoCoNat and TMbed processes, simply pass the path of the models directory via the `--models` argument.
 
 ## Results
 

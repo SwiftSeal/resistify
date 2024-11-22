@@ -14,6 +14,8 @@ from resistify.utility import (
     motif_table,
     extract_nbarc,
     coconat_table,
+    download_files,
+    verify_files
 )
 from resistify.hmmsearch import hmmsearch
 from resistify.nlrexpress import nlrexpress
@@ -58,6 +60,11 @@ def parse_args():
         "--retain",
         help="Non-NLRs will be retained for motif prediction and reported in the final output.",
         action="store_true",
+    )
+    nlr_parser.add_argument(
+        "--models-path",
+        help="Path to the downloaded models directory. If unset, models will be downloaded to $HOME/.cache/ by default.",
+        default = None,
     )
     nlr_parser.add_argument(
         "--batch",
@@ -127,6 +134,11 @@ def parse_args():
         default=os.getcwd(),
     )
     prr_parser.add_argument(
+        "--models-path",
+        help="Path to the downloaded models directory. If unset, models will be downloaded to $HOME/.cache/ by default.",
+        default = None,
+    )
+    prr_parser.add_argument(
         "--lrr_gap",
         help="Minimum gap (in amino acids) between LRR motifs. Default is 75.",
         default=75,
@@ -155,12 +167,24 @@ def parse_args():
         default=5,
         type=int,
     )
-    # PRR-specific arguments can be added later
+    download_parser = subparsers.add_parser(
+        "download_models",
+        help="Download models for CoCoNat and TMbed.",
+        formatter_class=RichHelpFormatter,
+    )
+    download_parser.add_argument(
+        "models_path",
+        help="Path to directory"
+    )
 
     return parser.parse_args()
 
 
 def nlr(args, log):
+    # Check to see if all provided models exist
+    if args.models_path is not None:
+        verify_files(args.models_path)
+    
     sequences = parse_fasta(args.input)
     log.info("Searching for NLRs...")
     sequences = hmmsearch(sequences, "nlr", args.evalue)
@@ -182,7 +206,7 @@ def nlr(args, log):
 
     if args.coconat:
         log.info("Running CoCoNat to identify additional CC domains...")
-        sequences = coconat(sequences)
+        sequences = coconat(sequences, args.models_path)
 
     log.info("Classifying sequences...")
     for sequence in sequences:
@@ -205,6 +229,10 @@ def nlr(args, log):
 
 
 def prr(args, log):
+    # Check to see if all provided models exist
+    if args.models_path is not None:
+        verify_files(args.models_path)
+
     log.info("Searching for PRRs...")
     sequences = parse_fasta(args.input)
     sequences = hmmsearch(sequences, "prr", args.evalue)
@@ -215,7 +243,8 @@ def prr(args, log):
     )
 
     sequences = tmbed(
-        sequences
+        sequences,
+        args.models_path
     )  # Right for some reason if this precedes nlrexpress(), it freezes? dunno why but just make sure it's downstream...
 
     sequences = [sequence for sequence in sequences if sequence.is_rlp()]
@@ -234,6 +263,12 @@ def prr(args, log):
     motif_table(sequences, results_dir)
     save_fasta(sequences, os.path.join(results_dir, "prr.fasta"), classified_only=True)
 
+def download(args, log):
+    log.info("Downloading model data...")
+    download_files(args.models_path)
+    verify_files(args.models_path)
+    log.info(f"Models downloaded successfully. You can supply these to resistify with the argument `--models {args.models_path}")
+
 
 def main():
     args = parse_args()
@@ -251,6 +286,10 @@ def main():
         nlr(args, log)
     elif args.command == "prr":
         prr(args, log)
+    elif args.command == "download_models":
+        download(args, log)
+        sys.exit(0)
+        
     else:
         log.error(f"Unknown command: {args.command}")
         sys.exit(1)
