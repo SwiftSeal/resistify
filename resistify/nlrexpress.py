@@ -5,7 +5,7 @@ import pickle
 import os
 import logging
 import tempfile
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 import shutil
 
 log = logging.getLogger(__name__)
@@ -117,7 +117,10 @@ def parse_jackhmmer(file, iteration=False):
 
 
 def nlrexpress(sequences, search_type, chunk_size):
-    threads = len(os.sched_getaffinity(0))
+    try:
+        threads = len(os.sched_getaffinity(0))
+    except AttributeError:
+        threads = cpu_count()
 
     models = load_models(search_type)
 

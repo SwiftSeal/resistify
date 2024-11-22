@@ -105,6 +105,7 @@ def result_table(sequences, results_dir, type, retain=False):
             table_writer.writerow(
                 [
                     "Sequence",
+                    "Length",
                     "Type",
                     "Classification",
                     "Signal_peptide",
@@ -115,6 +116,7 @@ def result_table(sequences, results_dir, type, retain=False):
                     table_writer.writerow(
                         [
                             sequence.id,
+                            len(sequence.seq),
                             sequence.type,
                             sequence.classification,
                             sequence.signal_peptide,
@@ -219,6 +221,7 @@ def extract_nbarc(sequences, results_dir):
 def coconat_table(sequences, results_dir):
     output_path = os.path.join(results_dir, "coconat.tsv")
     with open(output_path, "w") as f:
+        f.write("Sequence\tPosition\tProbability\n")
         for sequence in sequences:
             for i, probability in enumerate(sequence.cc_probs):
                 f.write(f"{sequence.id}\t{i}\t{probability}\n")

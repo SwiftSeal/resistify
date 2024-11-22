@@ -56,7 +56,7 @@ It'll be a bit slower!
 
 If you want to increase the sensitivity of coiled-coil domain annotation, you can use the option `--coconat`.
 This will use [CoCoNat](https://doi.org/10.1093/bioinformatics/btad495) to predict coiled-coil domains.
-In practice, I wouldn't expect this mode to pick up on a significant number of missed CC domains, but it can pick up on super-cryptic CCs and also helps expand/standardise the annotated CC domain regions.
+In practice, I wouldn't expect this mode to pick up on a significant number of missed CC domains, but it can pick up on cryptic CCs that do not have an identifiable EDVID motif.
 
 #### How does it work?
 
@@ -82,16 +82,16 @@ and `Resistify` will identify and classify PRRs, and return some files:
  This mode uses [TMBed](https://doi.org/10.1186/s12859-022-04873-x) to predict transmembrane domains.
  It greatly benefits from GPU acceleration - running with CPUs only will be extremely slow and memory intensive.
 
-
 ### Downloading model data
 
 By default, `Resistify` will automatically download the models required for CoConat and TMbed to your `$HOME/.cache` directory.
 If you'd like to manually install the databases instead, you can use the `resistify download_models` utility to download these to a directory of your choice.
 To provide these local models to the CoCoNat and TMbed processes, simply pass the path of the models directory via the `--models` argument.
+Approximately 13G of disk space is required.
 
 ## Results
 
-### results.tsv
+### results.tsv (nlr)
 
 | Sequence | Length | Motifs | Domains | Classification | NBARC_motifs | MADA | MADAL | CJID |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -101,6 +101,17 @@ The main column of interest is "Classification", where we can see that it has be
 The "Motifs" column indicates the series of NLR-associated motifs identified across the sequence - this can be useful if an NLR has an undetermined or unexpected classification.
 The columns "MADA", "MADAL", and "CJID" correspond to common NLR sequence signatures.
 Here, it appears that ZAR1 has a MADA-like motif.
+
+### results.tsv (prr)
+
+| Sequence | Length | Type | Classification | Signal_peptide |
+| --- | --- | --- | --- | --- |
+| fls2 | 1174 | RLK | LRR | True |
+
+For PRRs, sequences can be of the type RLP or RLK - both are single pass transmembrane proteins, and RLKs have an internal kinase domain.
+Classification refers to the domains identified in the external region.
+If multiple domains are identified, they will each be reported as a semi-colon separated list.
+If a signal peptide is identified in the sequence, this is reported accordingly.
 
 ### motifs.tsv
 
@@ -129,6 +140,7 @@ Here, it appears that ZAR1 has a MADA-like motif.
 
 Here, the positions, probabilities, and sequence of NLRexpress motif hits are listed.
 The five amino acids upstream and downstream of the motif site are also provided.
+In PRR mode, only LRR motifs will be reported.
 
 ### domains.tsv
 
@@ -249,7 +261,7 @@ Moray Smith, John T. Jones, Ingo Hein
 bioRxiv 2024.02.14.580321; doi: https://doi.org/10.1101/2024.02.14.580321
 ```
 
-You MUST also cite:
+You must also cite:
 
 ```
 NLRexpress—A bundle of machine learning motif predictors—Reveals motif stability underlying plant Nod-like receptors diversity
@@ -263,4 +275,12 @@ If you use the CoCoNat module, please cite:
 CoCoNat: a novel method based on deep learning for coiled-coil prediction
 Giovanni Madeo, Castrense Savojardo, Matteo Manfredi, Pier Luigi Martelli, Rita Casadio
 Bioinformatics 2023; doi: https://doi.org/10.1093/bioinformatics/btad495
+```
+
+If you use the PRR module, please cite:
+
+```
+TMbed: transmembrane proteins predicted through language model embeddings.
+Bernhofer, M., Rost, B.
+BMC Bioinformatics 2022; doi: https://doi.org/10.1186/s12859-022-04873-x
 ```
