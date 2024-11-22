@@ -15,7 +15,7 @@ from resistify.utility import (
     extract_nbarc,
     coconat_table,
     download_files,
-    verify_files
+    verify_files,
 )
 from resistify.hmmsearch import hmmsearch
 from resistify.nlrexpress import nlrexpress
@@ -35,7 +35,8 @@ def add_common_args(parser):
         help="Path to the input FASTA file containing sequences to be analyzed.",
     )
     parser.add_argument(
-        "-o", "--outdir",
+        "-o",
+        "--outdir",
         help="Path to the output directory where results will be saved.",
         default=os.getcwd(),
     )
@@ -74,6 +75,7 @@ def add_common_args(parser):
         type=int,
     )
 
+
 def validate_input_file(filepath):
     """
     Validate that the input file exists.
@@ -81,6 +83,7 @@ def validate_input_file(filepath):
     if not os.path.isfile(filepath):
         raise argparse.ArgumentTypeError(f"Input file {filepath} does not exist")
     return filepath
+
 
 def parse_args(args=None):
     """
@@ -93,22 +96,19 @@ def parse_args(args=None):
 
     # Global arguments
     parser.add_argument(
-        "-v", "--version",
+        "-v",
+        "--version",
         action="version",
         version=f"v{__version__}",
         help="Show the version number and exit.",
     )
     parser.add_argument(
-        "--debug", 
-        help="Enable debug logging for detailed output.", 
-        action="store_true"
+        "--debug", help="Enable debug logging for detailed output.", action="store_true"
     )
 
     # Subparsers
     subparsers = parser.add_subparsers(
-        dest="command", 
-        required=True, 
-        help="Subcommands"
+        dest="command", required=True, help="Subcommands"
     )
 
     # NLR subparser
@@ -151,7 +151,7 @@ def parse_args(args=None):
     )
     download_parser.add_argument(
         "models_path",
-        help="Path to the directory which will be used to store downloaded models."
+        help="Path to the directory which will be used to store downloaded models.",
     )
 
     return parser.parse_args(args)
@@ -161,7 +161,7 @@ def nlr(args, log):
     # Check to see if all provided models exist
     if args.models_path is not None:
         verify_files(args.models_path)
-    
+
     sequences = parse_fasta(args.input)
     log.info("Searching for NLRs...")
     sequences = hmmsearch(sequences, "nlr", args.evalue)
@@ -220,8 +220,7 @@ def prr(args, log):
     )
 
     sequences = tmbed(
-        sequences,
-        args.models_path
+        sequences, args.models_path
     )  # Right for some reason if this precedes nlrexpress(), it freezes? dunno why but just make sure it's downstream...
 
     sequences = [sequence for sequence in sequences if sequence.is_rlp()]
@@ -240,11 +239,14 @@ def prr(args, log):
     motif_table(sequences, results_dir)
     save_fasta(sequences, os.path.join(results_dir, "prr.fasta"), classified_only=True)
 
+
 def download(args, log):
     log.info("Downloading model data...")
     download_files(args.models_path)
     verify_files(args.models_path)
-    log.info("Models downloaded successfully. You can supply these to Resistify with the argument `--models <path-to-directory>`")
+    log.info(
+        "Models downloaded successfully. You can supply these to Resistify with the argument `--models <path-to-directory>`"
+    )
 
 
 def main():
@@ -266,7 +268,7 @@ def main():
     elif args.command == "download_models":
         download(args, log)
         sys.exit(0)
-        
+
     else:
         log.error(f"Unknown command: {args.command}")
         sys.exit(1)

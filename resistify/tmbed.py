@@ -175,7 +175,9 @@ class T5Encoder:
                 torch_dtype=dtype,
             )
         else:
-            self.tokenizer = T5Tokenizer.from_pretrained("Rostlab/prot_t5_xl_half_uniref50-enc", do_lower_case=False)
+            self.tokenizer = T5Tokenizer.from_pretrained(
+                "Rostlab/prot_t5_xl_half_uniref50-enc", do_lower_case=False
+            )
             self.encoder_model = T5EncoderModel.from_pretrained(
                 "Rostlab/prot_t5_xl_half_uniref50-enc", torch_dtype=dtype
             )
@@ -454,10 +456,8 @@ def tmbed(sequences, models_path):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     log.debug(f"Device is {device}")
 
-    log.debug("Loading encoder") 
-    encoder = T5Encoder(
-        models_path, torch.cuda.is_available()
-    )
+    log.debug("Loading encoder")
+    encoder = T5Encoder(models_path, torch.cuda.is_available())
     log.debug("Loading decoder")
     decoder = Decoder()
 

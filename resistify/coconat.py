@@ -102,7 +102,6 @@ class EmbeddingProcessor:
         self.esm_model.eval()
         self.batch_converter = self.esm_alphabet.get_batch_converter()
 
-
     def process_prot_t5_embedding(self, sequences):
         """
         Compute ProtT5 embeddings for given sequences.
