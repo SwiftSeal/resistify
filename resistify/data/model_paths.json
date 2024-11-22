@@ -1,0 +1,65 @@
+{
+    "esm": {
+        "directory": "esm",
+        "files": [
+            {
+                "url": "https://dl.fbaipublicfiles.com/fair-esm/models/esm2_t33_650M_UR50D.pt",
+                "sha256": ""
+            },
+            {
+                "url": "https://dl.fbaipublicfiles.com/fair-esm/regression/esm2_t33_650M_UR50D-contact-regression.pt",
+                "sha256": ""
+            }
+        ]
+    },
+    "prostt5": {
+        "directory": "prostt5", 
+        "files": [
+            {
+                "url": "https://huggingface.co/Rostlab/ProstT5/resolve/main/config.json",
+                "sha256": ""
+            },
+            {
+                "url": "https://huggingface.co/Rostlab/ProstT5/resolve/main/pytorch_model.bin",
+                "sha256": ""
+            },
+            {
+                "url": "https://huggingface.co/Rostlab/ProstT5/resolve/main/special_tokens_map.json",
+                "sha256": ""
+            },
+            {
+                "url": "https://huggingface.co/Rostlab/ProstT5/resolve/main/spiece.model",
+                "sha256": ""
+            },
+            {
+                "url": "https://huggingface.co/Rostlab/ProstT5/resolve/main/tokenizer_config.json",
+                "sha256": ""
+            }
+        ]
+    },
+    "prott5": {
+        "directory": "prott5",
+        "files": [
+            {
+                "url": "https://huggingface.co/Rostlab/prot_t5_xl_half_uniref50-enc/resolve/main/config.json",
+                "sha256": ""
+            },
+            {
+                "url": "https://huggingface.co/Rostlab/prot_t5_xl_half_uniref50-enc/resolve/main/pytorch_model.bin",
+                "sha256": ""
+            },
+            {
+                "url": "https://huggingface.co/Rostlab/prot_t5_xl_half_uniref50-enc/resolve/main/special_tokens_map.json",
+                "sha256": ""
+            },
+            {
+                "url": "https://huggingface.co/Rostlab/prot_t5_xl_half_uniref50-enc/resolve/main/spiece.model",
+                "sha256": ""
+            },
+            {
+                "url": "https://huggingface.co/Rostlab/prot_t5_xl_half_uniref50-enc/resolve/main/tokenizer_config.json",
+                "sha256": ""
+            }
+        ]
+    }
+}
