@@ -6,15 +6,14 @@ import numpy as np
 import torch.nn as nn
 import subprocess
 import logging
-import sys
 import os
 import tempfile
-import csv
-from resistify.annotations import Annotation
 import warnings
 
 log = logging.getLogger(__name__)
 logging.getLogger("transformers").setLevel(logging.CRITICAL)
+
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 class TransposeX(nn.Module):
@@ -69,222 +68,192 @@ class MMModelLSTM(nn.Module):
         return x
 
 
-PROT_T5_FILES = [
-    "config.json",
-    "pytorch_model.bin",
-    "special_tokens_map.json",
-    "spiece.model",
-    "tokenizer_config.json",
-]
+class EmbeddingProcessor:
+    def __init__(self, models_path):
+        # Initialize devices and models only once
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        log.debug(f"Device is {self.device}")
 
-ESM2_FILES = ["esm2_t33_650M_UR50D-contact-regression.pt", "esm2_t33_650M_UR50D.pt"]
+        if models_path is not None:
+            # ProtT5 Model
+            self.prot_t5_model = T5EncoderModel.from_pretrained(
+                os.path.join(models_path, "prott5")
+            ).to(self.device)
+            self.prot_t5_tokenizer = T5Tokenizer.from_pretrained(
+                os.path.join(models_path, "prott5")
+            )
 
-
-def split_sequences(sequences):
-    sequence_ids, lengths, chunk_ids, chunk_sequences = [], [], [], []
-    for sequence in sequences:
-        if sequence.classification in ["N", "CN"]:
-            nterminal_sequence = sequence.get_nterminal()
-            # Probably arbitrary, but 5 is unlikely to affect results
-            if len(nterminal_sequence) < 5:
-                log.debug(f"{sequence.id} N-terminal too short, will not be processed")
-                continue
-            sequence_ids.append(sequence.id)
-            lengths.append(len(nterminal_sequence))
-            if len(nterminal_sequence) >= 1022:
-                log.debug(
-                    f"N-terminus of {sequence.id} is too long, splitting into chunks..."
-                )
-                for i in range(0, len(nterminal_sequence), 1022):
-                    chunk_ids.append(f"{sequence.id}_{i}")
-                    chunk_sequences.append(nterminal_sequence[i : i + 1022])
-            else:
-                chunk_ids.append(f"{sequence.id}_0")
-                chunk_sequences.append(nterminal_sequence)
-    return sequence_ids, lengths, chunk_ids, chunk_sequences
-
-
-def prot_t5_embedding(sequences, prot_t5_database):
-    lengths = [len(sequence) for sequence in sequences]
-    log.debug("Loading ProtT5 model...")
-    # suppress warning about weights
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=FutureWarning)
-        model = T5EncoderModel.from_pretrained(prot_t5_database)
-        tokenizer = T5Tokenizer.from_pretrained(prot_t5_database)
-    log.debug("Generating ProtT5 embeddings...")
-    sequences = [
-        " ".join(list(re.sub(r"[UZOB]", "X", sequence))) for sequence in sequences
-    ]
-    ids = tokenizer.batch_encode_plus(
-        sequences, add_special_tokens=True, padding="longest"
-    )
-    input_ids = torch.tensor(ids["input_ids"])
-    attention_mask = torch.tensor(ids["attention_mask"])
-    log.debug("Computing ProtT5 embeddings...")
-    with torch.no_grad():
-        embedding_repr = model(input_ids=input_ids, attention_mask=attention_mask)
-
-    embeddings = [
-        embedding_repr.last_hidden_state[i, : lengths[i]].detach().cpu().numpy()
-        for i in range(len(sequences))
-    ]
-    log.debug(
-        f"Embedding for Prot5 completed, length of embeddings is {len(embeddings)}"
-    )
-    return embeddings
-
-
-def esm_embedding(sequences, sequence_ids, esm2_database):
-    log.debug("Loading ESM2 model...")
-    # suppress warning about weights
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=FutureWarning)
-        model, alphabet = esm.pretrained.load_model_and_alphabet(esm2_database)
-    model.eval()
-    log.debug("Generating ESM2 embeddings...")
-    batch_converter = alphabet.get_batch_converter()
-    batch_labels, batch_strs, batch_tokens = batch_converter(
-        list(zip(sequence_ids, sequences))
-    )
-    batch_lens = (batch_tokens != alphabet.padding_idx).sum(1)
-    with torch.no_grad():
-        results = model(batch_tokens, repr_layers=[33], return_contacts=False)
-    token_representations = results["representations"][33]
-    embeddings = [
-        token_representations[i, 1 : tokens_len - 1].detach().cpu().numpy()
-        for i, tokens_len in enumerate(batch_lens)
-    ]
-    log.debug(
-        f"Embedding for ESM2 completed, length of embeddings is {len(embeddings)}"
-    )
-    return embeddings
-
-
-def merge_embeddings(chunk_ids, embeddings):
-    previous = None
-    merged_embedding = []
-    for i, chunk_id in enumerate(chunk_ids):
-        sequence_id = chunk_id.rsplit("_", 1)[0]
-        if sequence_id != previous:
-            log.debug(f"Creating new merged embedding for {sequence_id}")
-            merged_embedding.append(embeddings[i])
+            # ESM Model
+            self.esm_model, self.esm_alphabet = esm.pretrained.load_model_and_alphabet(
+                os.path.join(models_path, "esm", "esm2_t33_650M_UR50D.pt")
+            )
         else:
-            log.debug(f"Merging embedding for {sequence_id}")
-            merged_embedding[-1] = np.vstack((merged_embedding[-1], embeddings[i]))
-        previous = sequence_id
-    log.debug(f"Merged embedding length: {len(merged_embedding)}")
-    return merged_embedding
+            # ProtT5 Model
+            self.prot_t5_model = T5EncoderModel.from_pretrained(
+                "Rostlab/prot_t5_xl_half_uniref50-enc"
+            ).to(self.device)
+            self.prot_t5_tokenizer = T5Tokenizer.from_pretrained(
+                "Rostlab/prot_t5_xl_half_uniref50-enc"
+            )
+
+            # ESM Model
+            self.esm_model, self.esm_alphabet = esm.pretrained.esm2_t33_650M_UR50D()
+
+        self.esm_model.eval()
+        self.batch_converter = self.esm_alphabet.get_batch_converter()
+
+    def process_prot_t5_embedding(self, sequences):
+        """
+        Compute ProtT5 embeddings for given sequences.
+
+        Args:
+            sequences (list): List of protein sequences
+
+        Returns:
+            list: List of numpy embeddings
+        """
+        lengths = [len(sequence) for sequence in sequences]
+        sequences = [
+            " ".join(list(re.sub(r"[UZOB]", "X", sequence))) for sequence in sequences
+        ]
+
+        ids = self.prot_t5_tokenizer.batch_encode_plus(
+            sequences, add_special_tokens=True, padding="longest"
+        )
+        input_ids = torch.tensor(ids["input_ids"]).to(self.device)
+        attention_mask = torch.tensor(ids["attention_mask"]).to(self.device)
+
+        with torch.no_grad():
+            embedding_repr = self.prot_t5_model(
+                input_ids=input_ids, attention_mask=attention_mask
+            )
+
+        embeddings = [
+            embedding_repr.last_hidden_state[i, : lengths[i]].detach().cpu().numpy()
+            for i in range(len(sequences))
+        ]
+
+        return embeddings
+
+    def process_esm_embedding(self, chunk_ids, chunk_seqs):
+        batch_labels, batch_strs, batch_tokens = self.batch_converter(
+            list(zip(chunk_ids, chunk_seqs))
+        )
+
+        batch_lens = (batch_tokens != self.esm_alphabet.padding_idx).sum(1)
+
+        with torch.no_grad():
+            results = self.esm_model(
+                batch_tokens, repr_layers=[33], return_contacts=False
+            )
+
+        token_representations = results["representations"][33]
+
+        embeddings = [
+            token_representations[i, 1 : tokens_len - 1].detach().cpu().numpy()
+            for i, tokens_len in enumerate(batch_lens)
+        ]
+
+        return embeddings
 
 
-def predict_register_probability(lengths, merged, registers_model):
-    output_path = tempfile.NamedTemporaryFile()
-    log.debug("Loading registers model...")
-    checkpoint = torch.load(registers_model, weights_only=False)
-    model = MMModelLSTM()
-    model.load_state_dict(checkpoint["state_dict"])
-    model.eval()
-    prediction = model(merged, lengths).detach().cpu().numpy()
-    with open(output_path.name, "w") as outfile:
-        for i in range(prediction.shape[0]):
-            for j in range(lengths[i]):
-                prediction_values = " ".join([str(x) for x in prediction[i, j]])
-                outfile.write(f"{prediction_values} i\n")
-            outfile.write("\n")
-    return output_path
-
-
-def crf(sequence_ids, register_path, biocrf_path, crf_model):
-    output_path = tempfile.NamedTemporaryFile()
-    prefix_directory = tempfile.TemporaryDirectory()
-    prefix_path = os.path.join(prefix_directory.name, "crf")
-    subprocess.call(
-        [
-            f"{biocrf_path}",
-            "-test",
-            "-m",
-            f"{crf_model}",
-            "-w",
-            "7",
-            "-d",
-            "posterior-viterbi-sum",
-            "-o",
-            f"{output_path.name}",
-            "-q",
-            f"{prefix_path}",
-            f"{register_path.name}",
-        ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-
-    # A prefix file is created for each sequence (or sequence chunk).
-    # Iterate through the sequence ids and extract the first column of the prefix file - these are the per-residue probabilities.
-    cc_probabilities = {}
-
-    for i, sequence_id in enumerate(sequence_ids):
-        log.debug(f"Loading crf probabilities for {sequence_id} in {prefix_path}_{i}")
-        probability_matrix = np.loadtxt(f"{prefix_path}_{i}")
-        # extract first column
-        cc_probability = 1 - probability_matrix[:, 0]
-        cc_probabilities[sequence_id] = cc_probability
-
-    return cc_probabilities
-
-
-def coconat(sequences, database):
-    """
-    Use Coconat to predict coiled-coil domains in the N-terminal regions of NLRs.
-    """
-    log.debug("Validating Coconat database...")
-    if not os.path.isdir(database):
-        log.error(f"Coconat database not found at {database}")
-        sys.exit(1)
-
-    for file in PROT_T5_FILES:
-        if not os.path.isfile(os.path.join(database, "prot_t5_xl_uniref50", file)):
-            log.error(f"Coconat database is missing file: {file}")
-            sys.exit(1)
-
-    for file in ESM2_FILES:
-        if not os.path.isfile(os.path.join(database, "esm2", file)):
-            log.error(f"Coconat database is missing file: {file}")
-            sys.exit(1)
-
-    prot_t5_database = os.path.join(database, "prot_t5_xl_uniref50")
-    esm2_database = os.path.join(database, "esm2", "esm2_t33_650M_UR50D.pt")
+def coconat(sequences, models_path: str):
     registers_model = os.path.join(os.path.dirname(__file__), "data", "dlModel.ckpt")
     biocrf_path = os.path.join(os.path.dirname(__file__), "bin", "biocrf-static")
     crf_model = os.path.join(os.path.dirname(__file__), "data", "crfModel")
 
-    log.debug("Extracting N-terminal sequences...")
-    sequence_ids, lengths, chunk_ids, chunk_sequences = split_sequences(sequences)
+    log.debug("Loading embedder...")
+    embedding_processor = EmbeddingProcessor(models_path)
+    log.debug("Loading registers model...")
+    checkpoint = torch.load(registers_model)
+    register_model = MMModelLSTM()
+    register_model.load_state_dict(checkpoint["state_dict"])
+    register_model.eval()
 
-    # if no n-termini are found, return
-    if not sequence_ids:
-        return sequences
+    for chunk_start in range(0, len(sequences), 5):
+        log.debug("Processing batch...")
 
-    prot_t5_embeddings = prot_t5_embedding(chunk_sequences, prot_t5_database)
-    prot_t5_embeddings = merge_embeddings(chunk_ids, prot_t5_embeddings)
+        chunk_ids, chunk_seqs, chunk_lengths = [], [], []
+        for sequence in sequences[chunk_start : chunk_start + 5]:
+            n_terminal_seq = sequence.get_nterminal()
+            if n_terminal_seq is None:
+                log.debug(f"{sequence.id} has no N-terminus, skipping...")
+                continue
+            elif len(n_terminal_seq) < 5:
+                log.debug(f"{sequence.id} N-terminus too short for CoCoNat")
+                continue
+            elif len(n_terminal_seq) >= 1022:
+                log.warning(
+                    f"{sequence.id} N-terminus quite long, errors might occur..."
+                )
 
-    esm_embeddings = esm_embedding(chunk_sequences, chunk_ids, esm2_database)
-    esm_embeddings = merge_embeddings(chunk_ids, esm_embeddings)
+            chunk_ids.append(sequence.id)
+            chunk_seqs.append(n_terminal_seq)
+            chunk_lengths.append(len(n_terminal_seq))
 
-    merged = [
-        torch.from_numpy(np.hstack((prot_t5_embeddings[i], esm_embeddings[i])))
-        for i in range(len(sequence_ids))
-    ]
+        if len(chunk_ids) == 0:
+            continue
 
-    merged = torch.nn.utils.rnn.pad_sequence(merged, batch_first=True)
+        prot_t5_embeddings = embedding_processor.process_prot_t5_embedding(chunk_seqs)
+        esm_embeddings = embedding_processor.process_esm_embedding(
+            chunk_ids, chunk_seqs
+        )
 
-    register_path = predict_register_probability(lengths, merged, registers_model)
+        merged = [
+            torch.from_numpy(np.hstack((prot_t5_embeddings[i], esm_embeddings[i])))
+            for i in range(len(chunk_ids))
+        ]
 
-    merged = merged.detach().cpu().numpy()
+        merged = torch.nn.utils.rnn.pad_sequence(merged, batch_first=True)
 
-    cc_probabilities = crf(sequence_ids, register_path, biocrf_path, crf_model)
+        prediction = register_model(merged, chunk_lengths).detach().cpu().numpy()
 
-    for sequence in sequences:
-        if sequence.id in cc_probabilities:
-            sequence.cc_probs = cc_probabilities[sequence.id]
+        temp_dir = tempfile.TemporaryDirectory()
+        prediction_file = os.path.join(temp_dir.name, "predictions")
+        output_file = os.path.join(temp_dir.name, "out")
+        prefix_path = os.path.join(temp_dir.name, "crf")
+
+        with open(prediction_file, "w") as outfile:
+            for i in range(prediction.shape[0]):
+                for j in range(chunk_lengths[i]):
+                    prediction_values = " ".join([str(x) for x in prediction[i, j]])
+                    outfile.write(f"{prediction_values} i\n")
+                outfile.write("\n")
+
+        subprocess.run(
+            [
+                f"{biocrf_path}",
+                "-test",
+                "-m",
+                f"{crf_model}",
+                "-w",
+                "7",
+                "-d",
+                "posterior-viterbi-sum",
+                "-o",
+                f"{output_file}",
+                "-q",
+                f"{prefix_path}",
+                f"{prediction_file}",
+            ],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        cc_probabilities = {}
+
+        for i, sequence_id in enumerate(chunk_ids):
+            log.debug(
+                f"Loading crf probabilities for {sequence_id} in {prefix_path}_{i}"
+            )
+            probability_matrix = np.loadtxt(f"{prefix_path}_{i}")
+            # extract first column
+            cc_probability = 1 - probability_matrix[:, 0]
+            cc_probabilities[sequence_id] = cc_probability
+
+        for sequence in sequences:
+            if sequence.id in cc_probabilities.keys():
+                sequence.cc_probs = cc_probabilities[sequence.id]
 
     return sequences

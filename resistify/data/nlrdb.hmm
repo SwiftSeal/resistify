@@ -2811,6 +2811,7 @@ HMM          A        C        D        E        F        G        H        I   
 //
 HMMER3/f [3.2.1 | June 2018]
 NAME  MADA
+ACC   MADA
 LENG  21
 ALPH  amino
 RF    no

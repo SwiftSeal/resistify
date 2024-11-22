@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "resistify"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
   "scikit-learn==0.24.2",
   "numpy<1.23.0",
@@ -12,8 +12,6 @@ dependencies = [
   "rich",
   "rich-argparse",
   "torch",
-  "torchvision",
-  "torchaudio",
   "fair-esm",
   "transformers==4.31.0",
   "sentencepiece",

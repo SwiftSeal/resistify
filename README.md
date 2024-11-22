@@ -1,59 +1,50 @@
 # Resistify 🍃
+
 ![Conda Version](https://img.shields.io/conda/vn/bioconda/resistify)
 ![Conda Downloads](https://img.shields.io/conda/dn/bioconda/resistify)
 
-Resistify is a program which classifies plant NLRs by their protein domain and motif architecture.
-It is designed to be lightweight - no manual database installations* or tricky dependencies here!
+*More than 2,500 downloads - thank you all!*
 
-\**Optional database not included!*
+Resistify is a program which rapidly identifies and classifies plant resistance genes from protein sequences.
+It is designed to be lightweight and easy to use.
 
-![terminal](assets/terminal.png)
+![A screenshot of the help interface of resistify](assets/terminal.png)
+
+## What's new in v0.6.0?
+
+The release of `v0.6.0` has brought a number of changes to `Resistify`.
+First, you'll note that there are now two modes available - NLR and PRR - which identify NLRs and PRRs respectively.
+
+The NLR pipeline is largely the same, but has received multiple performance improvements which should allow it to utilise more threads simultaneously and significantly reduce memory usage.
+As a result of these changes, the `--threads` mode has now been removed which was a bit of a lie anyway, as numpy would use them all regardless.
+The `--ultra` setting has been renamed as `--retain`.
+
+The PRR pipeline is new to `Resistify` and is currently in development.
+It uses a re-implementation of [TMbed](https://github.com/BernhoferM/TMbed) to predict transmembrane domains, from which it will identify and classify RLP/RLKs according to a [recently described classification system](https://doi.org/10.1016/j.molp.2024.02.014).
+Feel free to give it a try and offer suggestions!
+Due to other commitments I can't currently benchmark this properly and make no guarantees to its accuracy yet.
 
 ## Installation
 
-Resistify is available on [Conda](https://anaconda.org/bioconda/resistify):
+`Resistify` is available on [Conda](https://anaconda.org/bioconda/resistify):
 
 `conda install -c bioconda resistify`
 
 Docker/Podman containers are also available through the [biocontainers repository](https://quay.io/repository/biocontainers/resistify?tab=tags).
 To use these with - for example - singularity, simply run:
 
-`singularity exec docker://quay.io/biocontainers/resistify:<tag-goes-here>` 
+`singularity exec docker://quay.io/biocontainers/resistify:<tag-goes-here>`
 
 ## Usage
 
-To get started with Resistify:
+### Identifying NLRs
+
+To predict NLRs within a set of protein sequences, simply run:
 
 ```
-resistify <input.fa> <output_directory>
+resistify nlr <input.fa>
 ```
-
-### CoCoNat-based CC annotation (EXPERIMENTAL)
-
-Version 0.5.0 has introduced an optional module that will use [CoCoNat](https://doi.org/10.1093/bioinformatics/btad495) to improve the identification of CC domains.
-To use this feature, you will first need to download their databases:
-
-```
-wget https://coconat.biocomp.unibo.it/static/data/coconat-plms.tar.gz
-tar xvzf coconat-plms.tar.gz
-```
-
-Then, simply provide a path to the database folder with the argument `--coconat`.
-CoCoNat will then be used to improve the annotation of coiled-coil domains in your input.
-
-This uses a stripped down version of CoCoNat - currently it will only identify CC domain boundaries and not predict residue-level registers or oligomerization states.
-
-### Ultra mode
-
-By default `Resistify` will perform an initial filter to remove non-NLRs prior to motif identification.
-Highly degraded or non-canonical NLRs may not be reported.
-If you wish to retain these, simply use `--ultra` mode to skip this step.
-You can use this to identify any NLR-associated motifs in a dataset.
-
-## Results
-
-Your `input.fa` should contain your protein sequences of interest.
-An `output_directory` will be created which will contain the results of your run:
+and `Resistify` will identify and classify NLRs, and return some files:
  - `results.tsv` - A table containing the primary results of `Resistify`.
  - `motifs.tsv` - A table of all the NLR motifs identified for each sequence.
  - `domains.tsv` - A table of all the domains identified for each sequence.
@@ -61,9 +52,49 @@ An `output_directory` will be created which will contain the results of your run
  - `nbarc.fasta` - A fasta file of all the NB-ARC domains identified.
  - `nlr.fasta` - A fasta file of all NLRs identified.
 
-As an example, let's look at the results of a `Resistify` run against the NLR [ZAR1](https://www.ncbi.nlm.nih.gov/protein/15230357).
+By default, `Resistify` will only return sequences with NB-ARC domains.
+If you wish to identify highly fragmented NLRs, you can use the `--retain` option which will predict and report NLR-associated motifs for all sequences.
+It'll be a bit slower!
 
-### results.tsv
+If you want to increase the sensitivity of coiled-coil domain annotation, you can use the option `--coconat`.
+This will use [CoCoNat](https://doi.org/10.1093/bioinformatics/btad495) to predict coiled-coil domains.
+In practice, I wouldn't expect this mode to pick up on a significant number of missed CC domains, but it can pick up on cryptic CCs that do not have an identifiable EDVID motif.
+
+#### How does it work?
+
+`Resistify` carries out an initial search for common NLR domains to quickly filter and annotate the input sequences.
+Then, `Resistify` executes a re-implementation of `NLRexpress` to conduct a highly accurate search for NLR-associated motifs.
+If `--coconat` is used, this will also be executed to scavenge for potentially missed coiled-coil domains. 
+
+### Identifying PRRs
+
+To predict PRRs within a set of protein sequences, simply run:
+
+```
+resistify prr <input.fa>
+```
+
+and `Resistify` will identify and classify PRRs, and return some files:
+ - `results.tsv` - A table containing the primary results of `Resistify`.
+ - `motifs.tsv` - A table of all the LRR motifs identified for each sequence.
+ - `domains.tsv` - A table of all the domains identified for each sequence.
+ - `annotations.tsv` - A table of the raw annotations for each sequence.
+ - `prr.fasta` - A fasta file of all PRRs identified.
+
+ This mode uses [TMBed](https://doi.org/10.1186/s12859-022-04873-x) to predict transmembrane domains.
+ It greatly benefits from GPU acceleration - running with CPUs only will be extremely slow and memory intensive.
+
+### Downloading model data
+
+By default, `Resistify` will automatically download the models required for CoConat and TMbed to your `$HOME/.cache` directory.
+If you'd like to manually install the databases instead, you can use the `resistify download_models` utility to download these to a directory of your choice.
+To provide these local models to the CoCoNat and TMbed processes, simply pass the path of the models directory via the `--models` argument.
+Approximately 13G of disk space is required.
+If you only intend to use the NLR module without `--coconat`, no external databases will be downloaded.
+
+## Results
+
+### results.tsv (nlr)
 
 | Sequence | Length | Motifs | Domains | Classification | NBARC_motifs | MADA | MADAL | CJID |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -73,6 +104,17 @@ The main column of interest is "Classification", where we can see that it has be
 The "Motifs" column indicates the series of NLR-associated motifs identified across the sequence - this can be useful if an NLR has an undetermined or unexpected classification.
 The columns "MADA", "MADAL", and "CJID" correspond to common NLR sequence signatures.
 Here, it appears that ZAR1 has a MADA-like motif.
+
+### results.tsv (prr)
+
+| Sequence | Length | Type | Classification | Signal_peptide |
+| --- | --- | --- | --- | --- |
+| fls2 | 1174 | RLK | LRR | True |
+
+For PRRs, sequences can be of the type RLP or RLK - both are single pass transmembrane proteins, and RLKs have an internal kinase domain.
+Classification refers to the domains identified in the external region.
+If multiple domains are identified, they will each be reported as a semi-colon separated list.
+If a signal peptide is identified in the sequence, this is reported accordingly.
 
 ### motifs.tsv
 
@@ -101,6 +143,7 @@ Here, it appears that ZAR1 has a MADA-like motif.
 
 Here, the positions, probabilities, and sequence of NLRexpress motif hits are listed.
 The five amino acids upstream and downstream of the motif site are also provided.
+In PRR mode, only LRR motifs will be reported.
 
 ### domains.tsv
 
@@ -166,7 +209,7 @@ myplot <- myplot +
 
 ### Domain plotting
 
-Somtimes, it might be of interest to plot the distribution of domains and motifs across each NLR.
+Sometimes, it might be of interest to plot the distribution of domains and motifs across each NLR.
 Achieving this with `Resistify` is quite simple:
 
 ```{R}
@@ -207,12 +250,6 @@ myplot <- ggplot() +
 
 *Cute! NB: Some false-positive motif hits are evident in this example - it might be of interest to not plot them, or plot only LRR motifs which tend to be a bit more informative.*
 
-## A note on run time
-
-The run time of `resistify` scales linearly with the total number of NLRs present in the input sequence file.
-A file with 200 NLRs will take approximately twice as long as a file with 100 NLRs.
-This does not apply to the total number of *sequences* - an input of 50,000 sequences with 100 NLRs will run just as fast as an input of 1,000 sequences with 100 NLRs.
-
 ## Contributing
 
 Contributions are greatly appreciated!
@@ -241,4 +278,12 @@ If you use the CoCoNat module, please cite:
 CoCoNat: a novel method based on deep learning for coiled-coil prediction
 Giovanni Madeo, Castrense Savojardo, Matteo Manfredi, Pier Luigi Martelli, Rita Casadio
 Bioinformatics 2023; doi: https://doi.org/10.1093/bioinformatics/btad495
+```
+
+If you use the PRR module, please cite:
+
+```
+TMbed: transmembrane proteins predicted through language model embeddings.
+Bernhofer, M., Rost, B.
+BMC Bioinformatics 2022; doi: https://doi.org/10.1186/s12859-022-04873-x
 ```

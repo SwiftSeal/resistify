@@ -1,5 +1,8 @@
 # custom
 
+test/
+models/
+
 .DS_Store
 
 # Byte-compiled / optimized / DLL files
