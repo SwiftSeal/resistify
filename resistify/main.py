@@ -25,29 +25,90 @@ from resistify.tmbed import tmbed
 __version__ = "0.6.0"
 
 
-def parse_args():
+def add_common_args(parser):
+    """
+    Add common arguments shared between NLR and PRR parsers.
+    """
+    parser.add_argument(
+        "input",
+        type=validate_input_file,
+        help="Path to the input FASTA file containing sequences to be analyzed.",
+    )
+    parser.add_argument(
+        "-o", "--outdir",
+        help="Path to the output directory where results will be saved.",
+        default=os.getcwd(),
+    )
+    parser.add_argument(
+        "--models-path",
+        help="Path to the downloaded models directory. If not provided, models will be downloaded to $HOME/.cache/ by default.",
+        default=None,
+    )
+    parser.add_argument(
+        "--lrr_gap",
+        help="Minimum gap (in amino acids) between LRR motifs. Default is 75.",
+        default=75,
+        type=int,
+    )
+    parser.add_argument(
+        "--lrr_length",
+        help="Minimum number of LRR motifs required to be considered an LRR domain. Default is 4.",
+        default=4,
+        type=int,
+    )
+    parser.add_argument(
+        "--duplicate_gap",
+        help="Gap size (in amino acids) to consider merging duplicate annotations. Default is 100.",
+        default=100,
+        type=int,
+    )
+    parser.add_argument(
+        "--evalue",
+        help="E-value threshold for hmmsearch. Default is 0.00001.",
+        default="0.00001",
+    )
+    parser.add_argument(
+        "--chunksize",
+        help="Number of sequences per split for jackhmmer. Default is 5.",
+        default=5,
+        type=int,
+    )
+
+def validate_input_file(filepath):
+    """
+    Validate that the input file exists.
+    """
+    if not os.path.isfile(filepath):
+        raise argparse.ArgumentTypeError(f"Input file {filepath} does not exist")
+    return filepath
+
+def parse_args(args=None):
+    """
+    Parse command-line arguments for Resistify.
+    """
     parser = argparse.ArgumentParser(
-        description="""
-        Resistify is a tool for identifying and classifying resistance genes in plant genomes.
-        """,
+        description="A tool for identifying and classifying resistance genes in plant genomes.",
         formatter_class=RichHelpFormatter,
     )
 
-    # Add global arguments
+    # Global arguments
     parser.add_argument(
-        "-v",
-        "--version",
+        "-v", "--version",
         action="version",
         version=f"v{__version__}",
         help="Show the version number and exit.",
     )
     parser.add_argument(
-        "--debug", help="Enable debug logging for detailed output.", action="store_true"
+        "--debug", 
+        help="Enable debug logging for detailed output.", 
+        action="store_true"
     )
 
-    # Add subparsers
+    # Subparsers
     subparsers = parser.add_subparsers(
-        dest="command", required=True, help="Subcommands"
+        dest="command", 
+        required=True, 
+        help="Subcommands"
     )
 
     # NLR subparser
@@ -56,65 +117,22 @@ def parse_args():
         help="Identify and classify NLR resistance genes.",
         formatter_class=RichHelpFormatter,
     )
+    add_common_args(nlr_parser)
     nlr_parser.add_argument(
         "--retain",
         help="Non-NLRs will be retained for motif prediction and reported in the final output.",
         action="store_true",
     )
     nlr_parser.add_argument(
-        "--models-path",
-        help="Path to the downloaded models directory. If unset, models will be downloaded to $HOME/.cache/ by default.",
-        default = None,
-    )
-    nlr_parser.add_argument(
         "--batch",
-        help="Number of sequences to process in parallel. This can help reduce memory usage.",
+        help="Number of sequences to process in parallel with jackhmmer.",
         default=None,
         type=int,
     )
     nlr_parser.add_argument(
         "--coconat",
-        help="!EXPERIMENTAL! Path to the Coconat database. If provided, Coconat will be used to improve coiled-coil (CC) annotations.",
+        help="If enabled, Coconat will be used to improve coiled-coil (CC) annotations.",
         action="store_true",
-    )
-    nlr_parser.add_argument(
-        "--chunksize",
-        help="Number of sequences per split for jackhmmer. Default is 5.",
-        default=5,
-        type=int,
-    )
-    nlr_parser.add_argument(
-        "--evalue",
-        help="E-value threshold for hmmsearch. Default is 0.00001.",
-        default="0.00001",
-    )
-    nlr_parser.add_argument(
-        "--lrr_gap",
-        help="Minimum gap (in amino acids) between LRR motifs. Default is 75.",
-        default=75,
-        type=int,
-    )
-    nlr_parser.add_argument(
-        "--lrr_length",
-        help="Minimum number of LRR motifs required to be considered an LRR domain. Default is 4.",
-        default=4,
-        type=int,
-    )
-    nlr_parser.add_argument(
-        "--duplicate_gap",
-        help="Gap size (in amino acids) to consider merging duplicate annotations. Default is 100.",
-        default=100,
-        type=int,
-    )
-    nlr_parser.add_argument(
-        "-o",
-        "--outdir",
-        help="Path to the output directory where results will be saved.",
-        default=os.getcwd(),
-    )
-    nlr_parser.add_argument(
-        "input",
-        help="Path to the input FASTA file containing sequences to be analyzed.",
     )
 
     # PRR subparser
@@ -123,50 +141,9 @@ def parse_args():
         help="Identify and classify PRR resistance genes.",
         formatter_class=RichHelpFormatter,
     )
-    prr_parser.add_argument(
-        "input",
-        help="Path to the input FASTA file containing sequences to be analyzed.",
-    )
-    prr_parser.add_argument(
-        "-o",
-        "--outdir",
-        help="Path to the output directory where results will be saved.",
-        default=os.getcwd(),
-    )
-    prr_parser.add_argument(
-        "--models-path",
-        help="Path to the downloaded models directory. If unset, models will be downloaded to $HOME/.cache/ by default.",
-        default = None,
-    )
-    prr_parser.add_argument(
-        "--lrr_gap",
-        help="Minimum gap (in amino acids) between LRR motifs. Default is 75.",
-        default=75,
-        type=int,
-    )
-    prr_parser.add_argument(
-        "--lrr_length",
-        help="Minimum number of LRR motifs required to be considered an LRR domain. Default is 4.",
-        default=4,
-        type=int,
-    )
-    prr_parser.add_argument(
-        "--duplicate_gap",
-        help="Gap size (in amino acids) to consider merging duplicate annotations. Default is 100.",
-        default=100,
-        type=int,
-    )
-    prr_parser.add_argument(
-        "--evalue",
-        help="E-value threshold for hmmsearch. Default is 0.00001.",
-        default="0.00001",
-    )
-    prr_parser.add_argument(
-        "--chunksize",
-        help="Number of sequences per split for jackhmmer. Default is 5.",
-        default=5,
-        type=int,
-    )
+    add_common_args(prr_parser)
+
+    # Download models subparser
     download_parser = subparsers.add_parser(
         "download_models",
         help="Download models for CoCoNat and TMbed.",
@@ -174,10 +151,10 @@ def parse_args():
     )
     download_parser.add_argument(
         "models_path",
-        help="Path to directory"
+        help="Path to the directory which will be used to store downloaded models."
     )
 
-    return parser.parse_args()
+    return parser.parse_args(args)
 
 
 def nlr(args, log):
@@ -267,7 +244,7 @@ def download(args, log):
     log.info("Downloading model data...")
     download_files(args.models_path)
     verify_files(args.models_path)
-    log.info(f"Models downloaded successfully. You can supply these to resistify with the argument `--models {args.models_path}")
+    log.info("Models downloaded successfully. You can supply these to Resistify with the argument `--models <path-to-directory>`")
 
 
 def main():
