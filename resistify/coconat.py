@@ -57,10 +57,10 @@ class MMModelLSTM(nn.Module):
         )
         self.final = nn.Softmax(dim=-1)
 
-    def forward(self, x, l):
+    def forward(self, x, lengths):
         x = self.cnn(x)
         x = torch.nn.utils.rnn.pack_padded_sequence(
-            x, l, batch_first=True, enforce_sorted=False
+            x, lengths, batch_first=True, enforce_sorted=False
         )
         x, _ = self.lstm(x)
         x, _ = torch.nn.utils.rnn.pad_packed_sequence(x, batch_first=True)
