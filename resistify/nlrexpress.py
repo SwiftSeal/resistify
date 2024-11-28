@@ -7,6 +7,11 @@ import logging
 import tempfile
 from multiprocessing import Pool, cpu_count
 import shutil
+import warnings
+
+# Hide warning from unpickle - seems to not be an issue
+from sklearn.exceptions import InconsistentVersionWarning
+warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
 
 log = logging.getLogger(__name__)
 
