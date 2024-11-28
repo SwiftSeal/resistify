@@ -35,6 +35,16 @@ To use these with - for example - singularity, simply run:
 
 `singularity exec docker://quay.io/biocontainers/resistify:<tag-goes-here>`
 
+Alternatively, if you wish to install the latest version manually:
+
+```
+git clone https://github.com/SwiftSeal/resistify.git
+cd resistify
+pip install .
+```
+
+Note that you will need to install `hmmer` manually for this.
+
 ## Usage
 
 ### Identifying NLRs
