@@ -4,16 +4,16 @@ build-backend = "hatchling.build"
 
 [project]
 name = "resistify"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
-  "scikit-learn==0.24.2",
-  "numpy<1.23.0",
+  "scikit-learn",
+  "numpy",
   "biopython",
   "rich",
   "rich-argparse",
   "torch",
   "fair-esm",
-  "transformers==4.31.0",
+  "transformers",
   "sentencepiece",
 ]
 authors = [
