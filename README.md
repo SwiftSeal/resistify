@@ -26,16 +26,21 @@ Due to other commitments I can't currently benchmark this properly and make no g
 
 ## Installation
 
-`Resistify` is available on [Conda](https://anaconda.org/bioconda/resistify):
+`Resistify` is available via the [Bioconda](https://anaconda.org/bioconda/resistify) channel:
 
-`conda install -c bioconda resistify`
+```
+conda create -n resistify bioconda::resistify
+conda activate resistify
+```
+
+When using `conda`, please ensure that your Bioconda has been [configured correctly](https://bioconda.github.io/#usage).
 
 Docker/Podman containers are also available through the [biocontainers repository](https://quay.io/repository/biocontainers/resistify?tab=tags).
-To use these with - for example - singularity, simply run:
+To use these with - for example - `singularity`, simply run:
 
 `singularity exec docker://quay.io/biocontainers/resistify:<tag-goes-here>`
 
-Alternatively, if you wish to install the latest version manually:
+If you are having issues with `conda`, you can instead try installing directly from the repository:
 
 ```
 git clone https://github.com/SwiftSeal/resistify.git
@@ -43,7 +48,7 @@ cd resistify
 pip install .
 ```
 
-Note that you will need to install `hmmer` manually for this.
+Note that `resistify` requires `hmmer` to be installed and available in your system's PATH, which will not be installed automatically when using `pip`.
 
 ## Usage
 
