@@ -9,11 +9,14 @@ from multiprocessing import Pool, cpu_count
 import shutil
 import warnings
 
-# Hide warning from unpickle - seems to not be an issue
-from sklearn.exceptions import InconsistentVersionWarning
-warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
-
 log = logging.getLogger(__name__)
+
+try:
+    from sklearn.exceptions import InconsistentVersionWarning
+    warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
+except ImportError:
+    log.debug("sklearn version is too old to suppress warnings")
+
 
 MOTIF_SPAN_LENGTHS = {
     "extEDVID": 12,
