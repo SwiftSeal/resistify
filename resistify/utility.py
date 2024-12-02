@@ -29,11 +29,11 @@ def parse_fasta(path):
             # need to remove asterisk, interferes with hmmsearch
             sequence_str = str(record.seq).strip("*")
             if "*" in sequence_str:
-                log.error(f"Internal stop codon detected in sequence {record.id}")
-                sys.exit(1)
+                log.warning(f"An internal '*' character is present in {record.id} - skipping this sequence...")
+                continue
             if len(sequence_str) > 100000:
                 log.warning(
-                    f"Sequence {record.id} is too long (>100k aa). This sequence will not be analysed!"
+                    f"Sequence {record.id} is longer than 100k amino acids - skipping this sequence..."
                 )
                 continue
             sequences.append(Sequence(record.id, sequence_str))
