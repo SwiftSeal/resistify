@@ -22,7 +22,7 @@ from resistify.nlrexpress import nlrexpress
 from resistify.coconat import coconat
 from resistify.tmbed import tmbed
 
-__version__ = "0.6.0"
+__version__ = "0.6.2"
 
 
 def add_common_args(parser):
@@ -166,6 +166,7 @@ def write_results(sequences, args):
             os.path.join(results_dir, "nlr.fasta"),
             classified_only=args.retain,
         )
+        extract_nbarc(sequences, results_dir)
         if args.coconat:
             coconat_table(sequences, results_dir)
     elif args.command == "prr":
