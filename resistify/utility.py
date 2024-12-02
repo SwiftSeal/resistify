@@ -6,22 +6,9 @@ import json
 import hashlib
 import requests
 from Bio import SeqIO
-from resistify.annotations import Sequence
+from resistify.annotations import Sequence, NBARC_MOTIFS
 
 log = logging.getLogger(__name__)
-
-NBARC_MOTIFS = [
-    "VG",
-    "P-loop",
-    "RNSB-A",
-    "Walker-B",
-    "RNSB-B",
-    "RNSB-C",
-    "RNSB-D",
-    "GLPL",
-    "MHD",
-]
-
 
 def create_output_directory(outdir):
     try:

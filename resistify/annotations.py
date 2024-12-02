@@ -4,6 +4,19 @@ log = logging.getLogger(__name__)
 
 nlr_classifications = ["RNL", "CNL", "TNL", "RN", "CN", "TN", "NL", "N"]
 
+TIR_MOTIFS = ["aA", "aC", "aD3", "bA", "bC", "bDaD1"]
+NBARC_MOTIFS = [
+    "VG",
+    "P-loop",
+    "RNSB-A",
+    "Walker-B",
+    "RNSB-B",
+    "RNSB-C",
+    "RNSB-D",
+    "GLPL",
+    "MHD",
+]
+
 rlp_external_domains = [
     "LRR",
     "G-LecRLK",
@@ -273,10 +286,10 @@ class Sequence:
                     )
                     self.classification = "C" + self.classification
                     continue
-            TIR_motif_IDs = ["aA", "aC", "aD3", "bA", "bC", "bDaD1"]
+
             TIR_motifs = [
                 item
-                for motif in TIR_motif_IDs
+                for motif in TIR_MOTIFS
                 for item in self.motifs[motif]
                 if item.position < nbarc_start
             ]
