@@ -42,6 +42,10 @@ def parse_fasta(path):
                 )
             else:
                 sequences.append(Sequence(record.id, sequence_str))
+    
+    if len(sequences) == 0:
+        log.error("No valid sequences found in input file!")
+        sys.exit(1)
 
     return sequences
 
