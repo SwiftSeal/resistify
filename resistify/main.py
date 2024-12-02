@@ -255,7 +255,7 @@ def main():
         level="DEBUG" if args.debug else "INFO",
         format="%(message)s",
         datefmt="[%X]",
-        handlers=[RichHandler()],
+        handlers=[RichHandler(show_path=False)],
     )
     log = logging.getLogger("rich")
     log.info(f"Welcome to Resistify version {__version__}!")
