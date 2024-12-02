@@ -104,7 +104,7 @@ class Sequence:
         for motif in sorted_motifs:
             motif_string += motif_translation[motif.classification]
         return motif_string
-    
+
     @property
     def domain_string(self):
         domain_string = ""
@@ -123,7 +123,7 @@ class Sequence:
             if annotation.domain == "LRR":
                 length += annotation.end - annotation.start + 1
         return length
-    
+
     @property
     def nterminal_sequence(self):
         """
@@ -135,35 +135,35 @@ class Sequence:
                 return self.seq[: annotation.start]
         # If no NB-ARC domain, return the whole sequence
         return None
-    
+
     @property
     def has_nbarc(self):
         for annotation in self.annotations:
             if annotation.domain == "NB-ARC":
                 return True
         return False
-    
+
     @property
     def has_mada(self):
         for annotation in self.annotations:
             if annotation.domain == "MADA" and annotation.score >= 20:
                 return True
         return False
-    
+
     @property
     def has_madal(self):
         for annotation in self.annotations:
             if annotation.domain == "MADA" and annotation.score < 20:
                 return True
         return False
-    
+
     @property
     def has_cjid(self):
         for annotation in self.annotations:
             if annotation.domain == "C-JID":
                 return True
         return False
-    
+
     @property
     def has_signal_peptide(self):
         for annotation in self.annotations:
@@ -321,10 +321,10 @@ class Sequence:
                     return False
                 tm_detected = True
                 n_terminal_length = annotation.start
-        
+
         if not tm_detected:
             return False
-        
+
         # Use extracellular length threshold to filter out non-RLPs
         if n_terminal_length < extracellular_length:
             return False
@@ -381,6 +381,7 @@ class Sequence:
         # sort merged annotations by start position
         merged_annotations.sort(key=lambda x: x.start)
         self.merged_annotations = merged_annotations
+
 
 class Annotation:
     def __init__(self, domain, start, end, evalue, score, source):

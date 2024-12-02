@@ -10,6 +10,7 @@ from resistify.annotations import Sequence, NBARC_MOTIFS
 
 log = logging.getLogger(__name__)
 
+
 def create_output_directory(outdir):
     try:
         expanded_outdir = os.path.expanduser(os.path.expandvars(outdir))
@@ -28,7 +29,9 @@ def parse_fasta(path):
             # need to remove asterisk, interferes with hmmsearch
             sequence_str = str(record.seq).strip("*")
             if "*" in sequence_str:
-                log.warning(f"An internal '*' character is present in {record.id} - skipping this sequence...")
+                log.warning(
+                    f"An internal '*' character is present in {record.id} - skipping this sequence..."
+                )
                 continue
             if len(sequence_str) > 100000:
                 log.warning(

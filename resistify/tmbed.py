@@ -485,7 +485,7 @@ def tmbed(sequences, models_path):
                 previous_state = state
                 state_start = i
                 continue
-            
+
             if state != previous_state:
                 sequence.add_annotation(
                     states[previous_state],
@@ -496,7 +496,7 @@ def tmbed(sequences, models_path):
 
                 state_start = i
                 previous_state = state
-        
+
         # Add final annotation
         sequence.add_annotation(
             states[previous_state],
@@ -504,6 +504,5 @@ def tmbed(sequences, models_path):
             state_start + 1,
             len(sequence.seq),
         )
-
 
     return sequences

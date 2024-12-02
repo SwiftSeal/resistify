@@ -157,6 +157,27 @@ def parse_args(args=None):
     return parser.parse_args(args)
 
 
+def write_results(sequences, args):
+    results_dir = create_output_directory(args.outdir)
+    if args.command == "nlr":
+        result_table(sequences, results_dir, "nlr", retain=args.retain)
+        save_fasta(
+            sequences,
+            os.path.join(results_dir, "nlr.fasta"),
+            classified_only=args.retain,
+        )
+        if args.coconat:
+            coconat_table(sequences, results_dir)
+    elif args.command == "prr":
+        result_table(sequences, results_dir, "prr")
+        save_fasta(
+            sequences, os.path.join(results_dir, "prr.fasta"), classified_only=True
+        )
+    annotation_table(sequences, results_dir)
+    domain_table(sequences, results_dir)
+    motif_table(sequences, results_dir)
+
+
 def nlr(args, log):
     # Check to see if all provided models exist
     if args.models_path is not None:
@@ -193,16 +214,7 @@ def nlr(args, log):
         sequence.merge_annotations(args.duplicate_gap)
         sequence.classify_nlr()
 
-    results_dir = create_output_directory(args.outdir)
-    log.info(f"Saving results to {results_dir}")
-    result_table(sequences, results_dir, "nlr", retain=args.retain)
-    annotation_table(sequences, results_dir)
-    domain_table(sequences, results_dir)
-    motif_table(sequences, results_dir)
-    extract_nbarc(sequences, results_dir)
-    save_fasta(sequences, os.path.join(results_dir, "nlr.fasta"), classified_only=True)
-    if args.coconat:
-        coconat_table(sequences, results_dir)
+    return sequences
 
 
 def prr(args, log):
@@ -224,13 +236,7 @@ def prr(args, log):
         sequence.merge_annotations(args.duplicate_gap)
         sequence.classify_rlp()
 
-    results_dir = create_output_directory(args.outdir)
-    log.info(f"Saving results to {results_dir}")
-    result_table(sequences, results_dir, "prr")
-    annotation_table(sequences, results_dir)
-    domain_table(sequences, results_dir)
-    motif_table(sequences, results_dir)
-    save_fasta(sequences, os.path.join(results_dir, "prr.fasta"), classified_only=True)
+    return sequences
 
 
 def download(args, log):
@@ -255,16 +261,17 @@ def main():
     log.info(f"Welcome to Resistify version {__version__}!")
 
     if args.command == "nlr":
-        nlr(args, log)
+        sequences = nlr(args, log)
     elif args.command == "prr":
-        prr(args, log)
+        sequences = prr(args, log)
     elif args.command == "download_models":
         download(args, log)
         sys.exit(0)
-
     else:
         log.error(f"Unknown command: {args.command}")
         sys.exit(1)
+
+    write_results(sequences, args)
 
     log.info("Thank you for using Resistify!")
     log.info("If you used Resistify in your research, please cite the following:")
