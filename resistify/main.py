@@ -166,7 +166,7 @@ def nlr(args, log):
     log.info("Searching for NLRs...")
     sequences = hmmsearch(sequences, "nlr", args.evalue)
     if not args.retain:
-        sequences = [sequence for sequence in sequences if sequence.has_nbarc()]
+        sequences = [sequence for sequence in sequences if sequence.has_nbarc]
         if len(sequences) == 0:
             log.error("No NLRs detected! Maybe try --retain?")
             sys.exit(1)

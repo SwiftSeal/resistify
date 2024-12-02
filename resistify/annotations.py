@@ -59,10 +59,6 @@ class Sequence:
         self.seq = seq
         self.type = None
         self.classification = None
-        self.mada = False
-        self.madal = False
-        self.cjid = False
-        self.domain_string = ""
         self.annotations = []
         self.merged_annotations = []
         self.motifs = {
@@ -88,6 +84,7 @@ class Sequence:
         self.transmembrane_predictions = None
         self.signal_peptide = False
 
+    @property
     def motif_string(self):
         sorted_motifs = [item for sublist in self.motifs.values() for item in sublist]
         sorted_motifs.sort(key=lambda x: x.position)
@@ -95,6 +92,65 @@ class Sequence:
         for motif in sorted_motifs:
             motif_string += motif_translation[motif.classification]
         return motif_string
+    
+    @property
+    def domain_string(self):
+        domain_string = ""
+        for annotation in self.merged_annotations:
+            domain_string += short_IDs[annotation.domain]
+        return domain_string
+
+    @property
+    def lrr_length(self):
+        """
+        Calculate the total length of the LRR domains in the sequence.
+        Do this for the merged annotations to acount for gap merging.
+        """
+        length = 0
+        for annotation in self.merged_annotations:
+            if annotation.domain == "LRR":
+                length += annotation.end - annotation.start + 1
+        return length
+    
+    @property
+    def nterminal_sequence(self):
+        """
+        Return the N-terminal sequence up to the start of the NB-ARC domain.
+        Only the first NB-ARC domain is considered.
+        """
+        for annotation in self.annotations:
+            if annotation.domain == "NB-ARC":
+                return self.seq[: annotation.start]
+        # If no NB-ARC domain, return the whole sequence
+        return None
+    
+    @property
+    def has_nbarc(self):
+        for annotation in self.annotations:
+            if annotation.domain == "NB-ARC":
+                return True
+        return False
+    
+    @property
+    def has_mada(self):
+        for annotation in self.annotations:
+            if annotation.domain == "MADA" and annotation.score >= 20:
+                return True
+        return False
+    
+    @property
+    def has_madal(self):
+        for annotation in self.annotations:
+            if annotation.domain == "MADA" and annotation.score < 20:
+                return True
+        return False
+    
+    @property
+    def has_cjid(self):
+        for annotation in self.annotations:
+            if annotation.domain == "C-JID":
+                return True
+        return False
 
     def add_annotation(self, domain, start, end, evalue, score, source):
         """
@@ -166,32 +222,9 @@ class Sequence:
         if count >= lrr_length:
             self.add_annotation("LRR", start, end, "NA", "NA", "NLRexpress")
 
-    def get_nterminal(self):
-        for annotation in self.annotations:
-            if annotation.domain == "NB-ARC":
-                return self.seq[: annotation.start]
-        return None
-
-    def has_nbarc(self):
-        for annotation in self.annotations:
-            if annotation.domain == "NB-ARC":
-                return True
-
     def classify_nlr(self):
         # create a simplified domain string
-        domain_string = ""
-        for annotation in self.annotations:
-            if annotation.domain in short_IDs.keys():
-                # skip non-core and flag
-                if annotation.domain == "MADA":
-                    if annotation.score >= 20:
-                        self.mada = True
-                    else:
-                        self.madal = True
-                elif annotation.domain == "C-JID":
-                    self.cjid = True
-                else:
-                    domain_string += short_IDs[annotation.domain]
+        domain_string = self.domain_string
 
         # collapse adjacent identical domains for classification
         collapsed_domain_string = ""
@@ -319,7 +352,6 @@ class Sequence:
         Extract features indicative of a RLK/RLP based on TMBed topology.
         Update protein with relevant topology information
         """
-
         for annotation in self.annotations:
             if annotation.domain == "transmembrane":
                 tm_end = annotation.end
@@ -339,8 +371,6 @@ class Sequence:
     def merge_annotations(self, duplicate_gap):
         """
         Merge overlapping annotations of the same domain.
-
-        Don't trust e-values etc - they're inherited from the first annotation.
         """
         merged_annotations = []
         for domain in short_IDs:
@@ -366,12 +396,6 @@ class Sequence:
         # sort merged annotations by start position
         merged_annotations.sort(key=lambda x: x.start)
         self.merged_annotations = merged_annotations
-
-        domain_string = ""
-        for annotation in merged_annotations:
-            domain_string += short_IDs[annotation.domain]
-        self.domain_string = domain_string
-
 
 class Annotation:
     def __init__(self, domain, start, end, evalue, score, source):

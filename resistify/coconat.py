@@ -175,7 +175,7 @@ def coconat(sequences, models_path: str):
 
         chunk_ids, chunk_seqs, chunk_lengths = [], [], []
         for sequence in sequences[chunk_start : chunk_start + 5]:
-            n_terminal_seq = sequence.get_nterminal()
+            n_terminal_seq = sequence.nterminal_sequence
             if n_terminal_seq is None:
                 log.debug(f"{sequence.id} has no N-terminus, skipping...")
                 continue

@@ -10,6 +10,18 @@ from resistify.annotations import Sequence
 
 log = logging.getLogger(__name__)
 
+NBARC_MOTIFS = [
+    "VG",
+    "P-loop",
+    "RNSB-A",
+    "Walker-B",
+    "RNSB-B",
+    "RNSB-C",
+    "RNSB-D",
+    "GLPL",
+    "MHD",
+]
+
 
 def create_output_directory(outdir):
     try:
@@ -59,6 +71,7 @@ def result_table(sequences, results_dir, type, retain=False):
                 [
                     "Sequence",
                     "Length",
+                    "LRR_Length",
                     "Motifs",
                     "Domains",
                     "Classification",
@@ -69,22 +82,10 @@ def result_table(sequences, results_dir, type, retain=False):
                 ]
             )
 
-            nbarc_motifs = [
-                "VG",
-                "P-loop",
-                "RNSB-A",
-                "Walker-B",
-                "RNSB-B",
-                "RNSB-C",
-                "RNSB-D",
-                "GLPL",
-                "MHD",
-            ]
-
             for sequence in sequences:
                 if sequence.type == "NLR" or retain:
                     n_nbarc_motifs = 0
-                    for motif in nbarc_motifs:
+                    for motif in NBARC_MOTIFS:
                         if len(sequence.motifs[motif]) > 0:
                             n_nbarc_motifs += 1
 
@@ -92,13 +93,14 @@ def result_table(sequences, results_dir, type, retain=False):
                         [
                             sequence.id,
                             len(sequence.seq),
-                            sequence.motif_string(),
+                            sequence.lrr_length,
+                            sequence.motif_string,
                             sequence.domain_string,
                             sequence.classification,
                             n_nbarc_motifs,
-                            sequence.mada,
-                            sequence.madal,
-                            sequence.cjid,
+                            sequence.has_mada,
+                            sequence.has_madal,
+                            sequence.has_cjid,
                         ]
                     )
         elif type == "prr":
@@ -106,6 +108,7 @@ def result_table(sequences, results_dir, type, retain=False):
                 [
                     "Sequence",
                     "Length",
+                    "LRR_Length",
                     "Type",
                     "Classification",
                     "Signal_peptide",
@@ -117,6 +120,7 @@ def result_table(sequences, results_dir, type, retain=False):
                         [
                             sequence.id,
                             len(sequence.seq),
+                            sequence.lrr_length,
                             sequence.type,
                             sequence.classification,
                             sequence.signal_peptide,
