@@ -102,11 +102,11 @@ def hmmsearch(sequences, search_type, evalue):
                 if sequence:
                     sequence.add_annotation(
                         record_name,
+                        "HMM",
                         hsp.env_start,
                         hsp.env_end,
                         hsp.evalue,
                         hsp.bitscore,
-                        "HMM",
                     )
 
     return sequences

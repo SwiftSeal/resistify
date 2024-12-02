@@ -438,10 +438,10 @@ def tmbed(sequences, models_path):
     pred_map = {0: "B", 1: "b", 2: "H", 3: "h", 4: "S", 5: "i", 6: "o"}
 
     states = {
-        "B": "beta_inwards",
-        "b": "beta_outwards",
-        "H": "alpha_inwards",
-        "h": "alpha_outwards",
+        "B": "beta_outwards",
+        "b": "beta_inwards",
+        "H": "alpha_outwards",
+        "h": "alpha_inwards",
         "S": "signal_peptide",
         "i": "inside",
         "o": "outside",
@@ -486,16 +486,24 @@ def tmbed(sequences, models_path):
                 state_start = i
                 continue
             
-            # Let's not annotate inside and outside states
-            if state != previous_state and state not in ["i", "o"]:
+            if state != previous_state:
                 sequence.add_annotation(
-                    domain=states[previous_state],
-                    start=state_start + 1,
-                    end=i,
-                    source="tmbed",
+                    states[previous_state],
+                    "tmbed",
+                    state_start + 1,
+                    i,
                 )
 
                 state_start = i
                 previous_state = state
+        
+        # Add final annotation
+        sequence.add_annotation(
+            states[previous_state],
+            "tmbed",
+            state_start + 1,
+            len(sequence.seq),
+        )
+
 
     return sequences

@@ -158,10 +158,13 @@ class Sequence:
                 return True
         return False
 
-    def add_annotation(self, domain, start, end, evalue, score, source):
+    def add_annotation(self, domain, source, start, end, evalue=None, score=None):
         """
         Add annotation and keep sorted by start position.
         """
+        start = int(start)
+        end = int(end)
+        log.debug(f"Adding annotation {domain} to {self.id} from {start} to {end}")
         self.annotations.append(Annotation(domain, start, end, evalue, score, source))
         self.annotations.sort(key=lambda x: x.start)
 
@@ -193,13 +196,13 @@ class Sequence:
                 # If we were in a dipping region and now the condition is false, record the region
                 if start is not None:
                     log.debug(f"Adding CC domain in {self.id} from {start} to {end}")
-                    self.add_annotation("CC", start, end, "NA", "NA", "Coconat")
+                    self.add_annotation("CC", "coconat", start, end)
                     start = None  # Reset start for the next region
 
         # If we ended in a dip region, capture the final one
         if start is not None:
             log.debug(f"Adding CC domain in {self.id} from {start} to {end}")
-            self.add_annotation("CC", start, end, "NA", "NA", "Coconat")
+            self.add_annotation("CC", "coconat", start, end)
 
     def identify_lrr_domains(self, lrr_gap, lrr_length):
         """
@@ -220,13 +223,13 @@ class Sequence:
                 count += 1
             else:
                 if count >= lrr_length:
-                    self.add_annotation("LRR", start, end, "NA", "NA", "NLRexpress")
+                    self.add_annotation("LRR", "nlrexpress", start, end)
                 start = motif.position
                 end = motif.position
                 count = 0
 
         if count >= lrr_length:
-            self.add_annotation("LRR", start, end, "NA", "NA", "NLRexpress")
+            self.add_annotation("LRR", "nlrexpress", start, end)
 
     def classify_nlr(self):
         # create a simplified domain string
@@ -264,11 +267,9 @@ class Sequence:
                 if motif.position < nbarc_start:
                     self.add_annotation(
                         "CC",
+                        "nlrexpress",
                         motif.position,
                         motif.position + 1,
-                        "NA",
-                        "NA",
-                        "NLRexpress",
                     )
                     self.classification = "C" + self.classification
                     continue
@@ -284,11 +285,9 @@ class Sequence:
                 TIR_motifs.sort(key=lambda x: x.position)
                 self.add_annotation(
                     "TIR",
+                    "nlrexpress",
                     TIR_motifs[0].position,
                     TIR_motifs[-1].position,
-                    "NA",
-                    "NA",
-                    "NLRexpress",
                 )
                 self.classification = "T" + self.classification
 
@@ -308,6 +307,7 @@ class Sequence:
                 if tm_detected:
                     return False
                 tm_detected = True
+                n_terminal_length = annotation.start
         
         if not tm_detected:
             return False
@@ -316,6 +316,7 @@ class Sequence:
         if n_terminal_length < extracellular_length:
             return False
         else:
+            self.type = "RLP"
             return True
 
     def classify_rlp(self):
@@ -324,7 +325,7 @@ class Sequence:
         Update protein with relevant topology information
         """
         for annotation in self.annotations:
-            if annotation.domain == "transmembrane":
+            if annotation.domain == "alpha_inwards":
                 tm_end = annotation.end
                 tm_start = annotation.start
 
