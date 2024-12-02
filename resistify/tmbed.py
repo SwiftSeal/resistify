@@ -437,6 +437,16 @@ def tmbed(sequences, models_path):
 
     pred_map = {0: "B", 1: "b", 2: "H", 3: "h", 4: "S", 5: "i", 6: "o"}
 
+    states = {
+        "B": "beta_inwards",
+        "b": "beta_outwards",
+        "H": "alpha_inwards",
+        "h": "alpha_outwards",
+        "S": "signal_peptide",
+        "i": "inside",
+        "o": "outside",
+    }
+
     for sequence in sequences:
         log.debug
         try:
@@ -468,5 +478,24 @@ def tmbed(sequences, models_path):
         sequence.transmembrane_predictions = "".join(
             pred_map[int(x)] for x in prediction[0, : len(sequence.seq)]
         )
+
+        # Annotate relevant transmembrane domains
+        for i, state in enumerate(sequence.transmembrane_predictions):
+            if i == 0:
+                previous_state = state
+                state_start = i
+                continue
+            
+            # Let's not annotate inside and outside states
+            if state != previous_state and state not in ["i", "o"]:
+                sequence.add_annotation(
+                    domain=states[previous_state],
+                    start=state_start + 1,
+                    end=i,
+                    source="tmbed",
+                )
+
+                state_start = i
+                previous_state = state
 
     return sequences

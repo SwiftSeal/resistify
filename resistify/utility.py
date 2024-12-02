@@ -123,7 +123,7 @@ def result_table(sequences, results_dir, type, retain=False):
                             sequence.lrr_length,
                             sequence.type,
                             sequence.classification,
-                            sequence.signal_peptide,
+                            sequence.has_signal_peptide,
                         ]
                     )
 

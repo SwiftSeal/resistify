@@ -82,7 +82,6 @@ class Sequence:
         }
         self.cc_probs = []
         self.transmembrane_predictions = None
-        self.signal_peptide = False
 
     @property
     def motif_string(self):
@@ -149,6 +148,13 @@ class Sequence:
     def has_cjid(self):
         for annotation in self.annotations:
             if annotation.domain == "C-JID":
+                return True
+        return False
+    
+    @property
+    def has_signal_peptide(self):
+        for annotation in self.annotations:
+            if annotation.domain == "signal_peptide":
                 return True
         return False
 
@@ -289,63 +295,28 @@ class Sequence:
         if self.classification in nlr_classifications:
             self.type = "NLR"
 
-    def is_rlp(self):
+    def is_rlp(self, extracellular_length=50):
         tm_detected = False
-        inside_count, outside_count = 0, 0
         n_terminal_length = 0
 
-        # If Beta-helixes or IN -> OUT transitions are detected, assume not relevant
-        if any(state in self.transmembrane_predictions for state in ["B", "b", "H"]):
+        for annotation in self.annotations:
+            # Immediately skip beta barrels or outward alpha helices
+            if annotation.domain in ["beta_inwards", "beta_outwards", "alpha_outwards"]:
+                return False
+            elif annotation.domain == "alpha_inwards":
+                # If already detected an alpha helix, not single-pass
+                if tm_detected:
+                    return False
+                tm_detected = True
+        
+        if not tm_detected:
             return False
-
-        for i, state in enumerate(self.transmembrane_predictions):
-            # set initial states
-            if i == 0:
-                previous_state = state
-                state_start = 0
-                continue
-
-            if not tm_detected:
-                n_terminal_length += 1
-                if state == "i":
-                    inside_count += 1
-                elif state == "o":
-                    outside_count += 1
-
-            if state != previous_state:
-                length = i - state_start
-                if previous_state == "S" and length > 5:
-                    self.signal_peptide = True
-                elif previous_state == "h":
-                    if tm_detected:
-                        return False
-                    self.add_annotation(
-                        "transmembrane", state_start, i - 1, "NA", "NA", "tmbed"
-                    )
-                    tm_detected = True
-
-                previous_state = state
-                state_start = i
-
-        if previous_state == "h" and not tm_detected:
-            self.add_annotation(
-                "transmembrane", state_start, i - 1, "NA", "NA", "tmbed"
-            )
-            tm_detected = True
-
-        if tm_detected is False:
+        
+        # Use extracellular length threshold to filter out non-RLPs
+        if n_terminal_length < extracellular_length:
             return False
-
-        if n_terminal_length < 50:
-            return False
-
-        if inside_count > outside_count:
-            # super rough
-            return False
-
-        # As all passed, assume we have a single-pass alpha helix protein
-        self.type = "RLP"
-        return True
+        else:
+            return True
 
     def classify_rlp(self):
         """
