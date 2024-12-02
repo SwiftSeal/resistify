@@ -32,13 +32,16 @@ def parse_fasta(path):
                 log.warning(
                     f"An internal '*' character is present in {record.id} - skipping this sequence..."
                 )
-                continue
-            if len(sequence_str) > 100000:
+            elif len(sequence_str) > 100000:
                 log.warning(
                     f"Sequence {record.id} is longer than 100,000 codons - skipping this sequence..."
                 )
-                continue
-            sequences.append(Sequence(record.id, sequence_str))
+            elif len(sequence_str) < 28:
+                log.warning(
+                    f"Sequence {record.id} is less than 28 codons - skipping this sequence..."
+                )
+            else:
+                sequences.append(Sequence(record.id, sequence_str))
 
     return sequences
 
