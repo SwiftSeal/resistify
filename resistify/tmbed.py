@@ -191,10 +191,10 @@ class T5Encoder:
     def to_cuda(self):
         self.encoder_model = self.encoder_model.half().cuda()
 
-    def embed(self, sequences):
-        sequences = [s.upper().translate(self.aa_map) for s in sequences]
+    def embed(self, sequence):
+        sequence = sequence.upper().translate(self.aa_map)
 
-        tokens = [" ".join(list(s)) for s in sequences]
+        tokens = [" ".join(list(sequence))]
         tokens = self.tokenizer.batch_encode_plus(
             tokens, padding="longest", add_special_tokens=True
         )
@@ -371,38 +371,11 @@ def gaussian_kernel(kernel_size, std=1.0):
     return kernel
 
 
-def make_batches(sequences, batch_size):
-    batches = []
-    num_prot = 1
-    last_idx = 0
-    max_size = 0
-    batch_size = abs(batch_size) ** 1.5
-
-    for idx, sequence in enumerate(sequences):
-        seq_size = len(sequence.seq) ** 1.5
-        max_size = max(seq_size, max_size)
-
-        if (idx > 0) and (num_prot * max_size > batch_size):
-            batches.append((last_idx, idx))
-
-            num_prot = 1
-            last_idx = idx
-            max_size = seq_size
-
-        num_prot = num_prot + 1
-
-    batches.append((last_idx, idx + 1))
-
-    return batches
-
-
-def make_mask(embeddings, lengths):
+def make_mask(embeddings):
     B, N, _ = embeddings.shape
 
     mask = torch.zeros((B, N), dtype=embeddings.dtype, device=embeddings.device)
-
-    for idx, length in enumerate(lengths):
-        mask[idx, :length] = 1.0
+    mask[0, :N] = 1.0
 
     return mask
 
@@ -432,16 +405,16 @@ def load_models(device):
     return models
 
 
-def predict_sequences(models, embeddings, mask):
-    B, N, _ = embeddings.shape
+def predict_sequences(models, embedding, mask):
+    B, N, _ = embedding.shape
 
     num_models = len(models)
 
     with torch.no_grad():
-        pred = torch.zeros((B, 5, N), device=embeddings.device)
+        pred = torch.zeros((B, 5, N), device=embedding.device)
 
         for model in models:
-            y = model(embeddings, mask)
+            y = model(embedding, mask)
             pred = pred + torch.softmax(y, dim=1)
 
         pred = pred / num_models
@@ -451,7 +424,6 @@ def predict_sequences(models, embeddings, mask):
 
 def tmbed(sequences, models_path):
     log.info("Predicting transmembrane domains...")
-    batch_size = 4000
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     log.debug(f"Device is {device}")
@@ -463,25 +435,16 @@ def tmbed(sequences, models_path):
 
     models = load_models(device)
 
-    # Need to sort sequences by length? Why?
-    sorted_sequences = sorted(sequences, key=lambda sequence: len(sequence.seq))
+    pred_map = {0: "B", 1: "b", 2: "H", 3: "h", 4: "S", 5: "i", 6: "o"}
 
-    batches = make_batches(sorted_sequences, batch_size)
-
-    prediction_results = {}
-    for a, b in batches:
-        batch = sorted_sequences[a:b]
-
-        lengths = [len(sequence.seq) for sequence in batch]
-        seqs = [sequence.seq for sequence in batch]
-
+    for sequence in sequences:
+        log.debug
         try:
-            log.debug("Creating embeddings")
-            embeddings = encoder.embed(seqs)
+            log.debug(f"Predicting transmembrane domains for {sequence.id}...")
+            embedding = encoder.embed(sequence.seq)
         except torch.cuda.OutOfMemoryError:
-            ids = ", ".join([sequence.id for sequence in batch])
             log.warning(
-                f"Your GPU ran out of memory when generating embeddings. So sad! Transmembrane domains will not be predicted for the following sequences: {ids}"
+                f"GPU ran out of memory when encoding {sequence.id} - skipping..."
             )
             continue
 
@@ -490,29 +453,20 @@ def tmbed(sequences, models_path):
         # torch.cuda.empty_cache()
         # embeddings = encoder.embed(sequences)
 
-        embeddings = embeddings.to(device=device)
-        embeddings = embeddings.to(dtype=torch.float32)
+        embedding = embedding.to(device=device)
+        embedding = embedding.to(dtype=torch.float32)
 
-        mask = make_mask(embeddings, lengths)
+        mask = make_mask(embedding)
 
-        probabilities = predict_sequences(models, embeddings, mask)
+        probabilities = predict_sequences(models, embedding, mask)
 
-        # Why?
         mask = mask.cpu()
         probabilities = probabilities.cpu()
 
         prediction = decoder(probabilities, mask).byte()
 
-        pred_map = {0: "B", 1: "b", 2: "H", 3: "h", 4: "S", 5: "i", 6: "o"}
-
-        for idx, sequence in enumerate(batch):
-            length = len(sequence.seq)
-            prediction_results[sequence.id] = "".join(
-                pred_map[int(x)] for x in prediction[idx, :length]
-            )
-
-    for sequence in sequences:
-        log.debug(f"Adding TM predictions to {sequence.id}")
-        sequence.transmembrane_predictions = prediction_results[sequence.id]
+        sequence.transmembrane_predictions = "".join(
+            pred_map[int(x)] for x in prediction[0, : len(sequence.seq)]
+        )
 
     return sequences
