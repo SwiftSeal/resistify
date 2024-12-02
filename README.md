@@ -273,32 +273,16 @@ If you have any suggestions for additional features, get in touch!
 
 ## Citing
 
-```
-Resistify - A rapid and accurate annotation tool to identify NLRs and study their genomic organisation
-Moray Smith, John T. Jones, Ingo Hein
-bioRxiv 2024.02.14.580321; doi: https://doi.org/10.1101/2024.02.14.580321
-```
+> Smith, M., Jones, J. T., & Hein, I. (2024). Resistify-A rapid and accurate annotation tool to identify NLRs and study their genomic organisation. *bioRxiv*, 2024-02.https://doi.org/10.1101/2024.02.14.580321
 
 You must also cite:
 
-```
-NLRexpress—A bundle of machine learning motif predictors—Reveals motif stability underlying plant Nod-like receptors diversity
-Martin Eliza C., Spiridon Laurentiu, Goverse Aska, Petrescu Andrei-José
-Frontiers in Plant Science 2022; doi: https://doi.org/10.3389/fpls.2022.975888
-```
+> Martin, E. C., Spiridon, L., Goverse, A., & Petrescu, A. J. (2022). NLRexpress—A bundle of machine learning motif predictors—Reveals motif stability underlying plant Nod-like receptors diversity. *Frontiers in Plant Science*, 13, 975888. https://doi.org/10.3389/fpls.2022.975888
 
 If you use the CoCoNat module, please cite:
 
-```
-CoCoNat: a novel method based on deep learning for coiled-coil prediction
-Giovanni Madeo, Castrense Savojardo, Matteo Manfredi, Pier Luigi Martelli, Rita Casadio
-Bioinformatics 2023; doi: https://doi.org/10.1093/bioinformatics/btad495
-```
+> Madeo, G., Savojardo, C., Manfredi, M., Martelli, P. L., & Casadio, R. (2023). CoCoNat: a novel method based on deep learning for coiled-coil prediction. *Bioinformatics*, 39(8), btad495. https://doi.org/10.1093/bioinformatics/btad495
 
 If you use the PRR module, please cite:
 
-```
-TMbed: transmembrane proteins predicted through language model embeddings.
-Bernhofer, M., Rost, B.
-BMC Bioinformatics 2022; doi: https://doi.org/10.1186/s12859-022-04873-x
-```
+> Bernhofer, M., & Rost, B. (2022). TMbed: transmembrane proteins predicted through language model embeddings. *BMC bioinformatics*, 23(1), 326. https://doi.org/10.1186/s12859-022-04873-x
