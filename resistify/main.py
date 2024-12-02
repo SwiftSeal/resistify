@@ -213,17 +213,10 @@ def prr(args, log):
     log.info("Searching for PRRs...")
     sequences = parse_fasta(args.input)
     sequences = hmmsearch(sequences, "prr", args.evalue)
-    sequences = nlrexpress(
-        sequences,
-        "lrr",
-        args.chunksize,
-    )
 
-    sequences = tmbed(
-        sequences, args.models_path
-    )  # Right for some reason if this precedes nlrexpress(), it freezes? dunno why but just make sure it's downstream...
-
+    sequences = tmbed(sequences, args.models_path)
     sequences = [sequence for sequence in sequences if sequence.is_rlp()]
+    sequences = nlrexpress(sequences, "lrr", args.chunksize)
 
     log.info("Classifying sequences...")
     for sequence in sequences:
