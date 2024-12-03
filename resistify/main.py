@@ -229,6 +229,9 @@ def prr(args, log):
 
     sequences = tmbed(sequences, args.models_path)
     sequences = [sequence for sequence in sequences if sequence.is_rlp()]
+    if len(sequences) == 0:
+        log.error("No PRRs detected!")
+        sys.exit(1)
     sequences = nlrexpress(sequences, "lrr", args.chunksize)
 
     log.info("Classifying sequences...")
