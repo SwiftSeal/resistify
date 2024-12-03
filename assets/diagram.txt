@@ -1,10 +1,10 @@
 e.g., resistify nlr proteins.fa -o results/───────────────────┐                 
                  │       │                    ┌───────────────▼────────────────┐
-    ┌────────────┼───────┘                    │ * NLR identification           │
-    │            │    ┌────────────────────┐  │ * NLR classification           │
-    │          ┌─▼─┐  │* hmmsearch         │  │ * CC, TIR, RPW8                │
-    │       ┌─►│NLR├─►│* NLRexpress        ├─►│ * NB-ARC domains               │
-    │       │  └───┘  │* CoCoNat (optional)│  │ * Motif and domain annotations │
+    ┌────────────┼───────┘                    │* NLR identification            │
+    │            │    ┌────────────────────┐  │* NLR classification            │
+    │          ┌─▼─┐  │* hmmsearch         │  │* CC, TIR, RPW8                 │
+    │       ┌─►│NLR├─►│* NLRexpress        ├─►│* NB-ARC domains                │
+    │       │  └───┘  │* CoCoNat (optional)│  │* Motif and domain annotations  │
 ┌───▼─────┐ │         └────────────────────┘  └────────────────────────────────┘
 │Resistify├─┤                                                                   
 └─────────┘ │         ┌────────────────────┐  ┌────────────────────────────────┐
