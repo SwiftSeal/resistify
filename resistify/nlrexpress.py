@@ -11,12 +11,13 @@ import warnings
 
 log = logging.getLogger(__name__)
 
+# Version 1.3 of sklearn introduced InconsistentVersionWarning, fall back to UserWarning if not available
+# Necessary to suppress pickle version warnings
 try:
     from sklearn.exceptions import InconsistentVersionWarning
-
     warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
 except ImportError:
-    log.debug("sklearn version is too old to suppress warnings")
+    warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
 
 
 MOTIF_SPAN_LENGTHS = {
