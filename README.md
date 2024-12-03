@@ -43,7 +43,7 @@ To use these with - for example - `singularity`, simply run:
 If you are having issues with `conda`, you can instead try installing directly from the repository:
 
 ```sh
-VERSION=0.6.1
+VERSION=0.6.2
 curl -LO https://github.com/SwiftSeal/resistify/archive/refs/tags/v$VERSION.tar.gz
 tar xf v$VERSION.tar.gz
 cd resistify-$VERSION
