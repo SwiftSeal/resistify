@@ -1,0 +1,20 @@
+e.g., resistify nlr proteins.fa -o results/───────────────────┐                 
+                 │       │                    ┌───────────────▼────────────────┐
+    ┌────────────┼───────┘                    │ * NLR identification           │
+    │            │    ┌────────────────────┐  │ * NLR classification           │
+    │          ┌─▼─┐  │* hmmsearch         │  │   * CC, TIR, RPW8              │
+    │       ┌─►│NLR├─►│* NLRexpress        ├─►│ * NB-ARC domains               │
+    │       │  └───┘  │* CoCoNat (optional)│  │ * Motif and domain annotations │
+┌───▼─────┐ │         └────────────────────┘  └────────────────────────────────┘
+│Resistify├─┤                                                                   
+└─────────┘ │         ┌────────────────────┐  ┌────────────────────────────────┐
+            │  ┌───┐  │* hmmsearch         │  │* RLK/RLP identification        │
+┻┳|         └─►│PRR├─►│* NLRexpress (LRR)  ├─►│* Extracellular classification  │
+┳┻|_∆_         └───┘  │* TMbed             │  │* Signal peptide identification │
+┻┳|◑ᴗ◑)              └────────────────────┘  │* Motif and domain annotations  │
+┳┻|⊂ﾉ                                        └────────────────────────────────┘
+┻┳|Ｊ  It's quick!                                                              
+┻┳|    It's easy to install!                                                    
+┳┻|    It's accurate!                                                           
+┳┻|                                                                             
+┻┳|^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
