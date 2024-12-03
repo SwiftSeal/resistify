@@ -15,6 +15,7 @@ log = logging.getLogger(__name__)
 # Necessary to suppress pickle version warnings
 try:
     from sklearn.exceptions import InconsistentVersionWarning
+
     warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
 except ImportError:
     warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
