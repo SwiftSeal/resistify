@@ -1,0 +1,30 @@
+name: Check Version Match
+
+on: [push, pull_request]
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install toml package
+      run: pip install toml
+
+    - name: Check version match
+      run: |
+        PYPROJECT_VERSION=$(python -c "import toml; print(toml.load('pyproject.toml')['project']['version'])")
+        FILE_VERSION=$(python -c "from main import __version__; print(__version__)")
+        if [ "$PYPROJECT_VERSION" != "$FILE_VERSION" ]; then
+          echo "Version mismatch: pyproject.toml ($PYPROJECT_VERSION) != __version__ ($FILE_VERSION)"
+          exit 1
+        fi
+      env:
+        PYTHONPATH: ${{ github.workspace }}
