@@ -21,7 +21,7 @@ jobs:
     - name: Check version match
       run: |
         PYPROJECT_VERSION=$(python -c "import toml; print(toml.load('pyproject.toml')['project']['version'])")
-        FILE_VERSION=$(python -c "from resistify.main import __version__; print(__version__)")
+        FILE_VERSION=$(python -c "from resistify.__version__ import __version__; print(__version__)")
         if [ "$PYPROJECT_VERSION" != "$FILE_VERSION" ]; then
           echo "Version mismatch: pyproject.toml ($PYPROJECT_VERSION) != __version__ ($FILE_VERSION)"
           exit 1
