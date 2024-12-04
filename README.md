@@ -44,10 +44,7 @@ If you are having issues with `conda`, you can instead try installing directly f
 
 ```sh
 VERSION=0.6.2
-curl -LO https://github.com/SwiftSeal/resistify/archive/refs/tags/v$VERSION.tar.gz
-tar xf v$VERSION.tar.gz
-cd resistify-$VERSION
-pip install .
+pip install https://github.com/SwiftSeal/resistify/archive/refs/tags/v$VERSION.tar.gz
 ```
 
 Note that `resistify` requires `hmmer` to be installed and available in your system's PATH, which will not be installed automatically when using `pip`.
