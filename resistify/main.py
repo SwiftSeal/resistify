@@ -21,9 +21,7 @@ from resistify.hmmsearch import hmmsearch
 from resistify.nlrexpress import nlrexpress
 from resistify.coconat import coconat
 from resistify.tmbed import tmbed
-
-__version__ = "0.6.2"
-
+from resistify.__version__ import __version__
 
 def add_common_args(parser):
     """
