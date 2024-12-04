@@ -43,8 +43,7 @@ To use these with - for example - `singularity`, simply run:
 If you are having issues with `conda`, you can instead try installing directly from the repository:
 
 ```sh
-VERSION=0.6.2
-pip install https://github.com/SwiftSeal/resistify/archive/refs/tags/v$VERSION.tar.gz
+pip install https://github.com/SwiftSeal/resistify/archive/refs/tags/v0.6.2.tar.gz
 ```
 
 Note that `resistify` requires `hmmer` to be installed and available in your system's PATH, which will not be installed automatically when using `pip`.
@@ -272,7 +271,7 @@ If you have any suggestions for additional features, get in touch!
 
 ## Citing
 
-> Smith, M., Jones, J. T., & Hein, I. (2024). Resistify-A rapid and accurate annotation tool to identify NLRs and study their genomic organisation. *bioRxiv*, 2024-02.https://doi.org/10.1101/2024.02.14.580321
+> Smith, M., Jones, J. T., & Hein, I. (2024). Resistify - A rapid and accurate annotation tool to identify NLRs and study their genomic organisation. *bioRxiv*, 2024-02. https://doi.org/10.1101/2024.02.14.580321
 
 You must also cite:
 
