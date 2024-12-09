@@ -263,6 +263,19 @@ myplot <- ggplot() +
 
 *Cute! NB: Some false-positive motif hits are evident in this example - it might be of interest to not plot them, or plot only LRR motifs which tend to be a bit more informative.*
 
+## Frequently asked questions
+
+**Q: Can `Resistify` be used to predict resistance genes from genomic data?**
+
+**A:** Unfortunately, `Resistify` cannot be directly applied to a genome to predict resistance genes, unlike tools such as `NLR-Annotator`.
+If gene annotations are unavailable for your genome, my advice would be to use a tool like [`Helixer`](https://github.com/weberlab-hhu/Helixer) to perform *ab initio* gene prediction.
+
+**Q: According to the Motif string, some of my genes have NLR motifs in unexpected places - are these significant?**
+
+**A:** False positives do occur for the motif predictions, and unexpected predictions such as a single CC motif in the LRR domain are unlikely to be representative of a true domain annotation.
+You can find a figure of the prediction accuracy rates for each predictor [here](https://www.frontiersin.org/files/Articles/975888/fpls-13-975888-HTML/image_m/fpls-13-975888-g002.jpg).
+False positives shouldn't interfere with the classification accuracy.
+
 ## Contributing
 
 Contributions are greatly appreciated!
