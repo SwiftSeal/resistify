@@ -26,11 +26,16 @@ def parse_fasta(path):
     sequences = []
     with open(path) as file:
         for record in SeqIO.parse(file, "fasta"):
-            # need to remove asterisk, interferes with hmmsearch
+            # need to remove stop codons, interferes with hmmsearch / jackhmmer
             sequence_str = str(record.seq).strip("*")
+            sequence_str = sequence_str.strip(".")
             if "*" in sequence_str:
                 log.warning(
                     f"An internal '*' character is present in {record.id} - skipping this sequence..."
+                )
+            elif "." in sequence_str:
+                log.warning(
+                    f"An internal '.' character is present in {record.id} - skipping this sequence..."
                 )
             elif len(sequence_str) > 100000:
                 log.warning(
