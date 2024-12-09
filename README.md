@@ -6,9 +6,9 @@
 ![Conda Downloads](https://img.shields.io/conda/dn/bioconda/resistify)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/swiftseal/resistify/blob/main/assets/resistify.ipynb)
 
+*More than 2,500 downloads - thank you all!*
 </div>
 
-*More than 2,500 downloads - thank you all!*
 
 Resistify is a program which rapidly identifies and classifies plant resistance genes from protein sequences.
 It is designed to be lightweight and easy to use.
