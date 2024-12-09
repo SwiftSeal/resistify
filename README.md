@@ -1,8 +1,12 @@
+<div align="center">
+
 # Resistify 🍃
 
 ![Conda Version](https://img.shields.io/conda/vn/bioconda/resistify)
 ![Conda Downloads](https://img.shields.io/conda/dn/bioconda/resistify)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/swiftseal/resistify/blob/main/assets/resistify.ipynb)
+
+</div>
 
 *More than 2,500 downloads - thank you all!*
 
