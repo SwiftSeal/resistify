@@ -72,7 +72,8 @@ class EmbeddingProcessor:
     def __init__(self, models_path):
         # Initialize devices and models only once
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        log.debug(f"Device is {self.device}")
+        if self.device == "cpu":
+            log.warning("GPU not available or detected, running on CPU. This will be slow...")
 
         if models_path is not None:
             # ProtT5 Model
