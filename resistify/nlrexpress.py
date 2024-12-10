@@ -9,7 +9,7 @@ from multiprocessing import Pool, cpu_count
 import shutil
 import warnings
 
-from rich.progress import Progress()
+from rich.progress import Progress
 
 log = logging.getLogger(__name__)
 

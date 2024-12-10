@@ -21,6 +21,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from rich.progress import Progress
+
 import logging
 
 from transformers import T5EncoderModel, T5Tokenizer
