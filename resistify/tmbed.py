@@ -447,62 +447,65 @@ def tmbed(sequences, models_path):
         "o": "outside",
     }
 
-    for sequence in sequences:
-        log.debug
-        try:
-            log.debug(f"Predicting transmembrane domains for {sequence.id}...")
-            embedding = encoder.embed(sequence.seq)
-        except torch.cuda.OutOfMemoryError:
-            log.warning(
-                f"GPU ran out of memory when encoding {sequence.id} - skipping..."
-            )
-            continue
-
-        # CPU alternative, implement fallback?
-        # encoder.to_cpu()
-        # torch.cuda.empty_cache()
-        # embeddings = encoder.embed(sequences)
-
-        embedding = embedding.to(device=device)
-        embedding = embedding.to(dtype=torch.float32)
-
-        mask = make_mask(embedding)
-
-        probabilities = predict_sequences(models, embedding, mask)
-
-        mask = mask.cpu()
-        probabilities = probabilities.cpu()
-
-        prediction = decoder(probabilities, mask).byte()
-
-        sequence.transmembrane_predictions = "".join(
-            pred_map[int(x)] for x in prediction[0, : len(sequence.seq)]
-        )
-
-        # Annotate relevant transmembrane domains
-        for i, state in enumerate(sequence.transmembrane_predictions):
-            if i == 0:
-                previous_state = state
-                state_start = i
+    with Progress() as progress:
+        task = progress.add_taks("Running TMbed...", total=len(sequences))
+        for sequence in sequences:
+            log.debug
+            try:
+                log.debug(f"Predicting transmembrane domains for {sequence.id}...")
+                embedding = encoder.embed(sequence.seq)
+            except torch.cuda.OutOfMemoryError:
+                log.warning(
+                    f"GPU ran out of memory when encoding {sequence.id} - skipping..."
+                )
                 continue
 
-            if state != previous_state:
-                sequence.add_annotation(
-                    states[previous_state],
-                    "tmbed",
-                    state_start + 1,
-                    i,
-                )
+            # CPU alternative, implement fallback?
+            # encoder.to_cpu()
+            # torch.cuda.empty_cache()
+            # embeddings = encoder.embed(sequences)
 
-                state_start = i
-                previous_state = state
+            embedding = embedding.to(device=device)
+            embedding = embedding.to(dtype=torch.float32)
 
-        # Add final annotation
-        sequence.add_annotation(
-            states[previous_state],
-            "tmbed",
-            state_start + 1,
-            len(sequence.seq),
-        )
+            mask = make_mask(embedding)
+
+            probabilities = predict_sequences(models, embedding, mask)
+
+            mask = mask.cpu()
+            probabilities = probabilities.cpu()
+
+            prediction = decoder(probabilities, mask).byte()
+
+            sequence.transmembrane_predictions = "".join(
+                pred_map[int(x)] for x in prediction[0, : len(sequence.seq)]
+            )
+
+            # Annotate relevant transmembrane domains
+            for i, state in enumerate(sequence.transmembrane_predictions):
+                if i == 0:
+                    previous_state = state
+                    state_start = i
+                    continue
+
+                if state != previous_state:
+                    sequence.add_annotation(
+                        states[previous_state],
+                        "tmbed",
+                        state_start + 1,
+                        i,
+                    )
+
+                    state_start = i
+                    previous_state = state
+
+            # Add final annotation
+            sequence.add_annotation(
+                states[previous_state],
+                "tmbed",
+                state_start + 1,
+                len(sequence.seq),
+            )
+            progress.update(task, advance=1)
 
     return sequences
