@@ -9,6 +9,8 @@ from multiprocessing import Pool, cpu_count
 import shutil
 import warnings
 
+from rich.progress import Progress()
+
 log = logging.getLogger(__name__)
 
 # Version 1.3 of sklearn introduced InconsistentVersionWarning, fall back to UserWarning if not available
@@ -221,54 +223,58 @@ def nlrexpress_subprocess(sequences, jackhmmer_db, models):
 
     jackhmmer_results = {}
 
-    for sequence in sequences:
-        log.debug(f"Preparing jackhmmer data for {sequence.id}")
-        # make blank list for this sequence
-        jackhmmer_data = []
+    with Progress() as progress:
+        task = progress.add_taks("Running TMbed...", total=len(sequences))
+        for sequence in sequences:
+            log.debug(f"Preparing jackhmmer data for {sequence.id}")
+            # make blank list for this sequence
+            jackhmmer_data = []
 
-        # for each amino acid in the sequence
-        for i, aa in enumerate(sequence.seq):
-            # add a blank list for this amino acid
-            jackhmmer_data.append([])
-            for k, (key, val) in enumerate(iteration_1[sequence.id][i].items()):
-                jackhmmer_data[-1].append(val)
-
-            if sequence.id in iteration_2:
-                for k, (key, val) in enumerate(iteration_2[sequence.id][i].items()):
-                    jackhmmer_data[-1].append(val)
-            else:
+            # for each amino acid in the sequence
+            for i, aa in enumerate(sequence.seq):
+                # add a blank list for this amino acid
+                jackhmmer_data.append([])
                 for k, (key, val) in enumerate(iteration_1[sequence.id][i].items()):
                     jackhmmer_data[-1].append(val)
 
-        jackhmmer_results[sequence.id] = jackhmmer_data
+                if sequence.id in iteration_2:
+                    for k, (key, val) in enumerate(iteration_2[sequence.id][i].items()):
+                        jackhmmer_data[-1].append(val)
+                else:
+                    for k, (key, val) in enumerate(iteration_1[sequence.id][i].items()):
+                        jackhmmer_data[-1].append(val)
 
-    for predictor, model in models.items():
-        log.debug(f"Generating matrix for {predictor}")
-        motif_size = MOTIF_SPAN_LENGTHS[predictor]
-        matrix = []
-        for sequence in sequences:
-            sequence_length = len(sequence.seq)
-            for i in range(sequence_length):
-                if i >= 5 and i < sequence_length - (motif_size + 5):
-                    matrix.append([])
-                    for j in range(-5, motif_size + 6):
-                        matrix[-1] += jackhmmer_results[sequence.id][i + j]
+            jackhmmer_results[sequence.id] = jackhmmer_data
 
-        matrix = np.array(matrix, dtype=float)
+        for predictor, model in models.items():
+            log.debug(f"Generating matrix for {predictor}")
+            motif_size = MOTIF_SPAN_LENGTHS[predictor]
+            matrix = []
+            for sequence in sequences:
+                sequence_length = len(sequence.seq)
+                for i in range(sequence_length):
+                    if i >= 5 and i < sequence_length - (motif_size + 5):
+                        matrix.append([])
+                        for j in range(-5, motif_size + 6):
+                            matrix[-1] += jackhmmer_results[sequence.id][i + j]
 
-        log.debug(f"Predicting probabilities for {predictor}")
-        result = model.predict_proba(matrix)
+            matrix = np.array(matrix, dtype=float)
 
-        result_index = 0
-        for sequence in sequences:
-            sequence_length = len(sequence.seq)
-            for i in range(sequence_length):
-                if i >= 5 and i < sequence_length - (motif_size + 5):
-                    value = round(result[result_index][1], 4)
-                    if value > 0.8:
-                        log.debug(f"Adding {predictor} motif to {sequence.id}")
-                        sequence.add_motif(predictor, value, i)
-                    result_index += 1
+            log.debug(f"Predicting probabilities for {predictor}")
+            result = model.predict_proba(matrix)
+
+            result_index = 0
+            for sequence in sequences:
+                sequence_length = len(sequence.seq)
+                for i in range(sequence_length):
+                    if i >= 5 and i < sequence_length - (motif_size + 5):
+                        value = round(result[result_index][1], 4)
+                        if value > 0.8:
+                            log.debug(f"Adding {predictor} motif to {sequence.id}")
+                            sequence.add_motif(predictor, value, i)
+                        result_index += 1
+        
+        progress.update(task, advance=1)
 
     temp_dir.cleanup()
 
