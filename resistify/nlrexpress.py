@@ -9,7 +9,7 @@ from multiprocessing import Pool, cpu_count
 import shutil
 import warnings
 
-from rich.progress import Progress
+from rich.progress import Progress, BarColumn, TaskProgressColumn
 
 log = logging.getLogger(__name__)
 
@@ -151,7 +151,13 @@ def nlrexpress(sequences, search_type, chunk_size):
 
     results = []
     log.info("Running NLRexpress - this could take a while...")
-    with Progress(transient=True) as progress:
+
+    progress = Progress(
+        "[progress.description]{task.description}",
+        BarColumn(),
+        TaskProgressColumn(),
+    )
+    with progress:
         task = progress.add_task("Processing", total=len(args))
         with Pool(-(-threads // 2)) as pool:
             #result_batches = pool.starmap(nlrexpress_subprocess, args)
