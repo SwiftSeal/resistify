@@ -9,7 +9,6 @@
 *More than 2,500 downloads - thank you all!*
 </div>
 
-
 Resistify is a program which rapidly identifies and classifies plant resistance genes from protein sequences.
 It is designed to be lightweight and easy to use.
 
@@ -280,6 +279,14 @@ If gene annotations are unavailable for your genome, my advice would be to use a
 **A:** False positives do occur for the motif predictions, and unexpected predictions such as a single CC motif in the LRR domain are unlikely to be representative of a true domain annotation.
 You can find a figure of the prediction accuracy rates for each predictor [here](https://www.frontiersin.org/files/Articles/975888/fpls-13-975888-HTML/image_m/fpls-13-975888-g002.jpg).
 False positives shouldn't interfere with the classification accuracy.
+
+**Q: The `NLRexpress` step is quite slow - how can I speed it up?**
+
+**A:** More threads!
+The process is relatively fast on a non-NLR sequence, but can be quite slow when applied to an NLR.
+`Resistify` will automatically use as many threads as possible - I've used up to 128 threads and it scales fairly well.
+It's primarily due to the underlying `jackhmmer` process, which is slow when applied to NLRs, but not non-NLRs.
+As a result the `--retain` option doesn't have as much of a performance impact as you might expect.
 
 ## Contributing
 
