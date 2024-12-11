@@ -428,7 +428,8 @@ def tmbed(sequences, models_path):
     log.info("Predicting transmembrane domains...")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    log.debug(f"Device is {device}")
+    if device == "cpu":
+        log.warning("No GPU found, so using CPU only. This will be very slow...")
 
     log.debug("Loading encoder")
     encoder = T5Encoder(models_path, torch.cuda.is_available())
