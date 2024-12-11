@@ -351,7 +351,11 @@ class Sequence:
 
         external_domains = ";".join(external_domains)
 
-        self.classification = external_domains
+        # If no external domains identified, set classification to None
+        if not external_domains:
+            self.classification = None
+        else:
+            self.classification = external_domains
 
     def merge_annotations(self, duplicate_gap):
         """
