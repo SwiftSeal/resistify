@@ -449,8 +449,8 @@ def tmbed(sequences, models_path):
         "o": "outside",
     }
 
-    with Progress() as progress:
-        task = progress.add_task("Running TMbed...", total=len(sequences))
+    with Progress(transient=True) as progress:
+        task = progress.add_task("TMbed", total=len(sequences))
         for sequence in sequences:
             log.debug
             try:
