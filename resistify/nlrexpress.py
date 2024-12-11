@@ -152,7 +152,7 @@ def nlrexpress(sequences, search_type, chunk_size):
     results = []
     log.info("Running NLRexpress - this could take a while...")
     with Progress(transient=True) as progress:
-        task = progress.add_task("NLRexpress", total=len(args))
+        task = progress.add_task("Processing", total=len(args))
         with Pool(-(-threads // 2)) as pool:
             #result_batches = pool.starmap(nlrexpress_subprocess, args)
             for result in pool.imap(nlrexpress_subprocess, args):
