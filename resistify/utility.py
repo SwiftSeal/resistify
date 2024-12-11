@@ -110,6 +110,7 @@ def result_table(sequences, results_dir, type, retain=False):
                 [
                     "Sequence",
                     "Length",
+                    "Extracellular_Length",
                     "LRR_Length",
                     "Type",
                     "Classification",
@@ -122,6 +123,7 @@ def result_table(sequences, results_dir, type, retain=False):
                         [
                             sequence.id,
                             len(sequence.seq),
+                            sequence.extracellular_length,
                             sequence.lrr_length,
                             sequence.type,
                             sequence.classification,

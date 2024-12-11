@@ -170,6 +170,18 @@ class Sequence:
             if annotation.domain == "signal_peptide":
                 return True
         return False
+    
+    @property
+    def extracellular_length(self):
+        """
+        Calculate the length of the extracellular domain of an RLP/RLK.
+        """
+        if self.type == "RLP" or self.type == "RLK":
+            for annotation in self.annotations:
+                if annotation.domain == "alpha_inwards":
+                    return annotation.start
+        else:
+            return None
 
     def add_annotation(self, domain, source, start, end, evalue=None, score=None):
         """
