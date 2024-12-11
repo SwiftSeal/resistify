@@ -69,7 +69,7 @@ def add_common_args(parser):
     parser.add_argument(
         "--chunksize",
         help="Number of sequences per split for jackhmmer. Default is 5.",
-        default=5,
+        default=None,
         type=int,
     )
 
@@ -195,10 +195,18 @@ def nlr(args, log):
     else:
         log.info("NLRexpress will be run against all input sequences...")
 
+    # If not specified, run NLRexpress in batches of 5 on all sequences or 1 on retained NLRs
+    if args.retain and args.chunksize is None:
+        chunksize = 5
+    elif args.chunksize is None:
+        chunksize = 1
+    else:
+        chunksize = args.chunksize
+
     sequences = nlrexpress(
         sequences,
         "all",
-        args.chunksize,
+        chunksize,
     )
 
     if args.coconat:
@@ -230,7 +238,15 @@ def prr(args, log):
     if len(sequences) == 0:
         log.error("No PRRs detected!")
         sys.exit(1)
-    sequences = nlrexpress(sequences, "lrr", args.chunksize)
+    else:
+        log.info(f"{len(sequences)} PRRs identified...")
+    
+    if args.chunksize is None:
+        chunksize = 5
+    else:
+        chunksize = args.chunksize
+    
+    sequences = nlrexpress(sequences, "lrr", chunksize)
 
     log.info("Classifying sequences...")
     for sequence in sequences:
