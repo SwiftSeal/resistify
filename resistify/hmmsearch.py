@@ -8,39 +8,39 @@ import tempfile
 log = logging.getLogger(__name__)
 
 accession_families = {
-    "PF00931": "NB-ARC",
-    "PF01582": "TIR",
-    "PF05659": "RPW8",
-    "PF13676": "TIR",
-    "PF18052": "CC",
-    "PF20160": "C-JID",
-    "MADA": "MADA",
-    "PF00069": "PKinase",
-    "PF01453": "G-LecRLK",
-    "PF00954": "G-LecRLK",
-    "PF08276": "G-LecRLK",
-    "PF00024": "G-LecRLK",
-    "PF14295": "G-LecRLK",
-    "PF00139": "L-LecRLK",
-    "PF00059": "C-LecRLK",
-    "PF13947": "WAK",
-    "PF14380": "WAK",
-    "PF00008": "WAK",
-    "PF08488": "WAK",
-    "PF07645": "WAK",
-    "PF12662": "WAK",
-    "PF12947": "WAK",
-    "PF11721": "CrRLK1L",
-    "PF12819": "CrRLK1L",
-    "PF01476": "LysM",
-    "PF01657": "CRK",
-    "PF00314": "Thaumatin",
-    "PF13540": "CR-like",
-    "PF19160": "SPARK",
-    "PF00704": "GH18",
-    "PF00182": "GH19",
-    "PF00188": "CAP",
-    "PF16101": "PRIMA1",
+    "PF00931": ("NB-ARC", 23.5),
+    "PF01582": ("TIR", 21.3),
+    "PF05659": ("RPW8", 30.4),
+    "PF13676": ("TIR", 28),
+    "PF18052": ("CC", 27.7),
+    "PF20160": ("C-JID", 24.1),
+    "MADA": ("MADA", 10),
+    "PF00069": ("PKinase", 31.7),
+    "PF01453": ("G-LecRLK", 32.4),
+    "PF00954": ("G-LecRLK", 24),
+    "PF08276": ("G-LecRLK", 21.1),
+    "PF00024": ("G-LecRLK", 21.4),
+    "PF14295": ("G-LecRLK", 27.1),
+    "PF00139": ("L-LecRLK", 26.3),
+    "PF00059": ("C-LecRLK", 22.6),
+    "PF13947": ("WAK", 29.4),
+    "PF14380": ("WAK", 27),
+    "PF00008": ("WAK", 21.5),
+    "PF08488": ("WAK", 22.1),
+    "PF07645": ("WAK", 27),
+    "PF12662": ("WAK", 26.6),
+    "PF12947": ("WAK", 28.5),
+    "PF11721": ("CrRLK1L", 23),
+    "PF12819": ("CrRLK1L", 24.5),
+    "PF01476": ("LysM", 20.9),
+    "PF01657": ("CRK", 25),
+    "PF00314": ("Thaumatin", 27.4),
+    "PF13540": ("CR-like", 22),
+    "PF19160": ("SPARK", 25),
+    "PF00704": ("GH18", 29.6),
+    "PF00182": ("GH19", 25.5),
+    "PF00188": ("CAP", 21.1),
+    "PF16101": ("PRIMA1", 38.6),
 }
 
 
@@ -89,12 +89,12 @@ def hmmsearch(sequences, search_type, evalue):
 
     for record in SearchIO.parse(output_file.name, "hmmsearch3-domtab"):
         accession = record.accession.split(".")[0]
-        record_name = accession_families[accession]
+        record_name, record_bit_threshold = accession_families[accession]
 
         for hit in record:
             for hsp in hit:
-                # Skip RPW8 hits with low bitscores
-                if record_name == "RPW8" and hsp.bitscore < 20:
+                # Skip hits below the threshold
+                if hsp.bitscore < record_bit_threshold:
                     continue
 
                 # Lookup sequence by ID in the dictionary
