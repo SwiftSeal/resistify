@@ -9,6 +9,8 @@ from multiprocessing import Pool, cpu_count
 import shutil
 import warnings
 
+from rich.progress import Progress
+
 log = logging.getLogger(__name__)
 
 # Version 1.3 of sklearn introduced InconsistentVersionWarning, fall back to UserWarning if not available
@@ -147,11 +149,17 @@ def nlrexpress(sequences, search_type, chunk_size):
 
     args = [(batch, jackhmmer_db.name, models) for batch in batches]
 
+    results = []
     log.info("Running NLRexpress - this could take a while...")
-    with Pool(-(-threads // 2)) as pool:
-        result_batches = pool.starmap(nlrexpress_subprocess, args)
+    with Progress(transient=True) as progress:
+        task = progress.add_task("NLRexpress", total=len(args))
+        with Pool(-(-threads // 2)) as pool:
+            #result_batches = pool.starmap(nlrexpress_subprocess, args)
+            for result in pool.imap(nlrexpress_subprocess, args):
+                results.append(result)
+                progress.update(task, advance=1)
 
-    sequences = [seq for batch in result_batches for seq in batch]
+    sequences = [seq for batch in results for seq in batch]
 
     return sequences
 
@@ -172,7 +180,8 @@ def load_models(search_type):
     return models
 
 
-def nlrexpress_subprocess(sequences, jackhmmer_db, models):
+def nlrexpress_subprocess(params):
+    sequences, jackhmmer_db, models = params
     temp_dir = tempfile.TemporaryDirectory()
     fasta_path = os.path.join(temp_dir.name, "seq.fa")
     iteration_1_path = fasta_path + ".out-1.hmm"
