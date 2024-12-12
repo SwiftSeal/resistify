@@ -156,11 +156,12 @@ def nlrexpress(sequences, search_type, chunk_size):
         "[progress.description]{task.description}",
         BarColumn(),
         TaskProgressColumn(),
+        transient=True,
     )
     with progress:
         task = progress.add_task("Processing", total=len(args))
         with Pool(-(-threads // 2)) as pool:
-            #result_batches = pool.starmap(nlrexpress_subprocess, args)
+            # result_batches = pool.starmap(nlrexpress_subprocess, args)
             for result in pool.imap(nlrexpress_subprocess, args):
                 results.append(result)
                 progress.update(task, advance=1)

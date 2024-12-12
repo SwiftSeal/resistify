@@ -170,7 +170,7 @@ class Sequence:
             if annotation.domain == "signal_peptide":
                 return True
         return False
-    
+
     @property
     def extracellular_length(self):
         """

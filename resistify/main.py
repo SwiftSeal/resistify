@@ -23,6 +23,7 @@ from resistify.coconat import coconat
 from resistify.tmbed import tmbed
 from resistify.__version__ import __version__
 
+
 def add_common_args(parser):
     """
     Add common arguments shared between NLR and PRR parsers.
@@ -231,12 +232,12 @@ def prr(args, log):
         sys.exit(1)
     else:
         log.info(f"{len(sequences)} PRRs identified...")
-    
+
     if args.chunksize is None:
         chunksize = 5
     else:
         chunksize = args.chunksize
-    
+
     sequences = nlrexpress(sequences, "lrr", chunksize)
 
     log.info("Classifying sequences...")
