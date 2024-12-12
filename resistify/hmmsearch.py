@@ -44,7 +44,7 @@ accession_families = {
 }
 
 
-def hmmsearch(sequences, search_type, evalue):
+def hmmsearch(sequences, search_type):
     if search_type == "nlr":
         hmmsearch_db = os.path.join(os.path.dirname(__file__), "data", "nlrdb.hmm")
     elif search_type == "prr":
@@ -61,8 +61,9 @@ def hmmsearch(sequences, search_type, evalue):
     cmd = [
         "hmmsearch",
         "--noali",
-        "--domE",
-        evalue,
+        "-Z 45638612",
+        #"--domE",
+        #evalue,
         "--domtblout",
         output_file.name,
         hmmsearch_db,

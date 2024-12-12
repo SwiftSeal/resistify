@@ -62,13 +62,8 @@ def add_common_args(parser):
         type=int,
     )
     parser.add_argument(
-        "--evalue",
-        help="E-value threshold for hmmsearch. Default is 0.00001.",
-        default="0.00001",
-    )
-    parser.add_argument(
         "--chunksize",
-        help="Number of sequences per split for jackhmmer. Default is 5.",
+        help="Number of sequences per split for jackhmmer.",
         default=None,
         type=int,
     )
@@ -115,23 +110,23 @@ def parse_args(args=None):
         help="Identify and classify NLR resistance genes.",
         formatter_class=RichHelpFormatter,
     )
-    add_common_args(nlr_parser)
     nlr_parser.add_argument(
         "--retain",
         help="Non-NLRs will be retained for motif prediction and reported in the final output.",
         action="store_true",
     )
     nlr_parser.add_argument(
-        "--batch",
-        help="Number of sequences to process in parallel with jackhmmer.",
-        default=None,
-        type=int,
-    )
-    nlr_parser.add_argument(
         "--coconat",
         help="If enabled, Coconat will be used to improve coiled-coil (CC) annotations.",
         action="store_true",
     )
+    nlr_parser.add_argument(
+        "--batch",
+        help="Number of sequences to process in parallel with coconat.",
+        default=None,
+        type=int,
+    )
+    add_common_args(nlr_parser)
 
     # PRR subparser
     prr_parser = subparsers.add_parser(
@@ -139,7 +134,6 @@ def parse_args(args=None):
         help="Identify and classify PRR resistance genes.",
         formatter_class=RichHelpFormatter,
     )
-    add_common_args(prr_parser)
 
     # Download models subparser
     download_parser = subparsers.add_parser(
@@ -151,6 +145,7 @@ def parse_args(args=None):
         "models_path",
         help="Path to the directory which will be used to store downloaded models.",
     )
+    add_common_args(prr_parser)
 
     return parser.parse_args(args)
 
@@ -184,7 +179,7 @@ def nlr(args, log):
 
     sequences = parse_fasta(args.input)
     log.info("Searching for NLRs...")
-    sequences = hmmsearch(sequences, "nlr", args.evalue)
+    sequences = hmmsearch(sequences, "nlr")
     if not args.retain:
         sequences = [sequence for sequence in sequences if sequence.has_nbarc]
         if len(sequences) == 0:
@@ -203,11 +198,7 @@ def nlr(args, log):
     else:
         chunksize = args.chunksize
 
-    sequences = nlrexpress(
-        sequences,
-        "all",
-        chunksize,
-    )
+    sequences = nlrexpress(sequences, "all", chunksize)
 
     if args.coconat:
         log.info("Running CoCoNat to identify additional CC domains...")
@@ -231,7 +222,7 @@ def prr(args, log):
 
     log.info("Searching for PRRs...")
     sequences = parse_fasta(args.input)
-    sequences = hmmsearch(sequences, "prr", args.evalue)
+    sequences = hmmsearch(sequences, "prr")
 
     sequences = tmbed(sequences, args.models_path)
     sequences = [sequence for sequence in sequences if sequence.is_rlp()]
