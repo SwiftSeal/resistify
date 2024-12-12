@@ -58,10 +58,15 @@ def parse_fasta(path):
 def save_fasta(sequences, path, classified_only=False):
     with open(path, "w") as file:
         for sequence in sequences:
-            if classified_only and sequence.classification is None:
+            # Special case for PRRs as we are interested in type
+            if classified_only and sequence.type in ["RLP", "RLK"]:
+                file.write(f">{sequence.id}\n")
+                file.write(f"{sequence.seq}\n")
+            elif classified_only and sequence.classification is None:
                 continue
-            file.write(f">{sequence.id}\n")
-            file.write(f"{sequence.seq}\n")
+            else:
+                file.write(f">{sequence.id}\n")
+                file.write(f"{sequence.seq}\n")
     return path
 
 
