@@ -48,11 +48,7 @@ def parse_fasta(path):
     sequences = []
 
     # Automatically detect if the file is gzipped
-    with open(path, "rb") as file:
-        if file.read(2) == b'\x1f\x8b':
-            open_func = gzip.open
-        else:
-            open_func = open
+    open_func = gzip.open if path.endswith('.gz') else open
 
     with open_func(path, "rt") as file:
         seq_id = None
@@ -81,6 +77,11 @@ def parse_fasta(path):
 
     return sequences
 
+def wrap_sequence(sequence, wrap_length=80):
+    wrapped_sequence = ""
+    for i in range(0, len(sequence), wrap_length):
+        wrapped_sequence += sequence[i : i + wrap_length] + "\n"
+    return wrapped_sequence
 
 def save_fasta(sequences, path, classified_only=False):
     with open(path, "w") as file:
@@ -88,12 +89,12 @@ def save_fasta(sequences, path, classified_only=False):
             # Special case for PRRs as we are interested in type
             if classified_only and sequence.type in ["RLP", "RLK"]:
                 file.write(f">{sequence.id}\n")
-                file.write(f"{sequence.seq}\n")
+                file.write(f"{wrap_sequence(sequence.seq)}")
             elif classified_only and sequence.classification is None:
                 continue
             else:
                 file.write(f">{sequence.id}\n")
-                file.write(f"{sequence.seq}\n")
+                file.write(f"{wrap_sequence(sequence.seq)}")
     return path
 
 
@@ -254,7 +255,7 @@ def extract_nbarc(sequences, results_dir):
             for annotation in sequence.merged_annotations:
                 if annotation.domain == "NB-ARC":
                     file.write(f">{sequence.id}_{count}\n")
-                    file.write(f"{sequence.seq[annotation.start:annotation.end]}\n")
+                    file.write(f"{wrap_sequence(sequence.seq[annotation.start:annotation.end])}")
                     count += 1
 
 
