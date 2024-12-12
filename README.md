@@ -14,21 +14,7 @@ It is designed to be lightweight and easy to use.
 
 ![A screenshot of the help interface of resistify](assets/terminal.png)
 
-## What's new in v0.6.0?
-
-The release of `v0.6.0` has brought a number of changes to `Resistify`.
-First, you'll note that there are now two modes available - NLR and PRR - which identify NLRs and PRRs respectively.
-
-The NLR pipeline is largely the same, but has received multiple performance improvements which should allow it to utilise more threads simultaneously and significantly reduce memory usage.
-As a result of these changes, the `--threads` mode has now been removed which was a bit of a lie anyway, as numpy would use them all regardless.
-The `--ultra` setting has been renamed as `--retain`.
-
-The PRR pipeline is new to `Resistify` and is currently in development.
-It uses a re-implementation of [TMbed](https://github.com/BernhoferM/TMbed) to predict transmembrane domains, from which it will identify and classify RLP/RLKs according to a [recently described classification system](https://doi.org/10.1016/j.molp.2024.02.014).
-Feel free to give it a try and offer suggestions!
-Due to other commitments I can't currently benchmark this properly and make no guarantees to its accuracy yet.
-
-## Installation
+## Getting started
 
 `Resistify` is available via the [Bioconda](https://anaconda.org/bioconda/resistify) channel:
 
@@ -36,6 +22,9 @@ Due to other commitments I can't currently benchmark this properly and make no g
 conda create -n resistify bioconda::resistify
 conda activate resistify
 ```
+
+> [!NOTE] 
+> If you want to use the GPU-accelerated pipelines, conda may fail to install a GPU-ready version of `pytorch`. If this occurs, try installing `pytorch-gpu bioconda::resistify` instead.
 
 When using `conda`, please ensure that your Bioconda has been [configured correctly](https://bioconda.github.io/#usage).
 
@@ -81,9 +70,13 @@ In practice, I wouldn't expect this mode to pick up on a significant number of m
 
 `Resistify` carries out an initial search for common NLR domains to quickly filter and annotate the input sequences.
 Then, `Resistify` executes a re-implementation of `NLRexpress` to conduct a highly accurate search for NLR-associated motifs.
-If `--coconat` is used, this will also be executed to scavenge for potentially missed coiled-coil domains. 
+If `--coconat` is used, this will also be executed to scavenge for potentially missed coiled-coil domains.
+Together, this evidence is used to classify NLRs according to their domain architecture.
 
 ### Identifying PRRs
+
+> [!IMPORTANT] 
+> This pipeline is currently in development - due to other commitments I can't currently benchmark this properly and make no guarantees to its accuracy yet! Feedback is appreciated.
 
 To predict PRRs within a set of protein sequences, simply run:
 
@@ -98,16 +91,26 @@ and `Resistify` will identify and classify PRRs, and return some files:
  - `annotations.tsv` - A table of the raw annotations for each sequence.
  - `prr.fasta` - A fasta file of all PRRs identified.
 
- This mode uses [TMBed](https://doi.org/10.1186/s12859-022-04873-x) to predict transmembrane domains.
- It greatly benefits from GPU acceleration - running with CPUs only will be extremely slow and memory intensive.
+> [!WARNING]
+> This pipeline is GPU-accelerated and will be extremely slow on CPU only.
+
+#### How does it work?
+
+First, `Resistify` searches for domains associated with a [recently described classification system](https://doi.org/10.1016/j.molp.2024.02.014) for RLP/RLKs.
+Then, a re-implementation of [`TMbed`](https://github.com/BernhoferM/TMbed) is used to predict transmembrane domains - sequences with a single α-helix transmembrane domain and an extracellular domain of at least 50 amino acids are considered as RLPs.
+Finally, `NLRexpress` is used to to identify LRR domains.
+
+Sequences are classified as being either RLPs or RLKs depending on the presence of an internal kinase domain, and are classified according to their extracellular domain.
 
 ### Downloading model data
+
+> [!NOTE]
+This only applies to the `--coconat` and PRR pipelines! The standard NLR pipeline does not require any external databases.
 
 By default, `Resistify` will automatically download the models required for CoConat and TMbed to your `$HOME/.cache` directory.
 If you'd like to manually install the databases instead, you can use the `resistify download_models` utility to download these to a directory of your choice.
 To provide these local models to the CoCoNat and TMbed processes, simply pass the path of the models directory via the `--models` argument.
 Approximately 13G of disk space is required.
-If you only intend to use the NLR module without `--coconat`, no external databases will be downloaded.
 
 ## Results
 
