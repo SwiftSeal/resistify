@@ -5,7 +5,7 @@ import logging
 import json
 import hashlib
 import requests
-from Bio import SeqIO
+import gzip
 from resistify.annotations import Sequence, NBARC_MOTIFS
 
 log = logging.getLogger(__name__)
@@ -22,38 +22,66 @@ def create_output_directory(outdir):
         sys.exit(1)
 
 
+def check_sequence(sequence):
+    if "*" in sequence.seq:
+        log.warning(
+            f"An internal '*' character is present in {sequence.id} - skipping this sequence..."
+        )
+    elif "." in sequence.seq:
+        log.warning(
+            f"An internal '.' character is present in {sequence.id} - skipping this sequence..."
+        )
+    elif len(sequence.seq) > 100000:
+        log.warning(
+            f"Sequence {sequence.id} is longer than 100,000 codons - skipping this sequence..."
+        )
+    elif len(sequence.seq) < 28:
+        log.warning(
+            f"Sequence {sequence.id} is less than 28 codons - skipping this sequence..."
+        )
+    else:
+        return True
+    return False
+
+
 def parse_fasta(path):
     sequences = []
-    with open(path) as file:
-        for record in SeqIO.parse(file, "fasta"):
-            # need to remove stop codons, interferes with hmmsearch / jackhmmer
-            sequence_str = str(record.seq).strip("*")
-            sequence_str = sequence_str.strip(".")
-            if "*" in sequence_str:
-                log.warning(
-                    f"An internal '*' character is present in {record.id} - skipping this sequence..."
-                )
-            elif "." in sequence_str:
-                log.warning(
-                    f"An internal '.' character is present in {record.id} - skipping this sequence..."
-                )
-            elif len(sequence_str) > 100000:
-                log.warning(
-                    f"Sequence {record.id} is longer than 100,000 codons - skipping this sequence..."
-                )
-            elif len(sequence_str) < 28:
-                log.warning(
-                    f"Sequence {record.id} is less than 28 codons - skipping this sequence..."
-                )
-            else:
-                sequences.append(Sequence(record.id, sequence_str))
 
-    if len(sequences) == 0:
+    # Automatically detect if the file is gzipped
+    open_func = gzip.open if path.endswith('.gz') else open
+
+    with open_func(path, "rt") as file:
+        seq_id = None
+        seq = ""
+        for line in file:
+            line = line.strip()
+            if line.startswith(">"):
+                if seq_id:
+                    seq = seq.strip("*").strip(".")
+                    sequence = Sequence(seq_id, seq)
+                    if check_sequence(sequence):
+                        sequences.append(Sequence(seq_id, seq))
+                seq_id = line[1:].split()[0]
+                seq = ""
+            else:
+                seq += line
+        if seq_id:
+            seq = seq.strip("*").strip(".")
+            sequence = Sequence(seq_id, seq)
+            if check_sequence(sequence):
+                sequences.append(Sequence(seq_id, seq))
+
+    if not sequences:
         log.error("No valid sequences found in input file!")
         sys.exit(1)
 
     return sequences
 
+def wrap_sequence(sequence, wrap_length=80):
+    wrapped_sequence = ""
+    for i in range(0, len(sequence), wrap_length):
+        wrapped_sequence += sequence[i : i + wrap_length] + "\n"
+    return wrapped_sequence
 
 def save_fasta(sequences, path, classified_only=False):
     with open(path, "w") as file:
@@ -61,12 +89,12 @@ def save_fasta(sequences, path, classified_only=False):
             # Special case for PRRs as we are interested in type
             if classified_only and sequence.type in ["RLP", "RLK"]:
                 file.write(f">{sequence.id}\n")
-                file.write(f"{sequence.seq}\n")
+                file.write(f"{wrap_sequence(sequence.seq)}")
             elif classified_only and sequence.classification is None:
                 continue
             else:
                 file.write(f">{sequence.id}\n")
-                file.write(f"{sequence.seq}\n")
+                file.write(f"{wrap_sequence(sequence.seq)}")
     return path
 
 
@@ -227,7 +255,7 @@ def extract_nbarc(sequences, results_dir):
             for annotation in sequence.merged_annotations:
                 if annotation.domain == "NB-ARC":
                     file.write(f">{sequence.id}_{count}\n")
-                    file.write(f"{sequence.seq[annotation.start:annotation.end]}\n")
+                    file.write(f"{wrap_sequence(sequence.seq[annotation.start:annotation.end])}")
                     count += 1
 
 
