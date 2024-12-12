@@ -2,7 +2,6 @@ import subprocess
 import sys
 import os
 import logging
-from Bio import SearchIO
 import tempfile
 
 log = logging.getLogger(__name__)
@@ -88,26 +87,33 @@ def hmmsearch(sequences, search_type):
 
     sequence_dict = {sequence.id: sequence for sequence in sequences}
 
-    for record in SearchIO.parse(output_file.name, "hmmsearch3-domtab"):
-        accession = record.accession.split(".")[0]
-        record_name, record_bit_threshold = accession_families[accession]
+    with open(output_file.name) as file:
+        for line in file:
+            if line.startswith("#"):
+                continue
+            line = line.split()
+            sequence_id = line[0]
+            accession = line[4].split(".")[0]
+            evalue = float(line[11])
+            bitscore = float(line[13])
+            start = int(line[17])
+            end = int(line[18])
 
-        for hit in record:
-            for hsp in hit:
-                # Skip hits below the threshold
-                if hsp.bitscore < record_bit_threshold:
+            domain_name, domain_bit_threshold = accession_families[accession]
+
+            if bitscore < domain_bit_threshold:
                     continue
 
                 # Lookup sequence by ID in the dictionary
-                sequence = sequence_dict.get(hit.id)
-                if sequence:
-                    sequence.add_annotation(
-                        record_name,
-                        "HMM",
-                        hsp.env_start,
-                        hsp.env_end,
-                        hsp.evalue,
-                        hsp.bitscore,
-                    )
+            sequence = sequence_dict.get(sequence_id)
+            if sequence:
+                sequence.add_annotation(
+                    domain_name,
+                    "HMM",
+                    start,
+                    end,
+                    evalue,
+                    bitscore,
+                )
 
     return sequences
