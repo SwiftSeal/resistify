@@ -21,7 +21,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from rich.progress import Progress
+from rich.progress import Progress, BarColumn, TaskProgressColumn
 
 import logging
 
@@ -452,7 +452,13 @@ def tmbed(sequences, models_path):
         "o": "outside",
     }
 
-    with Progress(transient=True) as progress:
+    progress = Progress(
+        "[progress.description]{task.description}",
+        BarColumn(),
+        TaskProgressColumn(),
+        transient=True,
+    )
+    with progress:
         task = progress.add_task("Processing", total=len(sequences))
         for sequence in sequences:
             log.debug
