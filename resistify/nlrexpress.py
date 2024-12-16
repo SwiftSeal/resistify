@@ -159,13 +159,19 @@ def nlrexpress(sequences, search_type, chunk_size):
         transient=True,
     )
     with progress:
-        task = progress.add_task("Processing", total=len(args))
+        total_iterations = len(args)
+        iteration = 0
+        task = progress.add_task("Processing", total=total_iterations)
         # Need to use spawn otherwise the subprocesses will hang
         with get_context("spawn").Pool(-(-threads // 2)) as pool:
             # result_batches = pool.starmap(nlrexpress_subprocess, args)
             for result in pool.imap(nlrexpress_subprocess, args):
                 results.append(result)
                 progress.update(task, advance=1)
+                iteration += 1
+                if iteration % (total_iterations // 10) == 0:
+                    percent_complete = (iteration / total_iterations) * 100
+                    log.info(f"{int(percent_complete)}% complete")
 
     sequences = [seq for batch in results for seq in batch]
 

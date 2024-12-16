@@ -459,8 +459,9 @@ def tmbed(sequences, models_path):
         transient=True,
     )
     with progress:
-        task = progress.add_task("Processing", total=len(sequences))
-        for sequence in sequences:
+        total_iterations = len(sequences)
+        task = progress.add_task("Processing", total=total_iterations)
+        for iteration, sequence in enumerate(sequences):
             try:
                 log.debug(f"Predicting transmembrane domains for {sequence.id}...")
                 embedding = encoder.embed(sequence.seq)
@@ -516,6 +517,10 @@ def tmbed(sequences, models_path):
                 state_start + 1,
                 len(sequence.seq),
             )
+
             progress.update(task, advance=1)
+            if iteration % (total_iterations // 10) == 0:
+                percent_complete = (iteration / total_iterations) * 100
+                log.info(f"{int(percent_complete)}% complete")
 
     return sequences
