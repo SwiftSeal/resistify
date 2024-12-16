@@ -521,6 +521,8 @@ def tmbed(sequences, models_path):
             progress.update(task, advance=1)
             if total_iterations < 10:
                 log.info(f"{iteration + 1} of {total_iterations} complete")
+            elif iteration == 0:
+                continue
             elif iteration % (total_iterations // 10) == 0:
                 percent_complete = iteration / total_iterations * 100
                 log.info(f"{int(percent_complete)}% complete")
