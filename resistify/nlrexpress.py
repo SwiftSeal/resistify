@@ -5,7 +5,7 @@ import pickle
 import os
 import logging
 import tempfile
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool, cpu_count, get_context
 import shutil
 import warnings
 
@@ -160,7 +160,8 @@ def nlrexpress(sequences, search_type, chunk_size):
     )
     with progress:
         task = progress.add_task("Processing", total=len(args))
-        with Pool(-(-threads // 2)) as pool:
+        # Need to use spawn otherwise the subprocesses will hang
+        with get_context("spawn").Pool(-(-threads // 2)) as pool:
             # result_batches = pool.starmap(nlrexpress_subprocess, args)
             for result in pool.imap(nlrexpress_subprocess, args):
                 results.append(result)
@@ -216,7 +217,6 @@ def nlrexpress_subprocess(params):
     ]
 
     try:
-        log.debug(f"Running jackhmmer on {fasta_path}")
         subprocess.run(
             cmd,
             check=True,
@@ -225,7 +225,6 @@ def nlrexpress_subprocess(params):
             universal_newlines=True,
         )
     except subprocess.CalledProcessError as e:
-        log.error(f"Error running jackhmmer:\nStderr: {e.stderr}\nStdout:{e.stdout}")
         sys.exit(1)
 
     iteration_1 = parse_jackhmmer(iteration_1_path, iteration=False)
@@ -238,7 +237,6 @@ def nlrexpress_subprocess(params):
     jackhmmer_results = {}
 
     for sequence in sequences:
-        log.debug(f"Preparing jackhmmer data for {sequence.id}")
         # make blank list for this sequence
         jackhmmer_data = []
 
@@ -259,7 +257,6 @@ def nlrexpress_subprocess(params):
         jackhmmer_results[sequence.id] = jackhmmer_data
 
     for predictor, model in models.items():
-        log.debug(f"Generating matrix for {predictor}")
         motif_size = MOTIF_SPAN_LENGTHS[predictor]
         matrix = []
         for sequence in sequences:
@@ -272,7 +269,6 @@ def nlrexpress_subprocess(params):
 
         matrix = np.array(matrix, dtype=float)
 
-        log.debug(f"Predicting probabilities for {predictor}")
         result = model.predict_proba(matrix)
 
         result_index = 0
@@ -282,7 +278,6 @@ def nlrexpress_subprocess(params):
                 if i >= 5 and i < sequence_length - (motif_size + 5):
                     value = round(result[result_index][1], 4)
                     if value > 0.8:
-                        log.debug(f"Adding {predictor} motif to {sequence.id}")
                         sequence.add_motif(predictor, value, i)
                     result_index += 1
 
