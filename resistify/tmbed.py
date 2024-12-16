@@ -461,7 +461,6 @@ def tmbed(sequences, models_path):
     with progress:
         task = progress.add_task("Processing", total=len(sequences))
         for sequence in sequences:
-            log.debug
             try:
                 log.debug(f"Predicting transmembrane domains for {sequence.id}...")
                 embedding = encoder.embed(sequence.seq)
