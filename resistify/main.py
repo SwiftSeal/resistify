@@ -184,8 +184,8 @@ def nlr(args, log):
     if not args.retain:
         sequences = [sequence for sequence in sequences if sequence.has_nbarc]
         if len(sequences) == 0:
-            log.error("No NLRs detected! Maybe try --retain?")
-            sys.exit(1)
+            log.warning("No NLRs detected! Maybe try --retain?")
+            return sequences
         else:
             log.info(f"{len(sequences)} NLRs identified...")
     else:
@@ -205,7 +205,7 @@ def nlr(args, log):
         log.info("Running CoCoNat to identify additional CC domains...")
         sequences = coconat(sequences, args.models_path)
 
-    log.info("Classifying sequences...")
+    log.info("Classifying NLRs...")
     for sequence in sequences:
         sequence.identify_lrr_domains(args.lrr_gap, args.lrr_length)
         if args.coconat:
@@ -221,30 +221,28 @@ def prr(args, log):
     if args.models_path is not None:
         verify_files(args.models_path)
 
+    if args.chunksize is None:
+        chunksize = 5
+    else:
+        chunksize = args.chunksize
+
     log.info("Searching for PRRs...")
     sequences = parse_fasta(args.input)
     sequences = hmmsearch(sequences, "prr")
 
     sequences = tmbed(sequences, args.models_path)
     sequences = [sequence for sequence in sequences if sequence.is_rlp()]
-    if len(sequences) == 0:
-        log.error("No PRRs detected!")
-        sys.exit(1)
-    else:
+    if len(sequences) > 0:
         log.info(f"{len(sequences)} PRRs identified...")
+        sequences = nlrexpress(sequences, "lrr", chunksize)
 
-    if args.chunksize is None:
-        chunksize = 5
+        log.info("Classifying PRRs...")
+        for sequence in sequences:
+            sequence.identify_lrr_domains(args.lrr_gap, args.lrr_length)
+            sequence.merge_annotations(args.duplicate_gap)
+            sequence.classify_rlp()
     else:
-        chunksize = args.chunksize
-
-    sequences = nlrexpress(sequences, "lrr", chunksize)
-
-    log.info("Classifying sequences...")
-    for sequence in sequences:
-        sequence.identify_lrr_domains(args.lrr_gap, args.lrr_length)
-        sequence.merge_annotations(args.duplicate_gap)
-        sequence.classify_rlp()
+        log.warning("No PRRs detected!")
 
     return sequences
 
