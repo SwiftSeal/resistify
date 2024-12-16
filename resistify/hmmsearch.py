@@ -102,9 +102,9 @@ def hmmsearch(sequences, search_type):
             domain_name, domain_bit_threshold = accession_families[accession]
 
             if bitscore < domain_bit_threshold:
-                    continue
+                continue
 
-                # Lookup sequence by ID in the dictionary
+            # Lookup sequence by ID in the dictionary
             sequence = sequence_dict.get(sequence_id)
             if sequence:
                 sequence.add_annotation(

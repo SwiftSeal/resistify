@@ -10,6 +10,7 @@ from resistify.annotations import Sequence, NBARC_MOTIFS
 
 log = logging.getLogger(__name__)
 
+
 def log_percentage(n, total):
     if total < 10:
         log.info(f"{n} of {total} complete")
@@ -55,7 +56,7 @@ def parse_fasta(path):
     sequences = []
 
     # Automatically detect if the file is gzipped
-    open_func = gzip.open if path.endswith('.gz') else open
+    open_func = gzip.open if path.endswith(".gz") else open
 
     with open_func(path, "rt") as file:
         seq_id = None
@@ -84,11 +85,13 @@ def parse_fasta(path):
 
     return sequences
 
+
 def wrap_sequence(sequence, wrap_length=80):
     wrapped_sequence = ""
     for i in range(0, len(sequence), wrap_length):
         wrapped_sequence += sequence[i : i + wrap_length] + "\n"
     return wrapped_sequence
+
 
 def save_fasta(sequences, path, classified_only=False):
     with open(path, "w") as file:
@@ -262,7 +265,9 @@ def extract_nbarc(sequences, results_dir):
             for annotation in sequence.merged_annotations:
                 if annotation.domain == "NB-ARC":
                     file.write(f">{sequence.id}_{count}\n")
-                    file.write(f"{wrap_sequence(sequence.seq[annotation.start:annotation.end])}")
+                    file.write(
+                        f"{wrap_sequence(sequence.seq[annotation.start:annotation.end])}"
+                    )
                     count += 1
 
 
