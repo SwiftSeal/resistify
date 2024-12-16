@@ -169,7 +169,9 @@ def nlrexpress(sequences, search_type, chunk_size):
                 results.append(result)
                 progress.update(task, advance=1)
                 iteration += 1
-                if iteration % (total_iterations // 10) == 0:
+                if total_iterations < 10:
+                    log.info(f"{iteration} of {total_iterations} complete")
+                elif iteration % (total_iterations // 10) == 0:
                     percent_complete = (iteration / total_iterations) * 100
                     log.info(f"{int(percent_complete)}% complete")
 
