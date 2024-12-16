@@ -8,6 +8,7 @@ import tempfile
 from multiprocessing import Pool, cpu_count, get_context
 import shutil
 import warnings
+from resistify.utility import log_percentage
 
 from rich.progress import Progress, BarColumn, TaskProgressColumn
 
@@ -169,11 +170,7 @@ def nlrexpress(sequences, search_type, chunk_size):
                 results.append(result)
                 progress.update(task, advance=1)
                 iteration += 1
-                if total_iterations < 10:
-                    log.info(f"{iteration} of {total_iterations} complete")
-                elif iteration % (total_iterations // 10) == 0:
-                    percent_complete = (iteration / total_iterations) * 100
-                    log.info(f"{int(percent_complete)}% complete")
+                log_percentage(iteration, total_iterations)
 
     sequences = [seq for batch in results for seq in batch]
 

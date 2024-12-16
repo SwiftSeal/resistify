@@ -21,6 +21,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from resistify.utility import log_percentage
 from rich.progress import Progress, BarColumn, TaskProgressColumn
 
 import logging
@@ -460,8 +461,9 @@ def tmbed(sequences, models_path):
     )
     with progress:
         total_iterations = len(sequences)
+        iteration = 0
         task = progress.add_task("Processing", total=total_iterations)
-        for iteration, sequence in enumerate(sequences):
+        for sequence in sequences:
             try:
                 log.debug(f"Predicting transmembrane domains for {sequence.id}...")
                 embedding = encoder.embed(sequence.seq)
@@ -519,12 +521,7 @@ def tmbed(sequences, models_path):
             )
 
             progress.update(task, advance=1)
-            if total_iterations < 10:
-                log.info(f"{iteration + 1} of {total_iterations} complete")
-            elif iteration == 0:
-                continue
-            elif iteration % (total_iterations // 10) == 0:
-                percent_complete = iteration / total_iterations * 100
-                log.info(f"{int(percent_complete)}% complete")
+            iteration += 1
+            log_percentage(iteration, total_iterations)
 
     return sequences
