@@ -157,7 +157,6 @@ def nlrexpress(sequences, search_type, chunk_size):
         "[progress.description]{task.description}",
         BarColumn(),
         TaskProgressColumn(),
-        transient=True,
     )
     with progress:
         total_iterations = len(args)

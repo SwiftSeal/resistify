@@ -457,7 +457,6 @@ def tmbed(sequences, models_path):
         "[progress.description]{task.description}",
         BarColumn(),
         TaskProgressColumn(),
-        transient=True,
     )
     with progress:
         total_iterations = len(sequences)
