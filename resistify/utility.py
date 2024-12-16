@@ -15,7 +15,7 @@ def log_percentage(n, total):
         log.info(f"{n} of {total} complete")
     elif n % (total // 10) == 0:
         percent_complete = n / total * 100
-        log.info(f"{round(percent_complete, -1)}% complete")
+        log.info(f"{int(round(percent_complete, -1))}% complete")
 
 
 def create_output_directory(outdir):
