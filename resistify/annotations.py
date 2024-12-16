@@ -189,6 +189,9 @@ class Sequence:
         """
         start = int(start)
         end = int(end)
+        if start > end:
+            log.error(f"Invalid annotation coordinates for {self.id}")
+            return
         log.debug(f"Adding annotation {domain} to {self.id} from {start} to {end}")
         self.annotations.append(Annotation(domain, start, end, evalue, score, source))
         self.annotations.sort(key=lambda x: x.start)
