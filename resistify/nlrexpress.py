@@ -131,11 +131,12 @@ def parse_jackhmmer(file, iteration=False):
     return hmm_dict
 
 
-def nlrexpress(sequences, search_type, chunk_size):
-    try:
-        threads = len(os.sched_getaffinity(0))
-    except AttributeError:
-        threads = cpu_count()
+def nlrexpress(sequences, search_type, chunk_size, threads):
+    if threads is None:
+        try:
+            threads = len(os.sched_getaffinity(0))
+        except AttributeError:
+            threads = cpu_count()
 
     models = load_models(search_type)
 
