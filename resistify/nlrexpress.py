@@ -6,6 +6,7 @@ import os
 import logging
 import tempfile
 from multiprocessing import Pool, cpu_count, get_context
+from threadpoolctl import threadpool_limits
 import shutil
 import warnings
 from resistify.utility import log_percentage
@@ -130,11 +131,12 @@ def parse_jackhmmer(file, iteration=False):
     return hmm_dict
 
 
-def nlrexpress(sequences, search_type, chunk_size):
-    try:
-        threads = len(os.sched_getaffinity(0))
-    except AttributeError:
-        threads = cpu_count()
+def nlrexpress(sequences, search_type, chunk_size, threads):
+    if threads is None:
+        try:
+            threads = len(os.sched_getaffinity(0))
+        except AttributeError:
+            threads = cpu_count()
 
     models = load_models(search_type)
 
@@ -273,7 +275,8 @@ def nlrexpress_subprocess(params):
 
         matrix = np.array(matrix, dtype=float)
 
-        result = model.predict_proba(matrix)
+        with threadpool_limits(limits=2):
+            result = model.predict_proba(matrix)
 
         result_index = 0
         for sequence in sequences:

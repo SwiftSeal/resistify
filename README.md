@@ -6,7 +6,6 @@
 ![Conda Downloads](https://img.shields.io/conda/dn/bioconda/resistify)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/swiftseal/resistify/blob/main/assets/resistify.ipynb)
 
-*More than 2,500 downloads - thank you all!*
 </div>
 
 Resistify is a program which rapidly identifies and classifies plant resistance genes from protein sequences.
@@ -36,7 +35,7 @@ To use these with - for example - `singularity`, simply run:
 If you are having issues with `conda`, you can instead try installing directly from the repository:
 
 ```sh
-pip install https://github.com/SwiftSeal/resistify/archive/refs/tags/v0.6.2.tar.gz
+pip install https://github.com/SwiftSeal/resistify/archive/refs/tags/v1.0.1.tar.gz
 ```
 
 Note that `resistify` requires `hmmer` to be installed and available in your system's PATH, which will not be installed automatically when using `pip`.
@@ -116,9 +115,9 @@ Approximately 13G of disk space is required.
 
 ### results.tsv (nlr)
 
-| Sequence | Length | Motifs | Domains | Classification | NBARC_motifs | MADA | MADAL | CJID |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| ZAR1 | 852 | CNNNNNNNNNLLLLLLLLLL | mCNL | CNL | 9 | False | True | False |
+| Sequence | Length | LRR_Length | Motifs | Domains | Classification | NBARC_motifs | MADA | MADAL | CJID |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| ZAR1 | 852 | 307 | CNNNNNNNNNLLLLLLLLLL | mCNL | CNL | 9 | False | True | False |
 
 The main column of interest is "Classification", where we can see that it has been identified as a canonical CNL.
 The "Motifs" column indicates the series of NLR-associated motifs identified across the sequence - this can be useful if an NLR has an undetermined or unexpected classification.
@@ -127,9 +126,9 @@ Here, it appears that ZAR1 has a MADA-like motif.
 
 ### results.tsv (prr)
 
-| Sequence | Length | Type | Classification | Signal_peptide |
-| --- | --- | --- | --- | --- |
-| fls2 | 1174 | RLK | LRR | True |
+| Sequence | Length | Extracellular_Length | LRR_Length | Type | Classification | Signal_peptide |
+| --- | --- | --- | --- | --- | --- | --- |
+| fls2 | 1173 | 806 | 675 | RLK | LRR | True |
 
 For PRRs, sequences can be of the type RLP or RLK - both are single pass transmembrane proteins, and RLKs have an internal kinase domain.
 Classification refers to the domains identified in the external region.

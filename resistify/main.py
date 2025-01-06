@@ -68,6 +68,12 @@ def add_common_args(parser):
         default=None,
         type=int,
     )
+    parser.add_argument(
+        "-t", "--threads",
+        help="Number of threads available for nlrexpress. Default is the number of available CPUs.",
+        default=None,
+        type=int,
+    )
 
 
 def validate_input_file(filepath):
@@ -199,7 +205,7 @@ def nlr(args, log):
     else:
         chunksize = args.chunksize
 
-    sequences = nlrexpress(sequences, "all", chunksize)
+    sequences = nlrexpress(sequences, "all", chunksize, args.threads)
 
     if args.coconat:
         log.info("Running CoCoNat to identify additional CC domains...")
@@ -234,7 +240,7 @@ def prr(args, log):
     sequences = [sequence for sequence in sequences if sequence.is_rlp()]
     if len(sequences) > 0:
         log.info(f"{len(sequences)} PRRs identified...")
-        sequences = nlrexpress(sequences, "lrr", chunksize)
+        sequences = nlrexpress(sequences, "lrr", chunksize, args.threads)
 
         log.info("Classifying PRRs...")
         for sequence in sequences:
