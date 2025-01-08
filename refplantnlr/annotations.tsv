@@ -1,0 +1,50 @@
+Sequence	Domain	Start	End	E_value	Score	Source
+CHS1	TIR	30	122	3e-13	36.1	HMM
+CHS1	NB-ARC	186	406	1.7e-18	56.1	HMM
+CNL-11990	CC	60	61			nlrexpress
+CNL-11990	NB-ARC	152	375	1.4e-62	200.5	HMM
+CNL-11990	LRR	570	859			nlrexpress
+MLA37-1	CC	7	133	1.3e-25	78.0	HMM
+MLA37-1	CC	29	47			coconat
+MLA37-1	CC	67	79			coconat
+MLA37-1	CC	120	133			coconat
+MLA37-1	NB-ARC	194	423	4.5e-49	156.3	HMM
+MLA37-1	LRR	533	863			nlrexpress
+Pid3-A4	CC	5	134	8e-21	62.6	HMM
+Pid3-A4	CC	39	56			coconat
+Pid3-A4	CC	76	87			coconat
+Pid3-A4	CC	120	134			coconat
+Pid3-A4	NB-ARC	184	421	6.6e-53	168.8	HMM
+Pid3-A4	LRR	534	877			nlrexpress
+Pm5e	CC	91	92			nlrexpress
+Pm5e	NB-ARC	202	417	7.8e-39	122.7	HMM
+Pm5e	LRR	536	900			nlrexpress
+R3b	CC	11	144	4.7e-19	56.9	HMM
+R3b	CC	41	60			coconat
+R3b	CC	75	91			coconat
+R3b	CC	133	144			coconat
+R3b	NB-ARC	181	418	4.7e-58	185.7	HMM
+R3b	LRR	520	1244			nlrexpress
+R3b	LRR	724	1244			nlrexpress
+Rpi-amr3-3408	CC	34	114			coconat
+Rpi-amr3-3408	CC	101	114			coconat
+Rpi-amr3-3408	NB-ARC	154	381	4e-63	202.3	HMM
+Rpi-amr3-3408	LRR	575	845			nlrexpress
+Rpi-chc1.1	CC	55	174	2.9e-22	67.2	HMM
+Rpi-chc1.1	CC	76	96			coconat
+Rpi-chc1.1	CC	111	128			coconat
+Rpi-chc1.1	CC	160	174			coconat
+Rpi-chc1.1	NB-ARC	213	453	5.9e-45	142.8	HMM
+Rpi-chc1.1	LRR	562	1280			nlrexpress
+Rpi-chc1.1	LRR	765	1280			nlrexpress
+RPP39	CC	33	128			coconat
+RPP39	CC	75	87			coconat
+RPP39	CC	116	128			coconat
+RPP39	NB-ARC	157	398	3.4e-97	313.9	HMM
+RPP39	LRR	513	838			nlrexpress
+Sr13d	CC	12	135	7.2e-27	81.9	HMM
+Sr13d	CC	35	54			coconat
+Sr13d	CC	74	83			coconat
+Sr13d	CC	124	135			coconat
+Sr13d	NB-ARC	194	422	1.2e-48	154.9	HMM
+Sr13d	LRR	533	855			nlrexpress
