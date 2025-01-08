@@ -6,41 +6,6 @@ resolution-markers = [
 ]
 
 [[package]]
-name = "biopython"
-version = "1.84"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "numpy" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/9e/7f/eaca4de03f0ee06c9d578d2730fd55858a57cee3620c62d3bc17b5da5447/biopython-1.84.tar.gz", hash = "sha256:60fbe6f996e8a6866a42698c17e552127d99a9aab3259d6249fbaabd0e0cc7b4", size = 25793001 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/3c/41/9ae8eedc878d0d605e0a0c125f802662ceb9e8d241560b6b719246abab63/biopython-1.84-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:3c8beded38884abae4c74cb6ce54142da670273fd0b2919bd0f84f6e34d3056b", size = 2754132 },
-    { url = "https://files.pythonhosted.org/packages/fb/da/90c7fa24b0369633fff3f17ff42630a7c5afb719262478ccdd8dc028914b/biopython-1.84-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:b51ef31bfb79872a182a85b4113625e1b553c024bb1586c72ac98b479f8d8fe4", size = 2737785 },
-    { url = "https://files.pythonhosted.org/packages/57/fd/99f06b60fd7a5de22b9f3ca279a25def5ce16a629025e453fbf53e4ec6d4/biopython-1.84-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:ca8d6a88b9a9718074b3f5b450f9ea5adf7112a7dbaed55d82d5b623f5859a01", size = 3162459 },
-    { url = "https://files.pythonhosted.org/packages/46/3a/ebabbce6d7356091152402543ba2e3b2270cd12dd8153d800e585fa88900/biopython-1.84-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2dc2e77490725060330003f73b6b7d5172f8bc160f180de5877a2e899ad999d4", size = 3179983 },
-    { url = "https://files.pythonhosted.org/packages/c2/cc/117ca18ec2cdac61cd233d5c13f5abfb5270f560bca1214d7872ca418de6/biopython-1.84-cp310-cp310-win32.whl", hash = "sha256:4f39b38e7625c33384954130d90f19984e91cb5af64e2fb128603359f86884ad", size = 2755596 },
-    { url = "https://files.pythonhosted.org/packages/09/4b/ec7b34b767fc77e86d6857152faafca0d395a454ce60baad36f0f95a782b/biopython-1.84-cp310-cp310-win_amd64.whl", hash = "sha256:9e3f7476fd81f31e048965d7be2826f018686e870d96870f440b609002953954", size = 2792299 },
-    { url = "https://files.pythonhosted.org/packages/c5/7b/c1e9f66e23b01958ae0284a437a0e586ce20387fc6ea0382c21230ac59bc/biopython-1.84-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:2d4ed30aebd96b4aadeb1f04adce92795c696f5bd56d1fd45517b89059918dd4", size = 2754460 },
-    { url = "https://files.pythonhosted.org/packages/5f/49/c9ffacca2e26259e28215e0ac599db21adf4070359d2aa9d006f3ecf1051/biopython-1.84-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:c792508988fc3ccf18eaae2a826c9cd97f1c27fb55bb87bdce6a101fee9f5a0c", size = 2737878 },
-    { url = "https://files.pythonhosted.org/packages/b4/d6/5aae16c1dd91284a40b769926cd69214ddbb986e710f6d44dbe1f6f20c34/biopython-1.84-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:507ac3956f3107e77fee362ecb048dafb5f97cbcf110012d091418430c3227c7", size = 3174779 },
-    { url = "https://files.pythonhosted.org/packages/4c/3c/cecf231afa65e7194ac06ba981631a9870515bb7a37a15cad1ab414325c4/biopython-1.84-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:894ee7533cca7f5f9769e2595fbe7b0dba5018f39a2170753d101a13e7585ff4", size = 3192041 },
-    { url = "https://files.pythonhosted.org/packages/0f/6c/3e8f01ddea31eeba4cddaa6dbb37b7978ea0164bd35b783fda9f5be59cc4/biopython-1.84-cp311-cp311-win32.whl", hash = "sha256:7f4c746825721ec367c2f2d6a8cda3bc6495a1e084e5b2fbab26e9467706603f", size = 2755506 },
-    { url = "https://files.pythonhosted.org/packages/89/38/e45df36e10de29141ba0e5d94bfb942925e62cb6ad182e58b74fa5edcfcc/biopython-1.84-cp311-cp311-win_amd64.whl", hash = "sha256:2cb8e839ab472244b6082635ad1df67c94c05df0bd02a023103ed00ea66c4d20", size = 2792261 },
-    { url = "https://files.pythonhosted.org/packages/f7/f6/a61af0d2c8c04e446bce4727e8124797132858f518b6d6543d0e7213abed/biopython-1.84-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:ba58a6d76288333c5f178a426116953fa68204bd0cfc401694087dd4f96d0059", size = 2755863 },
-    { url = "https://files.pythonhosted.org/packages/e9/1a/25c7df41987383070987f7b9842f48d3a33b0a78a85c2ca9d93ed810fa2a/biopython-1.84-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:ee3566f6dc3acf20e238540daf896f0af20cff531521bf41fdf5143f73e209ae", size = 2738072 },
-    { url = "https://files.pythonhosted.org/packages/a2/b2/c7f2a0a151208c634ac1eaa5d6345899659b1d5a700a84ef2e4f2b0e80a9/biopython-1.84-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:89ef3967f5a88b5bb6344bef75ae83386de53fed3966d5c8c334ad885f8db08a", size = 3186633 },
-    { url = "https://files.pythonhosted.org/packages/46/37/7db2bcbb396edba3f767dd89ac23ef5adc35c7a92ef3912c06d1e71469e1/biopython-1.84-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:61765b71f84814a1eeb55ab222f43330aa7ad3e55ab91e8b444706149c67a281", size = 3206061 },
-    { url = "https://files.pythonhosted.org/packages/b2/12/6c9d73cbb8c9d19ab4187aaf187f967de6e83738947b7180fdd8bc9211a2/biopython-1.84-cp312-cp312-win32.whl", hash = "sha256:52b6098f47d6b90fc8a5e8579b81ee50047e9108f0976e69c891ae0c4817e42d", size = 2756622 },
-    { url = "https://files.pythonhosted.org/packages/d1/53/91d12cc254a804c797afaefec91ede04bc1f7cbd788a04ebbea9e31ee0cf/biopython-1.84-cp312-cp312-win_amd64.whl", hash = "sha256:ecff2fcf5da29b600474c0bfcdbbac0f98b25e22fe60a853d0ee798c00f7396c", size = 2792652 },
-    { url = "https://files.pythonhosted.org/packages/32/ec/9ded80f10708aea56f3d71bed665d2018df4ec829fe4e876196dbb96ae09/biopython-1.84-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:f4c1c9ad7da9eaf8d8f4515bf931a7f6548a468e7ef29b8429e31aaff2d95f4c", size = 2754124 },
-    { url = "https://files.pythonhosted.org/packages/d6/05/30d008e35c6809b293f5147006647efd322e99f66f4190d87fb3a5e73975/biopython-1.84-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:9fbd4b67d3e71b0d716a1712ab8b4e57981c6549ba17ce5626ffa8976d170da7", size = 2737778 },
-    { url = "https://files.pythonhosted.org/packages/1e/35/6726725c8f4eeb0c1570a9721b1a9aea9e4d839cc3725bfabdee891a0955/biopython-1.84-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:0c425a39871f652598f502671aa5f6b5125475a91333a368a47f9c611ca96db1", size = 3160647 },
-    { url = "https://files.pythonhosted.org/packages/56/e1/088b5d945df96904c4ef70f46f185fde475724d1de3b73645bc1527ca04e/biopython-1.84-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:7b69d59f9a762c5bb5f77ed03f197dad05ebd702c34d2cae7be98f1f30e04089", size = 3178267 },
-    { url = "https://files.pythonhosted.org/packages/e7/94/bfda8684db1d1db1c918ae3a16649b18e2718d30ff48413d4315cd50c0b9/biopython-1.84-cp39-cp39-win32.whl", hash = "sha256:25f4ef193a307e403eb532e8f060b818e2d75f65803a2b0f4e645b0cae131b4e", size = 2755575 },
-    { url = "https://files.pythonhosted.org/packages/85/f3/b5d76b06b869bc047cdfa2db958578e24ccc841efc5797fe2daf302e907f/biopython-1.84-cp39-cp39-win_amd64.whl", hash = "sha256:b64575363bb2344073c949fd69a0bf3ea015b447aa1494e4813376855b479118", size = 2792274 },
-]
-
-[[package]]
 name = "certifi"
 version = "2024.8.30"
 source = { registry = "https://pypi.org/simple" }
@@ -203,18 +168,6 @@ wheels = [
 ]
 
 [[package]]
-name = "markdown-it-py"
-version = "3.0.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "mdurl" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/38/71/3b932df36c1a044d397a1f92d1cf91ee0a503d91e470cbd670aa66b07ed0/markdown-it-py-3.0.0.tar.gz", hash = "sha256:e3f60a94fa066dc52ec76661e37c851cb232d92f9886b15cb560aaada2df8feb", size = 74596 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/42/d7/1ec15b46af6af88f19b8e5ffea08fa375d433c998b8a7639e76935c14f1f/markdown_it_py-3.0.0-py3-none-any.whl", hash = "sha256:355216845c60bd96232cd8d8c40e8f9765cc86f46880e43a8fd22dc1a1a8cab1", size = 87528 },
-]
-
-[[package]]
 name = "markupsafe"
 version = "3.0.2"
 source = { registry = "https://pypi.org/simple" }
@@ -260,15 +213,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/17/d8/5811082f85bb88410ad7e452263af048d685669bbbfb7b595e8689152498/MarkupSafe-3.0.2-cp39-cp39-musllinux_1_2_x86_64.whl", hash = "sha256:eb7972a85c54febfb25b5c4b4f3af4dcc731994c7da0d8a0b4a6eb0640e1d178", size = 20946 },
     { url = "https://files.pythonhosted.org/packages/7c/31/bd635fb5989440d9365c5e3c47556cfea121c7803f5034ac843e8f37c2f2/MarkupSafe-3.0.2-cp39-cp39-win32.whl", hash = "sha256:8c4e8c3ce11e1f92f6536ff07154f9d49677ebaaafc32db9db4620bc11ed480f", size = 15063 },
     { url = "https://files.pythonhosted.org/packages/b3/73/085399401383ce949f727afec55ec3abd76648d04b9f22e1c0e99cb4bec3/MarkupSafe-3.0.2-cp39-cp39-win_amd64.whl", hash = "sha256:6e296a513ca3d94054c2c881cc913116e90fd030ad1c656b3869762b754f5f8a", size = 15506 },
-]
-
-[[package]]
-name = "mdurl"
-version = "0.1.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/d6/54/cfe61301667036ec958cb99bd3efefba235e65cdeb9c84d24a8293ba1d90/mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba", size = 8729 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8", size = 9979 },
 ]
 
 [[package]]
@@ -471,15 +415,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pygments"
-version = "2.18.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/8e/62/8336eff65bcbc8e4cb5d05b55faf041285951b6e80f33e2bff2024788f31/pygments-2.18.0.tar.gz", hash = "sha256:786ff802f32e91311bff3889f6e9a86e81505fe99f2735bb6d60ae0c5004f199", size = 4891905 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/f7/3f/01c8b82017c199075f8f788d0d906b9ffbbc5a47dc9918a945e13d5a2bda/pygments-2.18.0-py3-none-any.whl", hash = "sha256:b8e6aca0523f3ab76fee51799c488e38782ac06eafcf95e7ba832985c8e7b13a", size = 1205513 },
-]
-
-[[package]]
 name = "pyyaml"
 version = "6.0.2"
 source = { registry = "https://pypi.org/simple" }
@@ -610,57 +545,27 @@ wheels = [
 
 [[package]]
 name = "resistify"
-version = "0.6.2"
+version = "1.0.1"
 source = { editable = "." }
 dependencies = [
-    { name = "biopython" },
     { name = "fair-esm" },
     { name = "numpy" },
-    { name = "rich" },
-    { name = "rich-argparse" },
     { name = "scikit-learn" },
     { name = "sentencepiece" },
+    { name = "threadpoolctl" },
     { name = "torch" },
     { name = "transformers" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "biopython" },
     { name = "fair-esm" },
     { name = "numpy" },
-    { name = "rich" },
-    { name = "rich-argparse" },
     { name = "scikit-learn", specifier = ">=0.24.2" },
     { name = "sentencepiece" },
+    { name = "threadpoolctl" },
     { name = "torch" },
     { name = "transformers" },
-]
-
-[[package]]
-name = "rich"
-version = "13.9.4"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "markdown-it-py" },
-    { name = "pygments" },
-    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/ab/3a/0316b28d0761c6734d6bc14e770d85506c986c85ffb239e688eeaab2c2bc/rich-13.9.4.tar.gz", hash = "sha256:439594978a49a09530cff7ebc4b5c7103ef57baf48d5ea3184f21d9a2befa098", size = 223149 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/19/71/39c7c0d87f8d4e6c020a393182060eaefeeae6c01dab6a84ec346f2567df/rich-13.9.4-py3-none-any.whl", hash = "sha256:6049d5e6ec054bf2779ab3358186963bac2ea89175919d699e378b99738c2a90", size = 242424 },
-]
-
-[[package]]
-name = "rich-argparse"
-version = "1.6.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "rich" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/7f/ee/c410251ff6123d4417f2fe8e72c8628f187682b70ce34134a2a3e307a2d5/rich_argparse-1.6.0.tar.gz", hash = "sha256:092083c30da186f25bcdff8b1d47fdfb571288510fb051e0488a72cc3128de13", size = 17499 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/25/45/54b95bb72bb17c27a7252bee5034955020b5869a33918b660ffc29cbf608/rich_argparse-1.6.0-py3-none-any.whl", hash = "sha256:fbe70a1d821b3f2fa8958cddf0cae131870a6e9faa04ab52b409cb1eda809bd7", size = 20072 },
 ]
 
 [[package]]
@@ -954,21 +859,21 @@ dependencies = [
     { name = "fsspec" },
     { name = "jinja2" },
     { name = "networkx" },
-    { name = "nvidia-cublas-cu12", marker = "platform_machine == 'x86_64' and platform_system == 'Linux'" },
-    { name = "nvidia-cuda-cupti-cu12", marker = "platform_machine == 'x86_64' and platform_system == 'Linux'" },
-    { name = "nvidia-cuda-nvrtc-cu12", marker = "platform_machine == 'x86_64' and platform_system == 'Linux'" },
-    { name = "nvidia-cuda-runtime-cu12", marker = "platform_machine == 'x86_64' and platform_system == 'Linux'" },
-    { name = "nvidia-cudnn-cu12", marker = "platform_machine == 'x86_64' and platform_system == 'Linux'" },
-    { name = "nvidia-cufft-cu12", marker = "platform_machine == 'x86_64' and platform_system == 'Linux'" },
-    { name = "nvidia-curand-cu12", marker = "platform_machine == 'x86_64' and platform_system == 'Linux'" },
-    { name = "nvidia-cusolver-cu12", marker = "platform_machine == 'x86_64' and platform_system == 'Linux'" },
-    { name = "nvidia-cusparse-cu12", marker = "platform_machine == 'x86_64' and platform_system == 'Linux'" },
-    { name = "nvidia-nccl-cu12", marker = "platform_machine == 'x86_64' and platform_system == 'Linux'" },
-    { name = "nvidia-nvjitlink-cu12", marker = "platform_machine == 'x86_64' and platform_system == 'Linux'" },
-    { name = "nvidia-nvtx-cu12", marker = "platform_machine == 'x86_64' and platform_system == 'Linux'" },
+    { name = "nvidia-cublas-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
+    { name = "nvidia-cuda-cupti-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
+    { name = "nvidia-cuda-nvrtc-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
+    { name = "nvidia-cuda-runtime-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
+    { name = "nvidia-cudnn-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
+    { name = "nvidia-cufft-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
+    { name = "nvidia-curand-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
+    { name = "nvidia-cusolver-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
+    { name = "nvidia-cusparse-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
+    { name = "nvidia-nccl-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
+    { name = "nvidia-nvjitlink-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
+    { name = "nvidia-nvtx-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
     { name = "setuptools", marker = "python_full_version >= '3.12'" },
     { name = "sympy" },
-    { name = "triton", marker = "platform_machine == 'x86_64' and platform_system == 'Linux'" },
+    { name = "triton", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
     { name = "typing-extensions" },
 ]
 wheels = [
@@ -995,7 +900,7 @@ name = "tqdm"
 version = "4.67.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "platform_system == 'Windows'" },
+    { name = "colorama", marker = "sys_platform == 'win32'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a8/4b/29b4ef32e036bb34e4ab51796dd745cdba7ed47ad142a9f4a1eb8e0c744d/tqdm-4.67.1.tar.gz", hash = "sha256:f8aef9c52c08c13a65f30ea34f4e5aac3fd1a34959879d7e59e63027286627f2", size = 169737 }
 wheels = [

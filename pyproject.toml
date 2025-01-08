@@ -8,8 +8,6 @@ version = "1.0.1"
 dependencies = [
   "scikit-learn>=0.24.2",
   "numpy",
-  "rich",
-  "rich-argparse",
   "torch",
   "fair-esm",
   "transformers",

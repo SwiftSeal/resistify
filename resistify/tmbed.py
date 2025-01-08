@@ -20,15 +20,12 @@ import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
 from resistify.utility import log_percentage
-from rich.progress import Progress, BarColumn, TaskProgressColumn
-
 import logging
+from resistify._logaru import logger
 
 from transformers import T5EncoderModel, T5Tokenizer
 
-log = logging.getLogger(__name__)
 logging.getLogger("transformers").setLevel(logging.CRITICAL)
 
 
@@ -398,7 +395,7 @@ def load_models(device):
         file_path = os.path.join(
             os.path.dirname(__file__), "data", "tmbed_models", model_file
         )
-        log.debug(f"Loading model {file_path}")
+        logger.debug(f"Loading model {file_path}")
         model.load_state_dict(torch.load(file_path)["model"])
 
         model = model.eval().to(device)
@@ -426,17 +423,17 @@ def predict_sequences(models, embedding, mask):
 
 
 def tmbed(sequences, models_path):
-    log.info("Predicting transmembrane domains...")
+    logger.info("Predicting transmembrane domains...")
 
     if torch.cuda.is_available():
         device = torch.device("cuda")
     else:
         device = torch.device("cpu")
-        log.warning("No GPU found, so using CPU only. This will be very slow...")
+        logger.warning("No GPU found, so using CPU only. This will be very slow...")
 
-    log.debug("Loading encoder")
+    logger.debug("Loading encoder")
     encoder = T5Encoder(models_path, torch.cuda.is_available())
-    log.debug("Loading decoder")
+    logger.debug("Loading decoder")
     decoder = Decoder()
 
     models = load_models(device)
@@ -453,74 +450,66 @@ def tmbed(sequences, models_path):
         "o": "outside",
     }
 
-    progress = Progress(
-        "[progress.description]{task.description}",
-        BarColumn(),
-        TaskProgressColumn(),
-    )
-    with progress:
-        total_iterations = len(sequences)
-        iteration = 0
-        task = progress.add_task("Processing", total=total_iterations)
-        for sequence in sequences:
-            try:
-                log.debug(f"Predicting transmembrane domains for {sequence.id}...")
-                embedding = encoder.embed(sequence.seq)
-            except torch.cuda.OutOfMemoryError:
-                log.warning(
-                    f"GPU ran out of memory when encoding {sequence.id} - skipping..."
-                )
+    total_iterations = len(sequences)
+    iteration = 0
+    for sequence in sequences:
+        try:
+            logger.debug(f"Predicting transmembrane domains for {sequence.id}...")
+            embedding = encoder.embed(sequence.seq)
+        except torch.cuda.OutOfMemoryError:
+            logger.warning(
+                f"GPU ran out of memory when encoding {sequence.id} - skipping..."
+            )
+            continue
+
+        # CPU alternative, implement fallback?
+        # encoder.to_cpu()
+        # torch.cuda.empty_cache()
+        # embeddings = encoder.embed(sequences)
+
+        embedding = embedding.to(device=device)
+        embedding = embedding.to(dtype=torch.float32)
+
+        mask = make_mask(embedding)
+
+        probabilities = predict_sequences(models, embedding, mask)
+
+        mask = mask.cpu()
+        probabilities = probabilities.cpu()
+
+        prediction = decoder(probabilities, mask).byte()
+
+        sequence.transmembrane_predictions = "".join(
+            pred_map[int(x)] for x in prediction[0, : len(sequence.seq)]
+        )
+
+        # Annotate relevant transmembrane domains
+        for i, state in enumerate(sequence.transmembrane_predictions):
+            if i == 0:
+                previous_state = state
+                state_start = i
                 continue
 
-            # CPU alternative, implement fallback?
-            # encoder.to_cpu()
-            # torch.cuda.empty_cache()
-            # embeddings = encoder.embed(sequences)
+            if state != previous_state:
+                sequence.add_annotation(
+                    states[previous_state],
+                    "tmbed",
+                    state_start + 1,
+                    i,
+                )
 
-            embedding = embedding.to(device=device)
-            embedding = embedding.to(dtype=torch.float32)
+                state_start = i
+                previous_state = state
 
-            mask = make_mask(embedding)
+        # Add final annotation
+        sequence.add_annotation(
+            states[previous_state],
+            "tmbed",
+            state_start + 1,
+            len(sequence.seq),
+        )
 
-            probabilities = predict_sequences(models, embedding, mask)
-
-            mask = mask.cpu()
-            probabilities = probabilities.cpu()
-
-            prediction = decoder(probabilities, mask).byte()
-
-            sequence.transmembrane_predictions = "".join(
-                pred_map[int(x)] for x in prediction[0, : len(sequence.seq)]
-            )
-
-            # Annotate relevant transmembrane domains
-            for i, state in enumerate(sequence.transmembrane_predictions):
-                if i == 0:
-                    previous_state = state
-                    state_start = i
-                    continue
-
-                if state != previous_state:
-                    sequence.add_annotation(
-                        states[previous_state],
-                        "tmbed",
-                        state_start + 1,
-                        i,
-                    )
-
-                    state_start = i
-                    previous_state = state
-
-            # Add final annotation
-            sequence.add_annotation(
-                states[previous_state],
-                "tmbed",
-                state_start + 1,
-                len(sequence.seq),
-            )
-
-            progress.update(task, advance=1)
-            iteration += 1
-            log_percentage(iteration, total_iterations)
+        iteration += 1
+        log_percentage(iteration, total_iterations)
 
     return sequences
