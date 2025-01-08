@@ -1,10 +1,9 @@
 import subprocess
 import sys
 import os
-import logging
 import tempfile
+from resistify._loguru import logger
 
-log = logging.getLogger(__name__)
 
 accession_families = {
     "PF00931": ("NB-ARC", 23.5),
@@ -52,7 +51,7 @@ def hmmsearch(sequences, search_type):
 
     input_fasta = tempfile.NamedTemporaryFile()
 
-    log.debug(f"Writing sequences to {input_fasta.name}")
+    logger.debug(f"Writing sequences to {input_fasta.name}")
     with open(input_fasta.name, "w") as f:
         for sequence in sequences:
             f.write(f">{sequence.id}\n{sequence.seq}\n")
@@ -70,7 +69,7 @@ def hmmsearch(sequences, search_type):
     ]
 
     try:
-        log.info("Running hmmsearch...")
+        logger.info("Running hmmsearch...")
         subprocess.run(
             cmd,
             check=True,
@@ -79,10 +78,10 @@ def hmmsearch(sequences, search_type):
             universal_newlines=True,
         )
     except subprocess.CalledProcessError as e:
-        log.error(f"Error running hmmsearch:\nStderr: {e.stderr}\nStdout:{e.stdout}")
+        logger.error(f"Error running hmmsearch:\nStderr: {e.stderr}\nStdout:{e.stdout}")
         sys.exit(1)
     except FileNotFoundError:
-        log.error("hmmsearch not found. Have you installed it?")
+        logger.error("hmmsearch not found. Have you installed it?")
         sys.exit(1)
 
     sequence_dict = {sequence.id: sequence for sequence in sequences}

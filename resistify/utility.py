@@ -1,51 +1,71 @@
 import sys
 import os
 import csv
-import logging
 import json
 import hashlib
 import requests
 import gzip
 from resistify.annotations import Sequence, NBARC_MOTIFS
-
-log = logging.getLogger(__name__)
+from resistify._loguru import logger
 
 
 def log_percentage(n, total):
     if total < 10:
-        log.info(f"{n} of {total} complete")
+        logger.info(f"{n} of {total} complete")
     elif n % (total // 10) == 0:
         percent_complete = n / total * 100
-        log.info(f"{int(round(percent_complete, -1))}% complete")
+        logger.info(f"{int(round(percent_complete, -1))}% complete")
 
 
 def create_output_directory(outdir):
     try:
         expanded_outdir = os.path.expanduser(os.path.expandvars(outdir))
         os.makedirs(expanded_outdir, exist_ok=True)
-        log.debug(f"Output directory created at {expanded_outdir}")
+        logger.debug(f"Output directory created at {expanded_outdir}")
         return expanded_outdir
     except OSError as e:
-        log.error(f"Error creating output directory: {e}")
+        logger.error(f"Error creating output directory: {e}")
         sys.exit(1)
+
+
+def write_results(sequences, args):
+    results_dir = create_output_directory(args.outdir)
+    if args.command == "nlr":
+        result_table(sequences, results_dir, "nlr", retain=args.retain)
+        save_fasta(
+            sequences,
+            os.path.join(results_dir, "nlr.fasta"),
+            classified_only=args.retain,
+        )
+        extract_nbarc(sequences, results_dir)
+        if args.coconat:
+            coconat_table(sequences, results_dir)
+    elif args.command == "prr":
+        result_table(sequences, results_dir, "prr")
+        save_fasta(
+            sequences, os.path.join(results_dir, "prr.fasta"), classified_only=True
+        )
+    annotation_table(sequences, results_dir)
+    domain_table(sequences, results_dir)
+    motif_table(sequences, results_dir)
 
 
 def check_sequence(sequence):
     if "*" in sequence.seq:
-        log.warning(
+        logger.warning(
             f"An internal '*' character is present in {sequence.id} - skipping this sequence..."
         )
     elif "." in sequence.seq:
-        log.warning(
+        logger.warning(
             f"An internal '.' character is present in {sequence.id} - skipping this sequence..."
         )
     elif len(sequence.seq) > 100000:
-        log.warning(
-            f"Sequence {sequence.id} is longer than 100,000 codons - skipping this sequence..."
+        logger.warning(
+            f"Sequence {sequence.id} length is > 100,000 - skipping this sequence..."
         )
     elif len(sequence.seq) < 28:
-        log.warning(
-            f"Sequence {sequence.id} is less than 28 codons - skipping this sequence..."
+        logger.warning(
+            f"Sequence {sequence.id} length is < 28 - skipping this sequence..."
         )
     else:
         return True
@@ -80,7 +100,7 @@ def parse_fasta(path):
                 sequences.append(Sequence(seq_id, seq))
 
     if not sequences:
-        log.error("No valid sequences found in input file!")
+        logger.error("No valid sequences found in input file!")
         sys.exit(1)
 
     return sequences
@@ -336,7 +356,7 @@ def verify_files(base_download_path: str):
 
         # Check if model directory exists
         if not os.path.exists(model_dir):
-            log.error(f"Directory not found for {model_name}: {model_dir}")
+            logger.error(f"Directory not found for {model_name}: {model_dir}")
             sys.exit(1)
 
         # Check each file
@@ -347,7 +367,7 @@ def verify_files(base_download_path: str):
 
             # Check if file exists
             if not os.path.exists(local_path):
-                log.error(f"File not found: {local_path}")
+                logger.error(f"File not found: {local_path}")
                 sys.exit(1)
 
     return

@@ -3,17 +3,13 @@ import sys
 import numpy as np
 import pickle
 import os
-import logging
 import tempfile
-from multiprocessing import Pool, cpu_count, get_context
+from multiprocessing import cpu_count, get_context
 from threadpoolctl import threadpool_limits
 import shutil
 import warnings
 from resistify.utility import log_percentage
-
-from rich.progress import Progress, BarColumn, TaskProgressColumn
-
-log = logging.getLogger(__name__)
+from resistify._loguru import logger
 
 # Version 1.3 of sklearn introduced InconsistentVersionWarning, fall back to UserWarning if not available
 # Necessary to suppress pickle version warnings
@@ -23,7 +19,6 @@ try:
     warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
 except ImportError:
     warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
-
 
 MOTIF_SPAN_LENGTHS = {
     "extEDVID": 12,
@@ -67,6 +62,7 @@ motif_models = {
 
 
 def parse_jackhmmer(file, iteration=False):
+    logger.debug(f"Parsing jackhmmer {file} as iteration {iteration}")
     hmm_dict = {}
 
     header1 = [
@@ -122,7 +118,7 @@ def parse_jackhmmer(file, iteration=False):
                     try:
                         float(value)
                     except ValueError:
-                        log.error(f"{value} is not a float. {name} {file}")
+                        logger.error(f"{value} is not a float. {name} {file}")
                         sys.exit(1)
                 value_dict = dict(zip(header1, line[1:21]))
                 hmm_dict[name].append(value_dict)
@@ -132,6 +128,7 @@ def parse_jackhmmer(file, iteration=False):
 
 
 def nlrexpress(sequences, search_type, chunk_size, threads):
+    total_sequences = len(sequences)
     if threads is None:
         try:
             threads = len(os.sched_getaffinity(0))
@@ -153,27 +150,23 @@ def nlrexpress(sequences, search_type, chunk_size, threads):
     args = [(batch, jackhmmer_db.name, models) for batch in batches]
 
     results = []
-    log.info("Running NLRexpress - this could take a while...")
+    logger.info("Running NLRexpress - this could take a while...")
 
-    progress = Progress(
-        "[progress.description]{task.description}",
-        BarColumn(),
-        TaskProgressColumn(),
-    )
-    with progress:
-        total_iterations = len(args)
-        iteration = 0
-        task = progress.add_task("Processing", total=total_iterations)
-        # Need to use spawn otherwise the subprocesses will hang
-        with get_context("spawn").Pool(-(-threads // 2)) as pool:
-            # result_batches = pool.starmap(nlrexpress_subprocess, args)
-            for result in pool.imap(nlrexpress_subprocess, args):
-                results.append(result)
-                progress.update(task, advance=1)
-                iteration += 1
-                log_percentage(iteration, total_iterations)
+    total_iterations = len(args)
+    iteration = 0
+    # Need to use spawn otherwise the subprocesses will hang
+    with get_context("spawn").Pool(-(-threads // 2)) as pool:
+        for result in pool.imap(nlrexpress_subprocess, args):
+            results.append(result)
+            iteration += 1
+            log_percentage(iteration, total_iterations)
 
     sequences = [seq for batch in results for seq in batch]
+
+    if len(sequences) != total_sequences:
+        logger.critical(
+            "Sequences dropped during NLRexpress - this should not happen and must be reported"
+        )
 
     return sequences
 
@@ -183,6 +176,7 @@ def load_models(search_type):
     if search_type == "all":
         for predictor, path in motif_models.items():
             model_path = os.path.join(os.path.dirname(__file__), "data", path)
+            logger.debug(f"Loading model for {predictor}")
             model = pickle.load(open(model_path, "rb"))
             models[predictor] = model
     elif search_type == "lrr":
@@ -196,6 +190,7 @@ def load_models(search_type):
 
 def nlrexpress_subprocess(params):
     sequences, jackhmmer_db, models = params
+
     temp_dir = tempfile.TemporaryDirectory()
     fasta_path = os.path.join(temp_dir.name, "seq.fa")
     iteration_1_path = fasta_path + ".out-1.hmm"
@@ -203,6 +198,7 @@ def nlrexpress_subprocess(params):
 
     with open(fasta_path, "w") as f:
         for sequence in sequences:
+            logger.debug(f"Writing {sequence.id} to {fasta_path}")
             f.write(f">{sequence.id}\n{sequence.seq}\n")
 
     cmd = [
@@ -223,6 +219,7 @@ def nlrexpress_subprocess(params):
     ]
 
     try:
+        logger.debug(f"Running jackhmmer for {fasta_path}")
         subprocess.run(
             cmd,
             check=True,
@@ -230,7 +227,7 @@ def nlrexpress_subprocess(params):
             stderr=subprocess.PIPE,
             universal_newlines=True,
         )
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError:
         sys.exit(1)
 
     iteration_1 = parse_jackhmmer(iteration_1_path, iteration=False)
@@ -263,6 +260,7 @@ def nlrexpress_subprocess(params):
         jackhmmer_results[sequence.id] = jackhmmer_data
 
     for predictor, model in models.items():
+        logger.debug(f"Predicting {predictor} for result of {fasta_path}")
         motif_size = MOTIF_SPAN_LENGTHS[predictor]
         matrix = []
         for sequence in sequences:
@@ -289,5 +287,7 @@ def nlrexpress_subprocess(params):
                     result_index += 1
 
     temp_dir.cleanup()
+
+    logger.debug(f"NLRexpress subprocess for {fasta_path} has completed")
 
     return sequences

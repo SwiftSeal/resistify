@@ -1,6 +1,4 @@
-import logging
-
-log = logging.getLogger(__name__)
+from resistify._loguru import logger
 
 nlr_classifications = ["RNL", "CNL", "TNL", "RN", "CN", "TN", "NL", "N"]
 
@@ -190,9 +188,9 @@ class Sequence:
         start = int(start)
         end = int(end)
         if start > end:
-            log.error(f"Invalid annotation coordinates for {self.id}")
+            logger.error(f"Invalid annotation coordinates for {self.id}")
             return
-        log.debug(f"Adding annotation {domain} to {self.id} from {start} to {end}")
+        logger.debug(f"Adding annotation {domain} to {self.id} from {start} to {end}")
         self.annotations.append(Annotation(domain, start, end, evalue, score, source))
         self.annotations.sort(key=lambda x: x.start)
 
@@ -223,13 +221,11 @@ class Sequence:
             else:
                 # If we were in a dipping region and now the condition is false, record the region
                 if start is not None:
-                    log.debug(f"Adding CC domain in {self.id} from {start} to {end}")
                     self.add_annotation("CC", "coconat", start, end)
                     start = None  # Reset start for the next region
 
         # If we ended in a dip region, capture the final one
         if start is not None:
-            log.debug(f"Adding CC domain in {self.id} from {start} to {end}")
             self.add_annotation("CC", "coconat", start, end)
 
     def identify_lrr_domains(self, lrr_gap, lrr_length):
@@ -272,7 +268,9 @@ class Sequence:
                     collapsed_domain_string.append(domain)
             collapsed_domain_string = "".join(collapsed_domain_string)
 
-        log.debug(f"Collapsed domain string for {self.id}: {collapsed_domain_string}")
+        logger.debug(
+            f"Collapsed domain string for {self.id}: {collapsed_domain_string}"
+        )
 
         # Absolutely mawkit, but catch RC collapsed string which will occur when coconat is applied to rpw8
         collapsed_domain_string = collapsed_domain_string.replace("RC", "R")
@@ -281,6 +279,7 @@ class Sequence:
         for classification in nlr_classifications:
             if classification in collapsed_domain_string:
                 self.classification = classification
+                self.type = "NLR"
                 break
 
         # scavenge for missed classifications with motifs
@@ -291,25 +290,28 @@ class Sequence:
                 if annotation.domain == "NB-ARC":
                     nbarc_start = annotation.start
                     break
-            for motif in self.motifs["extEDVID"]:
-                if motif.position < nbarc_start:
-                    self.add_annotation(
-                        "CC",
-                        "nlrexpress",
-                        motif.position,
-                        motif.position + 1,
-                    )
-                    self.classification = "C" + self.classification
-                    continue
 
+            CC_motifs = [
+                motif
+                for motif in self.motifs["extEDVID"]
+                if motif.position < nbarc_start
+            ]
             TIR_motifs = [
                 item
                 for motif in TIR_MOTIFS
                 for item in self.motifs[motif]
                 if item.position < nbarc_start
             ]
-            # TIR motifs are pretty conserved, seems okay to take 1 as sufficient evidence
-            if len(TIR_motifs) > 0:
+
+            if len(CC_motifs) > 0:
+                self.add_annotation(
+                    "CC",
+                    "nlrexpress",
+                    CC_motifs[0].position,
+                    CC_motifs[-1].position,
+                )
+                self.classification = "C" + self.classification
+            elif len(TIR_motifs) > 0:
                 TIR_motifs.sort(key=lambda x: x.position)
                 self.add_annotation(
                     "TIR",
@@ -318,9 +320,6 @@ class Sequence:
                     TIR_motifs[-1].position,
                 )
                 self.classification = "T" + self.classification
-
-        if self.classification in nlr_classifications:
-            self.type = "NLR"
 
     def is_rlp(self, extracellular_length=50):
         tm_detected = False
