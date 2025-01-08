@@ -9,8 +9,9 @@ import logging
 import os
 import tempfile
 import warnings
+from resistify._loguru import logger
+from resistify.utility import log_percentage
 
-log = logging.getLogger(__name__)
 logging.getLogger("transformers").setLevel(logging.CRITICAL)
 
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -72,9 +73,9 @@ class EmbeddingProcessor:
     def __init__(self, models_path):
         # Initialize devices and models only once
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        if self.device == "cpu":
-            log.warning(
-                "GPU not available or detected, running on CPU. This will be slow..."
+        if self.device == torch.device("cpu"):
+            logger.warning(
+                "GPU not available or detected, running on CPU. This will be slower..."
             )
 
         if models_path is not None:
@@ -105,7 +106,7 @@ class EmbeddingProcessor:
         self.esm_model.eval()
         self.batch_converter = self.esm_alphabet.get_batch_converter()
 
-    def process_prot_t5_embedding(self, sequences):
+    def process_prot_t5_embedding(self, sequence, length):
         """
         Compute ProtT5 embeddings for given sequences.
 
@@ -115,13 +116,12 @@ class EmbeddingProcessor:
         Returns:
             list: List of numpy embeddings
         """
-        lengths = [len(sequence) for sequence in sequences]
-        sequences = [
-            " ".join(list(re.sub(r"[UZOB]", "X", sequence))) for sequence in sequences
+        sequence = [
+            " ".join(list(re.sub(r"[UZOB]", "X", sequence)))
         ]
 
         ids = self.prot_t5_tokenizer.batch_encode_plus(
-            sequences, add_special_tokens=True, padding="longest"
+            sequence, add_special_tokens=True, padding="longest"
         )
         input_ids = torch.tensor(ids["input_ids"]).to(self.device)
         attention_mask = torch.tensor(ids["attention_mask"]).to(self.device)
@@ -132,15 +132,16 @@ class EmbeddingProcessor:
             )
 
         embeddings = [
-            embedding_repr.last_hidden_state[i, : lengths[i]].detach().cpu().numpy()
-            for i in range(len(sequences))
+            embedding_repr.last_hidden_state[0, : length].detach().cpu().numpy()
         ]
 
         return embeddings
 
-    def process_esm_embedding(self, chunk_ids, chunk_seqs):
+    def process_esm_embedding(self, seq_id, seq):
         batch_labels, batch_strs, batch_tokens = self.batch_converter(
-            list(zip(chunk_ids, chunk_seqs))
+            [
+                (seq_id, seq),
+            ]
         )
 
         batch_lens = (batch_tokens != self.esm_alphabet.padding_idx).sum(1)
@@ -153,8 +154,7 @@ class EmbeddingProcessor:
         token_representations = results["representations"][33]
 
         embeddings = [
-            token_representations[i, 1 : tokens_len - 1].detach().cpu().numpy()
-            for i, tokens_len in enumerate(batch_lens)
+            token_representations[0, 1 : batch_lens[0] - 1].detach().cpu().numpy()
         ]
 
         return embeddings
@@ -165,64 +165,59 @@ def coconat(sequences, models_path: str):
     biocrf_path = os.path.join(os.path.dirname(__file__), "bin", "biocrf-static")
     crf_model = os.path.join(os.path.dirname(__file__), "data", "crfModel")
 
-    log.debug("Loading embedder...")
+    logger.debug("Loading embedder...")
     embedding_processor = EmbeddingProcessor(models_path)
-    log.debug("Loading registers model...")
+    logger.debug("Loading registers model...")
     checkpoint = torch.load(registers_model)
     register_model = MMModelLSTM()
     register_model.load_state_dict(checkpoint["state_dict"])
     register_model.eval()
 
-    for chunk_start in range(0, len(sequences), 5):
-        log.debug("Processing batch...")
+    temp_dir = tempfile.TemporaryDirectory()
+    prediction_file = os.path.join(temp_dir.name, "predictions")
+    output_file = os.path.join(temp_dir.name, "out")
+    prefix_path = os.path.join(temp_dir.name, "crf")
 
-        chunk_ids, chunk_seqs, chunk_lengths = [], [], []
-        for sequence in sequences[chunk_start : chunk_start + 5]:
-            n_terminal_seq = sequence.nterminal_sequence
-            if n_terminal_seq is None:
-                log.debug(f"{sequence.id} has no N-terminus, skipping...")
-                continue
-            elif len(n_terminal_seq) < 5:
-                log.debug(f"{sequence.id} N-terminus too short for CoCoNat")
-                continue
-            elif len(n_terminal_seq) >= 1022:
-                log.warning(
-                    f"{sequence.id} N-terminus quite long, errors might occur..."
-                )
+    total_iterations=len(sequences)
+    iteration=0
+    for sequence in sequences:
+        logger.debug(f"Processing {sequence.id}...")
 
-            chunk_ids.append(sequence.id)
-            chunk_seqs.append(n_terminal_seq)
-            chunk_lengths.append(len(n_terminal_seq))
-
-        if len(chunk_ids) == 0:
+        nterminal_seq = sequence.nterminal_sequence
+        nterminal_len = len(nterminal_seq)
+        if nterminal_seq is None:
+            logger.debug(f"{sequence.id} has no N-terminus, skipping...")
             continue
+        elif nterminal_len < 5:
+            logger.debug(f"{sequence.id} N-terminus too short for CoCoNat")
+            continue
+        elif nterminal_len >= 1022:
+            logger.warning(
+                f"{sequence.id} N-terminus quite long, errors might occur..."
+            )
 
-        prot_t5_embeddings = embedding_processor.process_prot_t5_embedding(chunk_seqs)
+        prot_t5_embeddings = embedding_processor.process_prot_t5_embedding(nterminal_seq, nterminal_len)
         esm_embeddings = embedding_processor.process_esm_embedding(
-            chunk_ids, chunk_seqs
+            sequence.id, nterminal_seq
         )
 
+        logger.debug("Merging embeddings")
         merged = [
-            torch.from_numpy(np.hstack((prot_t5_embeddings[i], esm_embeddings[i])))
-            for i in range(len(chunk_ids))
+            torch.from_numpy(np.hstack((prot_t5_embeddings[0], esm_embeddings[0])))
         ]
 
         merged = torch.nn.utils.rnn.pad_sequence(merged, batch_first=True)
 
-        prediction = register_model(merged, chunk_lengths).detach().cpu().numpy()
+        prediction = register_model(merged, [nterminal_len]).detach().cpu().numpy()
 
-        temp_dir = tempfile.TemporaryDirectory()
-        prediction_file = os.path.join(temp_dir.name, "predictions")
-        output_file = os.path.join(temp_dir.name, "out")
-        prefix_path = os.path.join(temp_dir.name, "crf")
 
         with open(prediction_file, "w") as outfile:
-            for i in range(prediction.shape[0]):
-                for j in range(chunk_lengths[i]):
-                    prediction_values = " ".join([str(x) for x in prediction[i, j]])
-                    outfile.write(f"{prediction_values} i\n")
-                outfile.write("\n")
+            for i in range(nterminal_len):
+                prediction_values = " ".join([str(x) for x in prediction[0, i]])
+                outfile.write(f"{prediction_values} i\n")
+            outfile.write("\n")
 
+        logger.debug("Running biocrf")
         subprocess.run(
             [
                 f"{biocrf_path}",
@@ -244,19 +239,10 @@ def coconat(sequences, models_path: str):
             stderr=subprocess.PIPE,
         )
 
-        cc_probabilities = {}
-
-        for i, sequence_id in enumerate(chunk_ids):
-            log.debug(
-                f"Loading crf probabilities for {sequence_id} in {prefix_path}_{i}"
-            )
-            probability_matrix = np.loadtxt(f"{prefix_path}_{i}")
-            # extract first column
-            cc_probability = 1 - probability_matrix[:, 0]
-            cc_probabilities[sequence_id] = cc_probability
-
-        for sequence in sequences:
-            if sequence.id in cc_probabilities.keys():
-                sequence.cc_probs = cc_probabilities[sequence.id]
+        probability_matrix = np.loadtxt(f"{prefix_path}_0")
+        cc_probability = 1 - probability_matrix[:, 0]
+        sequence.cc_probs = cc_probability
+        iteration += 1
+        log_percentage(iteration, total_iterations)
 
     return sequences
