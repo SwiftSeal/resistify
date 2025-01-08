@@ -1,6 +1,4 @@
-import logging
-
-log = logging.getLogger(__name__)
+from resistify._loguru import logger
 
 nlr_classifications = ["RNL", "CNL", "TNL", "RN", "CN", "TN", "NL", "N"]
 
@@ -190,9 +188,9 @@ class Sequence:
         start = int(start)
         end = int(end)
         if start > end:
-            log.error(f"Invalid annotation coordinates for {self.id}")
+            logger.error(f"Invalid annotation coordinates for {self.id}")
             return
-        log.debug(f"Adding annotation {domain} to {self.id} from {start} to {end}")
+        logger.debug(f"Adding annotation {domain} to {self.id} from {start} to {end}")
         self.annotations.append(Annotation(domain, start, end, evalue, score, source))
         self.annotations.sort(key=lambda x: x.start)
 
@@ -223,13 +221,11 @@ class Sequence:
             else:
                 # If we were in a dipping region and now the condition is false, record the region
                 if start is not None:
-                    log.debug(f"Adding CC domain in {self.id} from {start} to {end}")
                     self.add_annotation("CC", "coconat", start, end)
                     start = None  # Reset start for the next region
 
         # If we ended in a dip region, capture the final one
         if start is not None:
-            log.debug(f"Adding CC domain in {self.id} from {start} to {end}")
             self.add_annotation("CC", "coconat", start, end)
 
     def identify_lrr_domains(self, lrr_gap, lrr_length):
@@ -272,7 +268,7 @@ class Sequence:
                     collapsed_domain_string.append(domain)
             collapsed_domain_string = "".join(collapsed_domain_string)
 
-        log.debug(f"Collapsed domain string for {self.id}: {collapsed_domain_string}")
+        logger.debug(f"Collapsed domain string for {self.id}: {collapsed_domain_string}")
 
         # Absolutely mawkit, but catch RC collapsed string which will occur when coconat is applied to rpw8
         collapsed_domain_string = collapsed_domain_string.replace("RC", "R")
