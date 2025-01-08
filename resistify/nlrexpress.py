@@ -9,7 +9,7 @@ from threadpoolctl import threadpool_limits
 import shutil
 import warnings
 from resistify.utility import log_percentage
-from resistify._logaru import logger
+from resistify._loguru import logger
 
 # Version 1.3 of sklearn introduced InconsistentVersionWarning, fall back to UserWarning if not available
 # Necessary to suppress pickle version warnings
@@ -254,6 +254,7 @@ def nlrexpress_subprocess(params):
         jackhmmer_results[sequence.id] = jackhmmer_data
 
     for predictor, model in models.items():
+        logger.debug(f"Predicting {predictor} for result of {fasta_path}")
         motif_size = MOTIF_SPAN_LENGTHS[predictor]
         matrix = []
         for sequence in sequences:
@@ -280,5 +281,7 @@ def nlrexpress_subprocess(params):
                     result_index += 1
 
     temp_dir.cleanup()
+
+    logger.debug(f"NLRexpress subprocess for {fasta_path} has completed")
 
     return sequences
