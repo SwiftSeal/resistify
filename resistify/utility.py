@@ -6,7 +6,7 @@ import hashlib
 import requests
 import gzip
 from resistify.annotations import Sequence, NBARC_MOTIFS
-from resistify._logaru import logger
+from resistify._loguru import logger
 
 def logger_format(debug):
     logging.basicConfig(
@@ -67,11 +67,11 @@ def check_sequence(sequence):
         )
     elif len(sequence.seq) > 100000:
         logger.warning(
-            f"Sequence {sequence.id} is longer than 100,000 codons - skipping this sequence..."
+            f"Sequence {sequence.id} length is > 100,000 - skipping this sequence..."
         )
     elif len(sequence.seq) < 28:
         logger.warning(
-            f"Sequence {sequence.id} is less than 28 codons - skipping this sequence..."
+            f"Sequence {sequence.id} length is < 28 - skipping this sequence..."
         )
     else:
         return True
