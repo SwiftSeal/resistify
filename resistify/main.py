@@ -163,19 +163,21 @@ def nlr(args):
     else:
         chunksize = args.chunksize
 
-    sequences = nlrexpress(sequences, "all", chunksize, args.threads, args.debug)
+    sequences = nlrexpress(sequences, "all", chunksize, args.threads)
 
     if args.coconat:
         logger.info("Running CoCoNat to identify additional CC domains...")
         sequences = coconat(sequences, args.models_path)
 
     logger.info("Classifying NLRs...")
+
     for sequence in sequences:
         sequence.identify_lrr_domains(args.lrr_gap, args.lrr_length)
         if args.coconat:
             sequence.identify_cc_domains()
         sequence.merge_annotations(args.duplicate_gap)
         sequence.classify_nlr()
+
 
     return sequences
 

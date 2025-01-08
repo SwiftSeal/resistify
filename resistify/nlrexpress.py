@@ -127,7 +127,8 @@ def parse_jackhmmer(file, iteration=False):
     return hmm_dict
 
 
-def nlrexpress(sequences, search_type, chunk_size, threads, debug):
+def nlrexpress(sequences, search_type, chunk_size, threads):
+    total_sequences = len(sequences)
     if threads is None:
         try:
             threads = len(os.sched_getaffinity(0))
@@ -161,6 +162,9 @@ def nlrexpress(sequences, search_type, chunk_size, threads, debug):
             log_percentage(iteration, total_iterations)
 
     sequences = [seq for batch in results for seq in batch]
+
+    if len(sequences) != total_sequences:
+        log.critical("Sequences dropped during NLRexpress - this should not happen and must be reported")
 
     return sequences
 
