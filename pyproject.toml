@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "resistify"
-version = "1.0.2"
+version = "1.1.0"
 dependencies = [
   "scikit-learn>=0.24.2",
   "numpy",
