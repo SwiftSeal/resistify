@@ -277,6 +277,7 @@ class Sequence:
         for classification in nlr_classifications:
             if classification in collapsed_domain_string:
                 self.classification = classification
+                self.type = "NLR"
                 break
 
         # scavenge for missed classifications with motifs
@@ -313,9 +314,6 @@ class Sequence:
                     TIR_motifs[-1].position,
                 )
                 self.classification = "T" + self.classification
-
-        if self.classification in nlr_classifications:
-            self.type = "NLR"
 
     def is_rlp(self, extracellular_length=50):
         tm_detected = False
