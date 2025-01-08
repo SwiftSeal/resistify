@@ -9,14 +9,6 @@ from resistify.annotations import Sequence, NBARC_MOTIFS
 from resistify._loguru import logger
 
 
-def logger_format(debug):
-    logging.basicConfig(
-        level="DEBUG" if debug else "INFO",
-        format="%(asctime)s %(levelname)-8s %(message)s",
-        datefmt="[%H:%M:%S]",
-    )
-
-
 def log_percentage(n, total):
     if total < 10:
         logger.info(f"{n} of {total} complete")
