@@ -1,7 +1,0 @@
-Sequence	Domain	Start	End	E_value	Score	Source
-FLS2	signal_peptide	1	23			tmbed
-FLS2	outside	24	805			tmbed
-FLS2	LRR	73	747			nlrexpress
-FLS2	alpha_inwards	806	828			tmbed
-FLS2	inside	829	1173			tmbed
-FLS2	PKinase	872	1152	1.4e-46	145.0	HMM
