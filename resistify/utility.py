@@ -8,6 +8,7 @@ import gzip
 from resistify.annotations import Sequence, NBARC_MOTIFS
 from resistify._loguru import logger
 
+
 def logger_format(debug):
     logging.basicConfig(
         level="DEBUG" if debug else "INFO",
@@ -33,6 +34,7 @@ def create_output_directory(outdir):
     except OSError as e:
         logger.error(f"Error creating output directory: {e}")
         sys.exit(1)
+
 
 def write_results(sequences, args):
     results_dir = create_output_directory(args.outdir)

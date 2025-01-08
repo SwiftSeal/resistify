@@ -116,9 +116,7 @@ class EmbeddingProcessor:
         Returns:
             list: List of numpy embeddings
         """
-        sequence = [
-            " ".join(list(re.sub(r"[UZOB]", "X", sequence)))
-        ]
+        sequence = [" ".join(list(re.sub(r"[UZOB]", "X", sequence)))]
 
         ids = self.prot_t5_tokenizer.batch_encode_plus(
             sequence, add_special_tokens=True, padding="longest"
@@ -132,7 +130,7 @@ class EmbeddingProcessor:
             )
 
         embeddings = [
-            embedding_repr.last_hidden_state[0, : length].detach().cpu().numpy()
+            embedding_repr.last_hidden_state[0, :length].detach().cpu().numpy()
         ]
 
         return embeddings
@@ -178,8 +176,8 @@ def coconat(sequences, models_path: str):
     output_file = os.path.join(temp_dir.name, "out")
     prefix_path = os.path.join(temp_dir.name, "crf")
 
-    total_iterations=len(sequences)
-    iteration=0
+    total_iterations = len(sequences)
+    iteration = 0
     for sequence in sequences:
         logger.debug(f"Processing {sequence.id}...")
 
@@ -196,7 +194,9 @@ def coconat(sequences, models_path: str):
                 f"{sequence.id} N-terminus quite long, errors might occur..."
             )
 
-        prot_t5_embeddings = embedding_processor.process_prot_t5_embedding(nterminal_seq, nterminal_len)
+        prot_t5_embeddings = embedding_processor.process_prot_t5_embedding(
+            nterminal_seq, nterminal_len
+        )
         esm_embeddings = embedding_processor.process_esm_embedding(
             sequence.id, nterminal_seq
         )
@@ -209,7 +209,6 @@ def coconat(sequences, models_path: str):
         merged = torch.nn.utils.rnn.pad_sequence(merged, batch_first=True)
 
         prediction = register_model(merged, [nterminal_len]).detach().cpu().numpy()
-
 
         with open(prediction_file, "w") as outfile:
             for i in range(nterminal_len):

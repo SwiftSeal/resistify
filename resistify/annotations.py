@@ -268,7 +268,9 @@ class Sequence:
                     collapsed_domain_string.append(domain)
             collapsed_domain_string = "".join(collapsed_domain_string)
 
-        logger.debug(f"Collapsed domain string for {self.id}: {collapsed_domain_string}")
+        logger.debug(
+            f"Collapsed domain string for {self.id}: {collapsed_domain_string}"
+        )
 
         # Absolutely mawkit, but catch RC collapsed string which will occur when coconat is applied to rpw8
         collapsed_domain_string = collapsed_domain_string.replace("RC", "R")
@@ -288,8 +290,12 @@ class Sequence:
                 if annotation.domain == "NB-ARC":
                     nbarc_start = annotation.start
                     break
-            
-            CC_motifs = [motif for motif in self.motifs["extEDVID"] if motif.position < nbarc_start]
+
+            CC_motifs = [
+                motif
+                for motif in self.motifs["extEDVID"]
+                if motif.position < nbarc_start
+            ]
             TIR_motifs = [
                 item
                 for motif in TIR_MOTIFS

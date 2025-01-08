@@ -14,6 +14,7 @@ from resistify.coconat import coconat
 from resistify.tmbed import tmbed
 from resistify.__version__ import __version__
 
+
 def add_common_args(parser):
     """
     Add common arguments shared between NLR and PRR parsers.
@@ -137,6 +138,7 @@ def parse_args(args=None):
 
     return parser.parse_args(args)
 
+
 def nlr(args):
     # Check to see if all provided models exist
     if args.models_path is not None:
@@ -177,7 +179,6 @@ def nlr(args):
             sequence.identify_cc_domains()
         sequence.merge_annotations(args.duplicate_gap)
         sequence.classify_nlr()
-
 
     return sequences
 

@@ -2,6 +2,7 @@ import os
 import sys
 from loguru import logger as _logger
 
+
 class LoggerDelegator:
     def __init__(self, logger):
         self._logger = logger
@@ -26,5 +27,5 @@ class LoggerDelegator:
     def __getattr__(self, attr):
         return getattr(self._logger, attr)
 
-logger = LoggerDelegator(_logger)
 
+logger = LoggerDelegator(_logger)

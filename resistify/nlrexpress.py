@@ -4,7 +4,7 @@ import numpy as np
 import pickle
 import os
 import tempfile
-from multiprocessing import Pool, cpu_count, get_context
+from multiprocessing import cpu_count, get_context
 from threadpoolctl import threadpool_limits
 import shutil
 import warnings
@@ -164,7 +164,9 @@ def nlrexpress(sequences, search_type, chunk_size, threads):
     sequences = [seq for batch in results for seq in batch]
 
     if len(sequences) != total_sequences:
-        log.critical("Sequences dropped during NLRexpress - this should not happen and must be reported")
+        logger.critical(
+            "Sequences dropped during NLRexpress - this should not happen and must be reported"
+        )
 
     return sequences
 
@@ -225,7 +227,7 @@ def nlrexpress_subprocess(params):
             stderr=subprocess.PIPE,
             universal_newlines=True,
         )
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError:
         sys.exit(1)
 
     iteration_1 = parse_jackhmmer(iteration_1_path, iteration=False)
