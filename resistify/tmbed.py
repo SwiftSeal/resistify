@@ -22,7 +22,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from resistify.utility import log_percentage
 import logging
-from resistify._logaru import logger
+from resistify._loguru import logger
 
 from transformers import T5EncoderModel, T5Tokenizer
 

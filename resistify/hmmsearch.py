@@ -2,7 +2,7 @@ import subprocess
 import sys
 import os
 import tempfile
-from resistify._logaru import logger
+from resistify._loguru import logger
 
 
 accession_families = {

@@ -7,7 +7,7 @@ from resistify.utility import (
     download_files,
     verify_files,
 )
-from resistify._logaru import logger
+from resistify._loguru import logger
 from resistify.hmmsearch import hmmsearch
 from resistify.nlrexpress import nlrexpress
 from resistify.coconat import coconat
@@ -115,12 +115,6 @@ def parse_args(args=None):
         "--coconat",
         help="If enabled, Coconat will be used to improve coiled-coil (CC) annotations.",
         action="store_true",
-    )
-    nlr_parser.add_argument(
-        "--batch",
-        help="Number of sequences to process in parallel with coconat.",
-        default=None,
-        type=int,
     )
     add_common_args(nlr_parser)
 
