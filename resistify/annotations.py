@@ -287,25 +287,24 @@ class Sequence:
                 if annotation.domain == "NB-ARC":
                     nbarc_start = annotation.start
                     break
-            for motif in self.motifs["extEDVID"]:
-                if motif.position < nbarc_start:
-                    self.add_annotation(
-                        "CC",
-                        "nlrexpress",
-                        motif.position,
-                        motif.position + 1,
-                    )
-                    self.classification = "C" + self.classification
-                    continue
-
+            
+            CC_motifs = [motif for motif in self.motifs["extEDVID"] if motif.position < nbarc_start]
             TIR_motifs = [
                 item
                 for motif in TIR_MOTIFS
                 for item in self.motifs[motif]
                 if item.position < nbarc_start
             ]
-            # TIR motifs are pretty conserved, seems okay to take 1 as sufficient evidence
-            if len(TIR_motifs) > 0:
+
+            if len(CC_motifs) > 0:
+                self.add_annotation(
+                    "CC",
+                    "nlrexpress",
+                    CC_motifs[0].position,
+                    CC_motifs[-1].position,
+                )
+                self.classification = "C" + self.classification
+            elif len(TIR_motifs) > 0:
                 TIR_motifs.sort(key=lambda x: x.position)
                 self.add_annotation(
                     "TIR",
