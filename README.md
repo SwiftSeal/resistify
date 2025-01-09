@@ -35,7 +35,7 @@ To use these with - for example - `singularity`, simply run:
 If you are having issues with `conda`, you can instead try installing directly from the repository:
 
 ```sh
-pip install https://github.com/SwiftSeal/resistify/archive/refs/tags/v1.0.1.tar.gz
+pip install https://github.com/SwiftSeal/resistify/archive/refs/tags/v1.1.1.tar.gz
 ```
 
 Note that `resistify` requires `hmmer` to be installed and available in your system's PATH, which will not be installed automatically when using `pip`.
@@ -289,6 +289,14 @@ The process is relatively fast on a non-NLR sequence, but can be quite slow when
 `Resistify` will automatically use as many threads as possible - I've used up to 128 threads and it scales fairly well.
 It's primarily due to the underlying `jackhmmer` process, which is slow when applied to NLRs, but not non-NLRs.
 As a result the `--retain` option doesn't have as much of a performance impact as you might expect.
+
+## Benchmarks
+
+The following are some quick benchmarks of the various `resistify` pipelines against the [DM potato genome](https://spuddb.uga.edu/data/DM_1-3_516_R44_potato.v6.1.hc_gene_models.pep.fa.gz) annotation, which contains 44,851 protein sequences.
+
+| Pipeline | Resources | CPU time |Real time | MaxRSS |
+| --- | --- | --- | --- | -- |
+| nlr | 32T AMD EPYC 7543 | 05:14:47 | 0:12:42 | 15Gb |
 
 ## Contributing
 
