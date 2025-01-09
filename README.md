@@ -294,9 +294,11 @@ As a result the `--retain` option doesn't have as much of a performance impact a
 
 The following are some quick benchmarks of the various `resistify` pipelines against the [DM potato genome](https://spuddb.uga.edu/data/DM_1-3_516_R44_potato.v6.1.hc_gene_models.pep.fa.gz) annotation, which contains 44,851 protein sequences.
 
-| Pipeline | Resources | CPU time |Real time | MaxRSS |
-| --- | --- | --- | --- | -- |
-| nlr | 32T AMD EPYC 7543 | 05:14:47 | 0:12:42 | 15Gb |
+| Pipeline | Resources | CPU time | Real time | MaxRSS |
+| --- | --- | --- | --- | --- |
+| `nlr` | 32T AMD EPYC 7543 | 05:14:47 | 00:12:42 | 15.0G |
+| `nlr --coconat` | 32T AMD EPYC 7543 | 12:12:02 | 00:26:08 | 14.9G |
+| `prr` | 16T AMD EPYC 7543, NVIDIA A100 80GB | 23:14:05 | 00:59:40 | 8.4G
 
 ## Contributing
 
