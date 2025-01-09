@@ -201,7 +201,7 @@ def prr(args):
     sequences = [sequence for sequence in sequences if sequence.is_rlp()]
     if len(sequences) > 0:
         logger.info(f"{len(sequences)} PRRs identified...")
-        sequences = nlrexpress(sequences, "lrr", chunksize, args.threads, args.debug)
+        sequences = nlrexpress(sequences, "lrr", chunksize, args.threads)
 
         logger.info("Classifying PRRs...")
         for sequence in sequences:
