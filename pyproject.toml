@@ -27,6 +27,9 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
+[project.optional-dependencies]
+test = ["pytest"]
+
 [project.scripts]
 resistify = "resistify.main:main"
 
@@ -34,3 +37,17 @@ resistify = "resistify.main:main"
 include = [
   "resistify",
 ]
+
+[tool.pixi.project]
+channels = ["conda-forge", "bioconda"]
+platforms = ["linux-64"]
+
+[tool.pixi.pypi-dependencies]
+resistify = { path = ".", editable = true }
+
+[tool.pixi.dependencies]
+hmmer = ">=3.4,<4"
+
+[tool.pixi.environments]
+default = {features = [], solve-group = "default"}
+test = {features = ["test"], solve-group = "default"}
