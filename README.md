@@ -5,6 +5,7 @@
 ![Conda Version](https://img.shields.io/conda/vn/bioconda/resistify)
 ![Conda Downloads](https://img.shields.io/conda/dn/bioconda/resistify)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/swiftseal/resistify/blob/main/assets/resistify.ipynb)
+[![Pixi Badge](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/prefix-dev/pixi/main/assets/badge/v0.json)](https://pixi.sh)
 
 </div>
 
@@ -298,6 +299,7 @@ The following are some quick benchmarks of the various `resistify` pipelines aga
 | Pipeline | Resources | CPU time | Real time | MaxRSS |
 | --- | --- | --- | --- | --- |
 | `nlr` | 32T AMD EPYC 7543 | 05:14:47 | 00:12:42 | 15.0G |
+| `nlr --retain` | 32T AMD EPYC 7543 | 1-01:51:50 | 01:07:42 | 13.1G |
 | `nlr --coconat` | 32T AMD EPYC 7543 | 12:12:02 | 00:26:08 | 14.9G |
 | `prr` | 16T AMD EPYC 7543, NVIDIA A100 80GB | 23:14:05 | 00:59:40 | 8.4G |
 
