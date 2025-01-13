@@ -182,7 +182,14 @@ def coconat(sequences, models_path: str):
         logger.debug(f"Processing {sequence.id}...")
 
         nterminal_seq = sequence.nterminal_sequence
+        
+        # Exit this loop if there isn't a valid N-terminal sequence
+        if nterminal_seq is None:
+            continue
+        
+        
         nterminal_len = len(nterminal_seq)
+
         if nterminal_seq is None:
             logger.debug(f"{sequence.id} has no N-terminus, skipping...")
             continue
