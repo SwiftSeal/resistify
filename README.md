@@ -23,7 +23,7 @@ conda create -n resistify bioconda::resistify
 conda activate resistify
 ```
 
-> [!NOTE] 
+> [!NOTE]
 > If you want to use the GPU-accelerated pipelines, conda may fail to install a GPU-ready version of `pytorch`. If this occurs, try installing `pytorch-gpu bioconda::resistify` instead.
 
 When using `conda`, please ensure that your Bioconda has been [configured correctly](https://bioconda.github.io/#usage).
@@ -75,7 +75,7 @@ Together, this evidence is used to classify NLRs according to their domain archi
 
 ### Identifying PRRs
 
-> [!IMPORTANT] 
+> [!IMPORTANT]
 > This pipeline is currently in development - due to other commitments I can't currently benchmark this properly and make no guarantees to its accuracy yet! Feedback is appreciated.
 
 To predict PRRs within a set of protein sequences, simply run:
