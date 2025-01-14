@@ -13,7 +13,7 @@
         ]
     },
     "prostt5": {
-        "directory": "prostt5", 
+        "directory": "prostt5",
         "files": [
             {
                 "url": "https://huggingface.co/Rostlab/ProstT5/resolve/main/config.json",

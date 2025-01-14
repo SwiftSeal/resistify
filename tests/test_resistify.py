@@ -2,14 +2,17 @@ import subprocess
 import filecmp
 import os
 
+
 def check_results(expected_directory, actual_directory):
     expected_results_file = os.path.join(expected_directory, "results.tsv")
     actual_results_file = os.path.join(actual_directory, "results.tsv")
-    
-    assert filecmp.cmp(expected_results_file, actual_results_file), "Results file mismatch"
+
+    assert filecmp.cmp(expected_results_file, actual_results_file), (
+        "Results file mismatch"
+    )
 
 
-#def test_resistify_download_models():
+# def test_resistify_download_models():
 #    # Define the models directory
 #    models_dir = "models"
 #
@@ -25,6 +28,7 @@ def check_results(expected_directory, actual_directory):
 #
 #    # Check that the models directory exists
 #    assert os.path.isdir(models_dir), "Models directory not created"
+
 
 def test_resistify_nlr():
     # Define paths to input and output files
@@ -44,12 +48,12 @@ def test_resistify_nlr():
 
     check_results(expected_directory, actual_directory)
 
+
 def test_resistify_nlr_coconat():
     # Define paths to input and output files
     input_file = "tests/data/zar1.fa"
     expected_output = "tests/data/nlr_expected"
     actual_output = "tests/output/nlr_actual"
-    
 
     # Run the Resistify command for NLR
     result = subprocess.run(
@@ -63,8 +67,8 @@ def test_resistify_nlr_coconat():
 
     check_results(expected_output, actual_output)
 
-def test_resistify_prr():
 
+def test_resistify_prr():
     # Define paths to input and output files
     input_file = "tests/data/fls2.fa"
     expected_output = "tests/data/prr_expected"
