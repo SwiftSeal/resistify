@@ -286,7 +286,7 @@ def extract_nbarc(sequences, results_dir):
                 if annotation.domain == "NB-ARC":
                     file.write(f">{sequence.id}_{count}\n")
                     file.write(
-                        f"{wrap_sequence(sequence.seq[annotation.start:annotation.end])}"
+                        f"{wrap_sequence(sequence.seq[annotation.start : annotation.end])}"
                     )
                     count += 1
 

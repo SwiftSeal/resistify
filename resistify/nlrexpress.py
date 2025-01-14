@@ -147,22 +147,26 @@ def nlrexpress(sequences, search_type, chunk_size, threads):
         sequences[i : i + chunk_size] for i in range(0, len(sequences), chunk_size)
     ]
 
-
     logger.info("Running NLRexpress - this could take a while...")
 
     iterations = 0
     total_iterations = len(batches)
     results = []
     # Need to use spawn otherwise the subprocesses will hang
-    with concurrent.futures.ProcessPoolExecutor(max_workers = -(-threads // 2)) as executor:
-        futures = [executor.submit(nlrexpress_subprocess, (batch, jackhmmer_db.name, models)) for batch in batches]
+    with concurrent.futures.ProcessPoolExecutor(
+        max_workers=-(-threads // 2)
+    ) as executor:
+        futures = [
+            executor.submit(nlrexpress_subprocess, (batch, jackhmmer_db.name, models))
+            for batch in batches
+        ]
 
         for future in concurrent.futures.as_completed(futures):
             iterations += 1
             log_percentage(iterations, total_iterations)
             for sequence in future.result():
                 results.append(sequence)
-            
+
     if len(results) != len(sequences):
         logger.critical(
             "Sequences dropped during NLRexpress - this should not happen and must be reported"
