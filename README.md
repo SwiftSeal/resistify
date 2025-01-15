@@ -5,6 +5,7 @@
 ![Conda Version](https://img.shields.io/conda/vn/bioconda/resistify)
 ![Conda Downloads](https://img.shields.io/conda/dn/bioconda/resistify)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/swiftseal/resistify/blob/main/assets/resistify.ipynb)
+[![Pixi Badge](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/prefix-dev/pixi/main/assets/badge/v0.json)](https://pixi.sh)
 
 </div>
 
@@ -22,7 +23,7 @@ conda create -n resistify bioconda::resistify
 conda activate resistify
 ```
 
-> [!NOTE] 
+> [!NOTE]
 > If you want to use the GPU-accelerated pipelines, conda may fail to install a GPU-ready version of `pytorch`. If this occurs, try installing `pytorch-gpu bioconda::resistify` instead.
 
 When using `conda`, please ensure that your Bioconda has been [configured correctly](https://bioconda.github.io/#usage).
@@ -35,7 +36,7 @@ To use these with - for example - `singularity`, simply run:
 If you are having issues with `conda`, you can instead try installing directly from the repository:
 
 ```sh
-pip install https://github.com/SwiftSeal/resistify/archive/refs/tags/v1.1.1.tar.gz
+pip install https://github.com/SwiftSeal/resistify/archive/refs/tags/v1.1.2.tar.gz
 ```
 
 Note that `resistify` requires `hmmer` to be installed and available in your system's PATH, which will not be installed automatically when using `pip`.
@@ -74,7 +75,7 @@ Together, this evidence is used to classify NLRs according to their domain archi
 
 ### Identifying PRRs
 
-> [!IMPORTANT] 
+> [!IMPORTANT]
 > This pipeline is currently in development - due to other commitments I can't currently benchmark this properly and make no guarantees to its accuracy yet! Feedback is appreciated.
 
 To predict PRRs within a set of protein sequences, simply run:
@@ -107,6 +108,7 @@ Sequences are classified as being either RLPs or RLKs depending on the presence 
 This only applies to the `--coconat` and PRR pipelines! The standard NLR pipeline does not require any external databases.
 
 By default, `Resistify` will automatically download the models required for CoConat and TMbed to your `$HOME/.cache` directory.
+This default can be changed by adjusting the environment variable `$HF_HOME` to your preferred location.
 If you'd like to manually install the databases instead, you can use the `resistify download_models` utility to download these to a directory of your choice.
 To provide these local models to the CoCoNat and TMbed processes, simply pass the path of the models directory via the `--models` argument.
 Approximately 13G of disk space is required.
@@ -297,8 +299,9 @@ The following are some quick benchmarks of the various `resistify` pipelines aga
 | Pipeline | Resources | CPU time | Real time | MaxRSS |
 | --- | --- | --- | --- | --- |
 | `nlr` | 32T AMD EPYC 7543 | 05:14:47 | 00:12:42 | 15.0G |
+| `nlr --retain` | 32T AMD EPYC 7543 | 1-01:51:50 | 01:07:42 | 13.1G |
 | `nlr --coconat` | 32T AMD EPYC 7543 | 12:12:02 | 00:26:08 | 14.9G |
-| `prr` | 16T AMD EPYC 7543, NVIDIA A100 80GB | 23:14:05 | 00:59:40 | 8.4G
+| `prr` | 16T AMD EPYC 7543, NVIDIA A100 80GB | 23:14:05 | 00:59:40 | 8.4G |
 
 ## Contributing
 

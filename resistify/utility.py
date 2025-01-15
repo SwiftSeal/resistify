@@ -12,9 +12,10 @@ from resistify._loguru import logger
 def log_percentage(n, total):
     if total < 10:
         logger.info(f"{n} of {total} complete")
-    elif n % (total // 10) == 0:
-        percent_complete = n / total * 100
-        logger.info(f"{int(round(percent_complete, -1))}% complete")
+    else:
+        percent_complete = int((n / total) * 100)
+        if percent_complete % 10 == 0:
+            logger.info(f"{percent_complete}% complete")
 
 
 def create_output_directory(outdir):
@@ -286,7 +287,7 @@ def extract_nbarc(sequences, results_dir):
                 if annotation.domain == "NB-ARC":
                     file.write(f">{sequence.id}_{count}\n")
                     file.write(
-                        f"{wrap_sequence(sequence.seq[annotation.start:annotation.end])}"
+                        f"{wrap_sequence(sequence.seq[annotation.start : annotation.end])}"
                     )
                     count += 1
 

@@ -1,0 +1,8 @@
+Sequence	Domain	Start	End	E_value	Score	Source
+zar1	MADA	1	20	5e-07	16.2	HMM
+zar1	CC	5	129	7.8e-24	70.0	HMM
+zar1	CC	27	48			coconat
+zar1	CC	60	75			coconat
+zar1	CC	113	129			coconat
+zar1	NB-ARC	164	410	4.6e-90	287.2	HMM
+zar1	LRR	511	817			nlrexpress

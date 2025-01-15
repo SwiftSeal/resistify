@@ -182,11 +182,14 @@ def coconat(sequences, models_path: str):
         logger.debug(f"Processing {sequence.id}...")
 
         nterminal_seq = sequence.nterminal_sequence
-        nterminal_len = len(nterminal_seq)
+
         if nterminal_seq is None:
             logger.debug(f"{sequence.id} has no N-terminus, skipping...")
             continue
-        elif nterminal_len < 5:
+
+        nterminal_len = len(nterminal_seq)
+
+        if nterminal_len < 5:
             logger.debug(f"{sequence.id} N-terminus too short for CoCoNat")
             continue
         elif nterminal_len >= 1022:

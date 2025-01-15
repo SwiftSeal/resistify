@@ -22,11 +22,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 from resistify.utility import log_percentage
 import logging
+import warnings
 from resistify._loguru import logger
 
 from transformers import T5EncoderModel, T5Tokenizer
 
 logging.getLogger("transformers").setLevel(logging.CRITICAL)
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 class Decoder(nn.Module):
