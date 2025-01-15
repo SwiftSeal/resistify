@@ -12,9 +12,10 @@ from resistify._loguru import logger
 def log_percentage(n, total):
     if total < 10:
         logger.info(f"{n} of {total} complete")
-    elif n % (total // 10) == 0:
-        percent_complete = n / total * 100
-        logger.info(f"{int(round(percent_complete, -1))}% complete")
+    else:
+        percent_complete = int((n / total) * 100)
+        if percent_complete % 10 == 0:
+            logger.info(f"{percent_complete}% complete")
 
 
 def create_output_directory(outdir):
