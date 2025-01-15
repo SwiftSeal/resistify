@@ -152,7 +152,6 @@ def nlrexpress(sequences, search_type, chunk_size, threads):
     iterations = 0
     total_iterations = len(batches)
     results = []
-    # Need to use spawn otherwise the subprocesses will hang
     with concurrent.futures.ProcessPoolExecutor(
         max_workers=-(-threads // 2)
     ) as executor:
