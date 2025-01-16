@@ -23,8 +23,12 @@ class ProgressLogger:
         else:
             # Calculate percentage
             percent_complete = int((self.current_count / self.total_count) * 100)
-            if (
+            if self.current_count == self.total_count:
+                logger.info("100% complete")
+                self.last_reported_percent = 100
+            elif (
                 percent_complete % 10 == 0
+                and percent_complete > 0
                 and percent_complete > self.last_reported_percent
             ):
                 logger.info(f"{percent_complete}% complete")
