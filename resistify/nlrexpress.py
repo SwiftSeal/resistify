@@ -9,7 +9,7 @@ import concurrent.futures
 from threadpoolctl import threadpool_limits
 import shutil
 import warnings
-from resistify.utility import log_percentage
+from resistify.utility import ProgressLogger
 from resistify._loguru import logger
 
 # Version 1.3 of sklearn introduced InconsistentVersionWarning, fall back to UserWarning if not available
@@ -149,8 +149,7 @@ def nlrexpress(sequences, search_type, chunk_size, threads):
 
     logger.info("Running NLRexpress - this could take a while...")
 
-    iterations = 0
-    total_iterations = len(batches)
+    progress_logger = ProgressLogger(len(batches))
     results = []
     with concurrent.futures.ProcessPoolExecutor(
         max_workers=-(-threads // 2)
@@ -161,8 +160,7 @@ def nlrexpress(sequences, search_type, chunk_size, threads):
         ]
 
         for future in concurrent.futures.as_completed(futures):
-            iterations += 1
-            log_percentage(iterations, total_iterations)
+            progress_logger.update()
             for sequence in future.result():
                 results.append(sequence)
 
