@@ -10,7 +10,7 @@ import os
 import tempfile
 import warnings
 from resistify._loguru import logger
-from resistify.utility import log_percentage
+from resistify.utility import ProgressLogger
 
 logging.getLogger("transformers").setLevel(logging.CRITICAL)
 
@@ -176,8 +176,7 @@ def coconat(sequences, models_path: str):
     output_file = os.path.join(temp_dir.name, "out")
     prefix_path = os.path.join(temp_dir.name, "crf")
 
-    total_iterations = len(sequences)
-    iteration = 0
+    progress_logger = ProgressLogger(len(sequences))
     for sequence in sequences:
         logger.debug(f"Processing {sequence.id}...")
 
@@ -244,7 +243,6 @@ def coconat(sequences, models_path: str):
         probability_matrix = np.loadtxt(f"{prefix_path}_0")
         cc_probability = 1 - probability_matrix[:, 0]
         sequence.cc_probs = cc_probability
-        iteration += 1
-        log_percentage(iteration, total_iterations)
+        progress_logger.update()
 
     return sequences

@@ -20,7 +20,7 @@ import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from resistify.utility import log_percentage
+from resistify.utility import ProgressLogger
 import logging
 import warnings
 from resistify._loguru import logger
@@ -452,8 +452,7 @@ def tmbed(sequences, models_path):
         "o": "outside",
     }
 
-    total_iterations = len(sequences)
-    iteration = 0
+    progress_logger = ProgressLogger(len(sequences))
     for sequence in sequences:
         try:
             logger.debug(f"Predicting transmembrane domains for {sequence.id}...")
@@ -463,11 +462,6 @@ def tmbed(sequences, models_path):
                 f"GPU ran out of memory when encoding {sequence.id} - skipping..."
             )
             continue
-
-        # CPU alternative, implement fallback?
-        # encoder.to_cpu()
-        # torch.cuda.empty_cache()
-        # embeddings = encoder.embed(sequences)
 
         embedding = embedding.to(device=device)
         embedding = embedding.to(dtype=torch.float32)
@@ -511,7 +505,6 @@ def tmbed(sequences, models_path):
             len(sequence.seq),
         )
 
-        iteration += 1
-        log_percentage(iteration, total_iterations)
+        progress_logger.update()
 
     return sequences
