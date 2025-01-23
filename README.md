@@ -7,6 +7,8 @@
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/swiftseal/resistify/blob/main/assets/resistify.ipynb)
 [![Pixi Badge](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/prefix-dev/pixi/main/assets/badge/v0.json)](https://pixi.sh)
 
+[*Resistify is now published!*](https://doi.org/10.1177/11779322241308944)
+
 </div>
 
 Resistify is a program which rapidly identifies and classifies plant resistance genes from protein sequences.
