@@ -246,7 +246,7 @@ def main():
 
     logger.info("Thank you for using Resistify!")
     logger.info("If you used Resistify in your research, please cite the following:")
-    logger.info(" - Resistify: https://doi.org/10.1101/2024.02.14.580321")
+    logger.info(" - Resistify: https://doi.org/10.1177/11779322241308944")
     logger.info(" - NLRexpress: https://doi.org/10.3389/fpls.2022.975888")
     if args.command == "prr":
         logger.info(" - TMbed: https://doi.org/10.1186/s12859-022-04873-x")
