@@ -31,12 +31,12 @@ When using `conda`, please ensure that your Bioconda has been [configured correc
 Docker/Podman containers are also available through the [biocontainers repository](https://quay.io/repository/biocontainers/resistify?tab=tags).
 To use these with - for example - `singularity`, simply run:
 
-`singularity exec docker://quay.io/biocontainers/resistify:<tag-goes-here>`
+`singularity exec docker://quay.io/biocontainers/resistify:<tag-goes-here> resistify` 
 
 If you are having issues with `conda`, you can instead try installing directly from the repository:
 
 ```sh
-pip install https://github.com/SwiftSeal/resistify/archive/refs/tags/v1.1.3.tar.gz
+pip install https://github.com/SwiftSeal/resistify/archive/refs/tags/v1.1.4.tar.gz
 ```
 
 Note that `resistify` requires `hmmer` to be installed and available in your system's PATH, which will not be installed automatically when using `pip`.
@@ -311,7 +311,7 @@ If you have any suggestions for additional features, get in touch!
 
 ## Citing
 
-> Smith, M., Jones, J. T., & Hein, I. (2024). Resistify - A rapid and accurate annotation tool to identify NLRs and study their genomic organisation. *bioRxiv*, 2024-02. https://doi.org/10.1101/2024.02.14.580321
+> Smith M., Jones J. T., Hein I. (2025) Resistify: A Novel NLR Classifier That Reveals Helitron-Associated NLR Expansion in Solanaceae. *Bioinformatics and Biology Insights*. 2025;19. [doi:10.1177/11779322241308944](https://doi.org/10.1177/11779322241308944)
 
 You must also cite:
 
