@@ -152,8 +152,7 @@ def nlrexpress(sequences, search_type, chunk_size, threads):
     progress_logger = ProgressLogger(len(batches))
     results = []
     with concurrent.futures.ProcessPoolExecutor(
-        max_workers=-(-threads // 2),
-        mp_context=get_context("spawn")
+        max_workers=-(-threads // 2), mp_context=get_context("spawn")
     ) as executor:
         futures = [
             executor.submit(nlrexpress_subprocess, (batch, jackhmmer_db.name, models))
