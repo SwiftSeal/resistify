@@ -4,7 +4,7 @@ import numpy as np
 import pickle
 import os
 import tempfile
-from multiprocessing import cpu_count
+from multiprocessing import cpu_count, get_context
 import concurrent.futures
 from threadpoolctl import threadpool_limits
 import shutil
@@ -152,7 +152,7 @@ def nlrexpress(sequences, search_type, chunk_size, threads):
     progress_logger = ProgressLogger(len(batches))
     results = []
     with concurrent.futures.ProcessPoolExecutor(
-        max_workers=-(-threads // 2)
+        max_workers=-(-threads // 2), mp_context=get_context("spawn")
     ) as executor:
         futures = [
             executor.submit(nlrexpress_subprocess, (batch, jackhmmer_db.name, models))
