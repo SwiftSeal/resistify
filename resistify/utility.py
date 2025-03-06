@@ -5,6 +5,7 @@ import json
 import hashlib
 import requests
 import gzip
+import time
 from resistify.annotations import Sequence, NBARC_MOTIFS
 from resistify._loguru import logger
 
@@ -14,9 +15,11 @@ class ProgressLogger:
         self.total_count = total_count
         self.current_count = 0
         self.last_reported_percent = -1  # Initialize with an invalid percentage
+        self.last_report_time = time.time()
 
     def update(self):
         self.current_count += 1
+        current_time = time.time()
         if self.total_count < 10:
             # For small totals, report as "n of total"
             logger.info(f"{self.current_count} of {self.total_count} complete")
@@ -27,12 +30,12 @@ class ProgressLogger:
                 logger.info("100% complete")
                 self.last_reported_percent = 100
             elif (
-                percent_complete % 10 == 0
-                and percent_complete > 0
-                and percent_complete > self.last_reported_percent
+                percent_complete > self.last_reported_percent
+                and current_time - self.last_report_time > 1
             ):
                 logger.info(f"{percent_complete}% complete")
                 self.last_reported_percent = percent_complete
+                self.last_report_time = current_time
 
 
 def create_output_directory(outdir):
