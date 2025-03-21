@@ -326,3 +326,11 @@ If you use the CoCoNat module, please cite:
 If you use the PRR module, please cite:
 
 > Bernhofer, M., & Rost, B. (2022). TMbed: transmembrane proteins predicted through language model embeddings. *BMC bioinformatics*, 23(1), 326. https://doi.org/10.1186/s12859-022-04873-x
+
+## Hall of fame 🏆
+
+*If you've used `Resistify` in your research, feel free to add it here!*
+
+> Du, H., He, Y., Chen, M., Zheng, X., Gui, D., Tang, J., Fang, Y., Huang, Y., Wan, H., Ruan, J. and Jin, X., 2025. A near-complete genome assembly of Fragaria iinumae. *BMC genomics*, 26, p.253.
+
+> Liu, Z., Wang, X., Cao, S., Lei, T., Chenzhu, Y., Zhang, M., Liu, Z., Lu, J., Ma, W., Su, B. and Wang, Y., 2024. Deep learning facilitates precise identification of disease-resistance genes in plants. *bioRxiv*, pp.2024-09.
