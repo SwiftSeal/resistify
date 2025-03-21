@@ -109,10 +109,10 @@ Sequences are classified as being either RLPs or RLKs depending on the presence 
 > [!NOTE]
 This only applies to the `--coconat` and PRR pipelines! The standard NLR pipeline does not require any external databases.
 
-By default, `Resistify` will automatically download the models required for CoConat and TMbed to your `$HOME/.cache` directory.
+By default, `Resistify` will automatically download the models required for `CoCoNat` and `TMbed` to your `$HOME/.cache` directory.
 This default can be changed by adjusting the environment variable `$HF_HOME` to your preferred location.
 If you'd like to manually install the databases instead, you can use the `resistify download_models` utility to download these to a directory of your choice.
-To provide these local models to the CoCoNat and TMbed processes, simply pass the path of the models directory via the `--models` argument.
+To provide these local models to the `CoCoNat` and `TMbed` processes, simply pass the path of the models directory via the `--models` argument.
 Approximately 13G of disk space is required.
 
 ## Results
@@ -319,7 +319,7 @@ You must also cite:
 
 > Martin, E. C., Spiridon, L., Goverse, A., & Petrescu, A. J. (2022). NLRexpress—A bundle of machine learning motif predictors—Reveals motif stability underlying plant Nod-like receptors diversity. *Frontiers in Plant Science*, 13, 975888. https://doi.org/10.3389/fpls.2022.975888
 
-If you use the CoCoNat module, please cite:
+If you use the `CoCoNat` module, please cite:
 
 > Madeo, G., Savojardo, C., Manfredi, M., Martelli, P. L., & Casadio, R. (2023). CoCoNat: a novel method based on deep learning for coiled-coil prediction. *Bioinformatics*, 39(8), btad495. https://doi.org/10.1093/bioinformatics/btad495
 
