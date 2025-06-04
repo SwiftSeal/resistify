@@ -376,7 +376,8 @@ class Sequence:
         Merge overlapping annotations of the same domain.
         """
         merged_annotations = []
-        for domain in short_IDs:
+        
+        for domain in short_IDs or rlp_external_domains:
             # get all annotations of this domain
             domain_sublist = [
                 annotation
