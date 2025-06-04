@@ -236,6 +236,7 @@ def draw_prr(args, sequence_data):
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.spines['left'].set_visible(False)
+    ax.axvspan(0, ax.get_xlim()[1], color='lightgray', alpha=0.5, zorder=0)
     ax.set_yticks(y_tick_positions)
     ax.set_yticklabels(y_tick_labels)
     ax.tick_params(axis='y', length=0)
