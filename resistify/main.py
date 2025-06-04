@@ -12,6 +12,7 @@ from resistify.hmmsearch import hmmsearch
 from resistify.nlrexpress import nlrexpress
 from resistify.coconat import coconat
 from resistify.tmbed import tmbed
+from resistify.draw import draw
 from resistify.__version__ import __version__
 
 
@@ -136,6 +137,22 @@ def parse_args(args=None):
     )
     add_common_args(prr_parser)
 
+    # Draw subparser
+    draw_parser = subparsers.add_parser(
+        "draw",
+        help="Draw domain structure for target gene(s) from results.",
+    )
+    draw_parser.add_argument(
+        "--query",
+        required=True,
+        help="Comma-separated list of sequence names to plot.",
+    )
+    draw_parser.add_argument(
+        "--results",
+        required=True,
+        help="Path to the results directory.",
+    )
+
     return parser.parse_args(args)
 
 
@@ -237,6 +254,9 @@ def main():
         sequences = prr(args)
     elif args.command == "download_models":
         download(args)
+        sys.exit(0)
+    elif args.command == "draw":
+        draw(args)
         sys.exit(0)
     else:
         logger.error(f"Unknown command: {args.command}")
