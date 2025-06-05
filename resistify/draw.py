@@ -12,6 +12,7 @@ COLOUR_PALETTE = {
     "LRR": "#FFB000",
     "signal_peptide": "#648FFF",
     "alpha_inwards": "#DC267F",
+    "PKinase": "#FE6100",
 }
 
 MOTIF_IDENTIFIERS = {
@@ -64,30 +65,6 @@ def collect_data(queries, results_dir):
                         "start": int(row["Start"]),
                         "end": int(row["End"]),
                         "domain": row["Domain"]
-                    })
-    
-    # Also retrieve signal peptides and TM domains from annotations file
-    with open(os.path.join(results_dir, "annotations.tsv")) as annotations_file:
-        reader = csv.DictReader(annotations_file, delimiter="\t")
-        for row in reader:
-            if row["Sequence"] in sequences:
-                if row["Domain"] == "signal_peptide":
-                    sequences[row["Sequence"]]["domains"].append({
-                        "start": int(row["Start"]),
-                        "end": int(row["End"]),
-                        "domain": "signal_peptide"
-                    })
-                elif row["Domain"] == "alpha_inwards":
-                    sequences[row["Sequence"]]["domains"].append({
-                        "start": int(row["Start"]),
-                        "end": int(row["End"]),
-                        "domain": "transmembrane"
-                    })
-                elif row["Domain"] == "PKinase":
-                    sequences[row["Sequence"]]["domains"].append({
-                        "start": int(row["Start"]),
-                        "end": int(row["End"]),
-                        "domain": "Kinase"
                     })
     
     with open(os.path.join(results_dir, "motifs.tsv")) as motifs_file:
@@ -193,31 +170,59 @@ def draw_prr(args, sequence_data):
         # Draw the horizontal line for sequence length
         # For PRRs, offset the x axis to the start of the transmembrane domain
         for domain in domains:
-            if domain['domain'] == 'transmembrane':
-                x_offset = domain['start']
+            if domain['domain'] == 'alpha_inwards':
+                x_offset = domain['start'] + (domain['end'] - domain['start'])/2
                 logger.debug(f"Transmembrane domain found at {x_offset} for sequence {seq_id}.")
                 break
         
         ax.hlines(
             y_offset,
-            xmin = - x_offset,
-            xmax = length - x_offset,
+            xmin = x_offset,
+            xmax = x_offset - length,
             color='black',
             linestyle='-',
             linewidth=2,
         )
 
+        if not args.hide_motifs:
+            for motif_info in motifs:
+                position = motif_info['position']
+                motif_name = motif_info['motif']
+                motif_type = MOTIF_IDENTIFIERS.get(motif_name)
+                motif_color = COLOUR_PALETTE.get(motif_type, 'gray')
+                # Draw vertical line ("lollipop stick")
+                ax.vlines(x_offset - position, y_offset, y_offset + 0.15, color='black', linewidth=1, label='Motif' if y_offset == 0 else "", zorder = 2)
+                # Place motif name so it starts at the end of the lollipop stick
+                ax.text(
+                    x_offset - position - 5,
+                    y_offset + 0.15,  # exactly at the end of the vline
+                    motif_name,
+                    rotation=45,
+                    ha='left',       # start from the vline
+                    va='bottom',     # align bottom to the vline end
+                    fontsize=7,
+                    color=motif_color
+                )
+
         # Draw rectangles for domains
         for domain_info in domains:
-            start = domain_info['start'] - x_offset
-            end = domain_info['end'] - x_offset
+            start = x_offset - domain_info['start']
+            end = x_offset - domain_info['end']
             domain_name = domain_info['domain']
             logger.debug(f"Drawing domain {domain_name} from {start} to {end} for sequence {seq_id}.")
             domain_color = COLOUR_PALETTE.get(domain_name, 'gray')
-            rect = patches.Rectangle((start, y_offset - 0.1), end - start, 0.2,
+            rect = patches.Rectangle((min(start, end), y_offset - 0.1), abs(end - start), 0.2,
                                      facecolor=domain_color, edgecolor='black', zorder = 3)
             ax.add_patch(rect)
-            # Add domain name centered in the rectangle
+
+            # Relabel domain names for PRRs
+            if domain_name == "alpha_inwards":
+                domain_name = "TM"
+            elif domain_name == "signal_peptide":
+                domain_name = "SP"
+            elif domain_name == "Pkinase":
+                domain_name = "Kinase"
+
             ax.text(
                 (start + end) / 2,
                 y_offset,
@@ -236,7 +241,6 @@ def draw_prr(args, sequence_data):
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.spines['left'].set_visible(False)
-    ax.axvspan(0, ax.get_xlim()[1], color='lightgray', alpha=0.5, zorder=0)
     ax.set_yticks(y_tick_positions)
     ax.set_yticklabels(y_tick_labels)
     ax.tick_params(axis='y', length=0)
