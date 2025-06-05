@@ -43,6 +43,35 @@ short_IDs = {
     "C-JID": "j",
 }
 
+# Domains that should be merged if adjacent
+# These will also be reported in the domain table
+DOMAINS_TO_MERGE = [
+    "CC",
+    "RPW8",
+    "TIR",
+    "NB-ARC",
+    "LRR",
+    "MADA",
+    "C-JID",
+    "G-LecRLK",
+    "L-LecRLK",
+    "C-LecRLK",
+    "WAK",
+    "CrRLK1L",
+    "LysM",
+    "CRK",
+    "Thaumatin",
+    "CR-like",
+    "SPARK",
+    "GH18",
+    "GH19",
+    "CAP",
+    "PRIMA1",
+    "PKinase",
+    "alpha_inwards",  # don't care about the other topology domains
+    "signal_peptide",
+]
+
 motif_translation = {
     "extEDVID": "C",
     "bA": "T",
@@ -376,7 +405,8 @@ class Sequence:
         Merge overlapping annotations of the same domain.
         """
         merged_annotations = []
-        for domain in short_IDs:
+
+        for domain in DOMAINS_TO_MERGE:
             # get all annotations of this domain
             domain_sublist = [
                 annotation

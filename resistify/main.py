@@ -8,10 +8,6 @@ from resistify.utility import (
     verify_files,
 )
 from resistify._loguru import logger
-from resistify.hmmsearch import hmmsearch
-from resistify.nlrexpress import nlrexpress
-from resistify.coconat import coconat
-from resistify.tmbed import tmbed
 from resistify.__version__ import __version__
 
 
@@ -136,10 +132,53 @@ def parse_args(args=None):
     )
     add_common_args(prr_parser)
 
+    # Draw subparser
+    draw_parser = subparsers.add_parser(
+        "draw",
+        help="Draw domain structure for target gene(s) from results.",
+    )
+    draw_parser.add_argument(
+        "--query",
+        help="Comma-separated list of sequence names to plot. If not provided, all sequences will be plotted.",
+        default=None,
+    )
+    draw_parser.add_argument(
+        "results_dir",
+        help="Path to the results directory.",
+    )
+    draw_parser.add_argument(
+        "-o",
+        "--output",
+        help="Path to the output plot. Extension should be .png, .pdf, or .svg. Default is domain_plot.png",
+        default="domain_plot.png",
+        type=str,
+    )
+    draw_parser.add_argument(
+        "--width",
+        help="Width of the output plot in inches.",
+        type=float,
+        default=12,
+    )
+    draw_parser.add_argument(
+        "--height",
+        help="Height of the output plot in inches.",
+        type=float,
+        default=6,
+    )
+    draw_parser.add_argument(
+        "--hide-motifs",
+        help="Hide motifs in the output plot.",
+        action="store_true",
+    )
+
     return parser.parse_args(args)
 
 
 def nlr(args):
+    from resistify.coconat import coconat
+    from resistify.nlrexpress import nlrexpress
+    from resistify.hmmsearch import hmmsearch
+
     # Check to see if all provided models exist
     if args.models_path is not None:
         verify_files(args.models_path)
@@ -184,6 +223,10 @@ def nlr(args):
 
 
 def prr(args):
+    from resistify.tmbed import tmbed
+    from resistify.nlrexpress import nlrexpress
+    from resistify.hmmsearch import hmmsearch
+
     # Check to see if all provided models exist
     if args.models_path is not None:
         verify_files(args.models_path)
@@ -237,6 +280,12 @@ def main():
         sequences = prr(args)
     elif args.command == "download_models":
         download(args)
+        sys.exit(0)
+    elif args.command == "draw":
+        from resistify.draw import draw
+
+        draw(args)
+        logger.info("Goodbye!")
         sys.exit(0)
     else:
         logger.error(f"Unknown command: {args.command}")
