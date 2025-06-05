@@ -193,10 +193,21 @@ This file contains the coordinates of the domains identified by `Resistify`.
 
 This file contains the raw annotations for each sequence, and the method which was used to identify them.
 
-## Output visualisation
+## Result visualisation
 
-I've kept the output files of `Resistify` fairly minimal so that users can carry out their own analysis/visualisation.
-Here are some examples of how `Resistify` can be used to create basic plots.
+### Domain visualisation
+
+Often, it can be quite useful to visualise the domain structure of an NLR/PRR.
+For this purpose, I have added a new submodule called `resistify draw` which lets you quickly draw the results of a completed run.
+Simply point it at a completed results directory, and it will produce a plot for all sequences:
+
+```
+resistify draw nlr_results/
+```
+
+![](assets/domain_plot.png)
+
+There are a couple of customisation options, such as `--height` and `--width` to change the plot dimensions, `--query` which allows you to select a single or multiple sequences, and `--hide-motifs` which lets you hide the motif markup.
 
 ### Phylogenetics
 
@@ -229,49 +240,6 @@ myplot <- myplot +
 ```
 
 ![Example plot of phylogenetic tree](assets/phylogenetic.png)
-
-### Domain plotting
-
-Sometimes, it might be of interest to plot the distribution of domains and motifs across each NLR.
-Achieving this with `Resistify` is quite simple:
-
-```{R}
-library(tidyverse)
-
-motif_translation = c(
-  "extEDVID" = "CC",
-  "bA" = "TIR",
-  "aA" = "TIR",
-  "bC" = "TIR",
-  "aC" = "TIR",
-  "bDaD1" = "TIR",
-  "aD3" = "TIR",
-  "VG" = "NB-ARC",
-  "P-loop" = "NB-ARC",
-  "RNSB-A" = "NB-ARC",
-  "Walker-B" = "NB-ARC",
-  "RNSB-B" = "NB-ARC",
-  "RNSB-C" = "NB-ARC",
-  "RNSB-D" = "NB-ARC",
-  "GLPL" = "NB-ARC",
-  "MHD" = "NB-ARC",
-  "LxxLxL" = "LRR"
-)
-
-domains <- read_tsv("output/domains.tsv")
-results <- read_tsv("output/results.tsv")
-motifs <- read_tsv("output/motifs.tsv") |>
-  mutate(Domain = motif_translation[Motif])
-
-myplot <- ggplot() +
-  geom_segment(data = results, aes(y = Sequence, yend = Sequence, x = 0, xend = Length)) +
-  geom_segment(data = domains, aes(y = Sequence, yend = Sequence, x = Start, xend = End, colour = Domain)) +
-  geom_point(data = motifs, aes(y = Sequence, x = Position, colour = Domain))
-```
-
-![Example plot of NLR domains](assets/domain_plot.png)
-
-*Cute! NB: Some false-positive motif hits are evident in this example - it might be of interest to not plot them, or plot only LRR motifs which tend to be a bit more informative.*
 
 ## Frequently asked questions
 
