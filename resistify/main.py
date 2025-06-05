@@ -149,7 +149,7 @@ def parse_args(args=None):
     draw_parser.add_argument(
         "-o",
         "--output",
-        help="Path to the output plot. Extension should be .png, .pdf, or .svg.",
+        help="Path to the output plot. Extension should be .png, .pdf, or .svg. Default is domain_plot.png",
         default="domain_plot.png",
         type=str,
     )
