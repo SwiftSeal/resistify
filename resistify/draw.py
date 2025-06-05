@@ -16,24 +16,25 @@ COLOUR_PALETTE = {
 }
 
 MOTIF_IDENTIFIERS = {
-    'aA': 'TIR',
-    'aC': 'TIR',
-    'aD3': 'TIR',
-    'bA': 'TIR',
-    'bC': 'TIR',
-    'bDaD1': 'TIR',
-    'extEDVID': 'CC',
-    'VG': 'NB-ARC',
-    'P-loop': 'NB-ARC',
-    'RNSB-A': 'NB-ARC',
-    'Walker-B': 'NB-ARC',
-    'RNSB-B': 'NB-ARC',
-    'RNSB-C': 'NB-ARC',
-    'RNSB-D': 'NB-ARC',
-    'GLPL': 'NB-ARC',
-    'MHD': 'NB-ARC',
-    'LxxLxL': 'LRR',
+    "aA": "TIR",
+    "aC": "TIR",
+    "aD3": "TIR",
+    "bA": "TIR",
+    "bC": "TIR",
+    "bDaD1": "TIR",
+    "extEDVID": "CC",
+    "VG": "NB-ARC",
+    "P-loop": "NB-ARC",
+    "RNSB-A": "NB-ARC",
+    "Walker-B": "NB-ARC",
+    "RNSB-B": "NB-ARC",
+    "RNSB-C": "NB-ARC",
+    "RNSB-D": "NB-ARC",
+    "GLPL": "NB-ARC",
+    "MHD": "NB-ARC",
+    "LxxLxL": "LRR",
 }
+
 
 def collect_data(queries, results_dir):
     sequences = {}
@@ -47,40 +48,41 @@ def collect_data(queries, results_dir):
                 sequences[row["Sequence"]] = {
                     "length": int(row["Length"]),
                     "domains": [],
-                    "motifs": []
+                    "motifs": [],
                 }
 
     with open(os.path.join(results_dir, "domains.tsv")) as domains_file:
         reader = csv.DictReader(domains_file, delimiter="\t")
         for row in reader:
             if row["Sequence"] in sequences:
-                #special case - treat MADA as a motif
+                # special case - treat MADA as a motif
                 if row["Domain"] == "MADA":
-                    sequences[row["Sequence"]]["motifs"].append({
-                        "position": int(row["Start"]),
-                        "motif": "MADA"
-                    })
+                    sequences[row["Sequence"]]["motifs"].append(
+                        {"position": int(row["Start"]), "motif": "MADA"}
+                    )
                 else:
-                    sequences[row["Sequence"]]["domains"].append({
-                        "start": int(row["Start"]),
-                        "end": int(row["End"]),
-                        "domain": row["Domain"]
-                    })
-    
+                    sequences[row["Sequence"]]["domains"].append(
+                        {
+                            "start": int(row["Start"]),
+                            "end": int(row["End"]),
+                            "domain": row["Domain"],
+                        }
+                    )
+
     with open(os.path.join(results_dir, "motifs.tsv")) as motifs_file:
         reader = csv.DictReader(motifs_file, delimiter="\t")
         for row in reader:
             if row["Sequence"] in sequences:
-                sequences[row["Sequence"]]["motifs"].append({
-                    "position": int(row["Position"]),
-                    "motif": row["Motif"]
-                })
-    
+                sequences[row["Sequence"]]["motifs"].append(
+                    {"position": int(row["Position"]), "motif": row["Motif"]}
+                )
+
     return sequences
+
 
 def draw_nlr(args, sequence_data):
     logger.info(f"Drawing NLRs to {args.output}...")
-    fig, ax = plt.subplots(figsize=(args.width, args.height), dpi = 600)
+    fig, ax = plt.subplots(figsize=(args.width, args.height), dpi=600)
 
     # Calculate y-offsets for multiple sequences to stack them
     y_offset = 0
@@ -88,74 +90,96 @@ def draw_nlr(args, sequence_data):
     y_tick_labels = []
 
     for seq_id, features in sequence_data.items():
-        length = features['length']
-        domains = features.get('domains', [])
-        motifs = features.get('motifs', [])
+        length = features["length"]
+        domains = features.get("domains", [])
+        motifs = features.get("motifs", [])
 
         # Draw the horizontal line for sequence length
-        ax.hlines(y_offset, 0, length, color='black', linestyle='-', linewidth=2, label='Sequence Length' if y_offset == 0 else "", zorder = 1)
+        ax.hlines(
+            y_offset,
+            0,
+            length,
+            color="black",
+            linestyle="-",
+            linewidth=2,
+            zorder=1,
+        )
 
         # Draw lollipop for motifs
         if not args.hide_motifs:
             for motif_info in motifs:
-                position = motif_info['position']
-                motif_name = motif_info['motif']
+                position = motif_info["position"]
+                motif_name = motif_info["motif"]
                 motif_type = MOTIF_IDENTIFIERS.get(motif_name)
-                motif_color = COLOUR_PALETTE.get(motif_type, 'gray')
+                motif_color = COLOUR_PALETTE.get(motif_type, "gray")
                 # Draw vertical line ("lollipop stick")
-                ax.vlines(position, y_offset, y_offset + 0.15, color='black', linewidth=1, label='Motif' if y_offset == 0 else "", zorder = 2)
+                ax.vlines(
+                    position,
+                    y_offset,
+                    y_offset + 0.15,
+                    color="black",
+                    linewidth=1,
+                    zorder=2,
+                )
                 # Place motif name so it starts at the end of the lollipop stick
                 ax.text(
                     position - 5,
                     y_offset + 0.15,  # exactly at the end of the vline
                     motif_name,
                     rotation=45,
-                    ha='left',       # start from the vline
-                    va='bottom',     # align bottom to the vline end
+                    ha="left",  # start from the vline
+                    va="bottom",  # align bottom to the vline end
                     fontsize=7,
-                    color=motif_color
+                    color=motif_color,
                 )
 
         # Draw rectangles for domains
         for domain_info in domains:
-            start = domain_info['start']
-            end = domain_info['end']
-            domain_name = domain_info['domain']
-            domain_color = COLOUR_PALETTE.get(domain_name, 'gray')
-            rect = patches.Rectangle((start, y_offset - 0.1), end - start, 0.2,
-                                     facecolor=domain_color, edgecolor='black', zorder = 3)
+            start = domain_info["start"]
+            end = domain_info["end"]
+            domain_name = domain_info["domain"]
+            domain_color = COLOUR_PALETTE.get(domain_name, "gray")
+            rect = patches.Rectangle(
+                (start, y_offset - 0.1),
+                end - start,
+                0.2,
+                facecolor=domain_color,
+                edgecolor="black",
+                zorder=3,
+            )
             ax.add_patch(rect)
             # Add domain name centered in the rectangle
             ax.text(
                 (start + end) / 2,
                 y_offset,
                 domain_name,
-                ha='center',
-                va='center',
+                ha="center",
+                va="center",
                 fontsize=8,
-                color='black',
-                zorder=4
+                color="black",
+                zorder=4,
             )
 
         y_tick_positions.append(y_offset)
         y_tick_labels.append(seq_id)
         y_offset += 1  # Increment offset for the next sequence
 
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.spines['left'].set_visible(False)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["left"].set_visible(False)
     ax.set_yticks(y_tick_positions)
     ax.set_yticklabels(y_tick_labels)
-    ax.tick_params(axis='y', length=0)
-    ax.set_xlabel('Position (aa)')
+    ax.tick_params(axis="y", length=0)
+    ax.set_xlabel("Position (aa)")
     ax.set_xlim(left=0)
     ax.set_ylim(-0.5, y_offset - 0.5)
     plt.tight_layout()
     plt.savefig(args.output, transparent=True)
 
+
 def draw_prr(args, sequence_data):
     logger.info(f"Drawing PRRs to {args.output}...")
-    fig, ax = plt.subplots(figsize=(args.width, args.height), dpi = 600)
+    fig, ax = plt.subplots(figsize=(args.width, args.height), dpi=600)
 
     # Calculate y-offsets for multiple sequences to stack them
     y_offset = 0
@@ -163,56 +187,73 @@ def draw_prr(args, sequence_data):
     y_tick_labels = []
 
     for seq_id, features in sequence_data.items():
-        length = features['length']
-        domains = features.get('domains', [])
-        motifs = features.get('motifs', [])
+        length = features["length"]
+        domains = features.get("domains", [])
+        motifs = features.get("motifs", [])
 
         # Draw the horizontal line for sequence length
         # For PRRs, offset the x axis to the start of the transmembrane domain
         for domain in domains:
-            if domain['domain'] == 'alpha_inwards':
-                x_offset = domain['start'] + (domain['end'] - domain['start'])/2
-                logger.debug(f"Transmembrane domain found at {x_offset} for sequence {seq_id}.")
+            if domain["domain"] == "alpha_inwards":
+                x_offset = domain["start"] + (domain["end"] - domain["start"]) / 2
+                logger.debug(
+                    f"Transmembrane domain found at {x_offset} for sequence {seq_id}."
+                )
                 break
-        
+
         ax.hlines(
             y_offset,
-            xmin = x_offset,
-            xmax = x_offset - length,
-            color='black',
-            linestyle='-',
+            xmin=x_offset,
+            xmax=x_offset - length,
+            color="black",
+            linestyle="-",
             linewidth=2,
         )
 
         if not args.hide_motifs:
             for motif_info in motifs:
-                position = motif_info['position']
-                motif_name = motif_info['motif']
+                position = motif_info["position"]
+                motif_name = motif_info["motif"]
                 motif_type = MOTIF_IDENTIFIERS.get(motif_name)
-                motif_color = COLOUR_PALETTE.get(motif_type, 'gray')
+                motif_color = COLOUR_PALETTE.get(motif_type, "gray")
                 # Draw vertical line ("lollipop stick")
-                ax.vlines(x_offset - position, y_offset, y_offset + 0.15, color='black', linewidth=1, label='Motif' if y_offset == 0 else "", zorder = 2)
+                ax.vlines(
+                    x_offset - position,
+                    y_offset,
+                    y_offset + 0.15,
+                    color="black",
+                    linewidth=1,
+                    zorder=2,
+                )
                 # Place motif name so it starts at the end of the lollipop stick
                 ax.text(
                     x_offset - position - 5,
                     y_offset + 0.15,  # exactly at the end of the vline
                     motif_name,
                     rotation=45,
-                    ha='left',       # start from the vline
-                    va='bottom',     # align bottom to the vline end
+                    ha="left",  # start from the vline
+                    va="bottom",  # align bottom to the vline end
                     fontsize=7,
-                    color=motif_color
+                    color=motif_color,
                 )
 
         # Draw rectangles for domains
         for domain_info in domains:
-            start = x_offset - domain_info['start']
-            end = x_offset - domain_info['end']
-            domain_name = domain_info['domain']
-            logger.debug(f"Drawing domain {domain_name} from {start} to {end} for sequence {seq_id}.")
-            domain_color = COLOUR_PALETTE.get(domain_name, 'gray')
-            rect = patches.Rectangle((min(start, end), y_offset - 0.1), abs(end - start), 0.2,
-                                     facecolor=domain_color, edgecolor='black', zorder = 3)
+            start = x_offset - domain_info["start"]
+            end = x_offset - domain_info["end"]
+            domain_name = domain_info["domain"]
+            logger.debug(
+                f"Drawing domain {domain_name} from {start} to {end} for sequence {seq_id}."
+            )
+            domain_color = COLOUR_PALETTE.get(domain_name, "gray")
+            rect = patches.Rectangle(
+                (min(start, end), y_offset - 0.1),
+                abs(end - start),
+                0.2,
+                facecolor=domain_color,
+                edgecolor="black",
+                zorder=3,
+            )
             ax.add_patch(rect)
 
             # Relabel domain names for PRRs
@@ -227,35 +268,34 @@ def draw_prr(args, sequence_data):
                 (start + end) / 2,
                 y_offset,
                 domain_name,
-                ha='center',
-                va='center',
+                ha="center",
+                va="center",
                 fontsize=8,
-                color='black',
-                zorder=4
+                color="black",
+                zorder=4,
             )
 
         y_tick_positions.append(y_offset)
         y_tick_labels.append(seq_id)
         y_offset += 1  # Increment offset for the next sequence
 
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.spines['left'].set_visible(False)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["left"].set_visible(False)
     ax.set_yticks(y_tick_positions)
     ax.set_yticklabels(y_tick_labels)
-    ax.tick_params(axis='y', length=0)
-    ax.set_xlabel('Position (aa)')
+    ax.tick_params(axis="y", length=0)
+    ax.set_xlabel("Position (aa)")
     ax.set_ylim(-0.5, y_offset - 0.5)
     plt.tight_layout()
     plt.savefig(args.output, transparent=True)
 
-    
 
 def draw(args):
     if not os.path.exists(args.results_dir):
         logger.error(f"Results directory {args.results_dir} does not exist.")
         return
-    
+
     if args.query is None:
         logger.info("No specific queries provided, plotting all sequences.")
         queries = None

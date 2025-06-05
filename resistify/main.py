@@ -178,6 +178,7 @@ def nlr(args):
     from resistify.coconat import coconat
     from resistify.nlrexpress import nlrexpress
     from resistify.hmmsearch import hmmsearch
+
     # Check to see if all provided models exist
     if args.models_path is not None:
         verify_files(args.models_path)
@@ -225,6 +226,7 @@ def prr(args):
     from resistify.tmbed import tmbed
     from resistify.nlrexpress import nlrexpress
     from resistify.hmmsearch import hmmsearch
+
     # Check to see if all provided models exist
     if args.models_path is not None:
         verify_files(args.models_path)
@@ -281,6 +283,7 @@ def main():
         sys.exit(0)
     elif args.command == "draw":
         from resistify.draw import draw
+
         draw(args)
         logger.info("Goodbye!")
         sys.exit(0)

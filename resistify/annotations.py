@@ -68,7 +68,7 @@ DOMAINS_TO_MERGE = [
     "CAP",
     "PRIMA1",
     "PKinase",
-    "alpha_inwards", # don't care about the other topology domains
+    "alpha_inwards",  # don't care about the other topology domains
     "signal_peptide",
 ]
 

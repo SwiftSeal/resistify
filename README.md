@@ -38,7 +38,7 @@ To use these with - for example - `singularity`, simply run:
 If you are having issues with `conda`, you can instead try installing directly from the repository:
 
 ```sh
-pip install https://github.com/SwiftSeal/resistify/archive/refs/tags/v1.1.5.tar.gz
+pip install https://github.com/SwiftSeal/resistify/archive/refs/tags/v1.2.0.tar.gz
 ```
 
 Note that `resistify` requires `hmmer` to be installed and available in your system's PATH, which will not be installed automatically when using `pip`.
