@@ -2316,8 +2316,8 @@ packages:
   requires_python: '>=3.8'
 - pypi: .
   name: resistify
-  version: 1.1.5
-  sha256: 111d2c9c193b11db28473d446da265f6b636986fe17af2edfb52bbe6203f2171
+  version: 1.2.0
+  sha256: 44bac118dd709368cec6e28952f33afdb3bec6b64e2fffc610fed39782ed9871
   requires_dist:
   - scikit-learn>=0.24.2
   - numpy
