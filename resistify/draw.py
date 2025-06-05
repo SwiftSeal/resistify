@@ -203,8 +203,8 @@ def draw_prr(args, sequence_data):
 
         ax.hlines(
             y_offset,
-            xmin=x_offset,
-            xmax=x_offset - length,
+            xmin=-x_offset,
+            xmax=length - x_offset,
             color="black",
             linestyle="-",
             linewidth=2,
@@ -218,7 +218,7 @@ def draw_prr(args, sequence_data):
                 motif_color = COLOUR_PALETTE.get(motif_type, "gray")
                 # Draw vertical line ("lollipop stick")
                 ax.vlines(
-                    x_offset - position,
+                    position - x_offset,
                     y_offset,
                     y_offset + 0.15,
                     color="black",
@@ -227,7 +227,7 @@ def draw_prr(args, sequence_data):
                 )
                 # Place motif name so it starts at the end of the lollipop stick
                 ax.text(
-                    x_offset - position - 5,
+                    position + 5 - x_offset,
                     y_offset + 0.15,  # exactly at the end of the vline
                     motif_name,
                     rotation=45,
@@ -239,8 +239,8 @@ def draw_prr(args, sequence_data):
 
         # Draw rectangles for domains
         for domain_info in domains:
-            start = x_offset - domain_info["start"]
-            end = x_offset - domain_info["end"]
+            start = domain_info["start"] - x_offset
+            end = domain_info["end"] - x_offset
             domain_name = domain_info["domain"]
             logger.debug(
                 f"Drawing domain {domain_name} from {start} to {end} for sequence {seq_id}."
