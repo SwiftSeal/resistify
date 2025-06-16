@@ -136,12 +136,12 @@ def nlrexpress(sequences, search_type, chunk_size, threads):
             check=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            universal_newlines=True
+            universal_newlines=True,
         )
     except Exception as e:
         logger.critical(e.stderr.strip() if e.stderr else e)
         sys.exit(1)
-    
+
     if threads is None:
         try:
             threads = len(os.sched_getaffinity(0))
