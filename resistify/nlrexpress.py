@@ -61,33 +61,33 @@ motif_models = {
     "bDaD1": "MLP_TIR_bD-aD1.pkl",
 }
 
+JACKHMMER_HEADER = [
+    "A",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "I",
+    "K",
+    "L",
+    "M",
+    "N",
+    "P",
+    "Q",
+    "R",
+    "S",
+    "T",
+    "V",
+    "W",
+    "Y",
+]
+
 
 def parse_jackhmmer(file, iteration=False):
     logger.debug(f"Parsing jackhmmer {file} as iteration {iteration}")
     hmm_dict = {}
-
-    header1 = [
-        "A",
-        "C",
-        "D",
-        "E",
-        "F",
-        "G",
-        "H",
-        "I",
-        "K",
-        "L",
-        "M",
-        "N",
-        "P",
-        "Q",
-        "R",
-        "S",
-        "T",
-        "V",
-        "W",
-        "Y",
-    ]
 
     with open(file) as f:
         i = 1
@@ -121,7 +121,7 @@ def parse_jackhmmer(file, iteration=False):
                     except ValueError:
                         logger.error(f"{value} is not a float. {name} {file}")
                         sys.exit(1)
-                value_dict = dict(zip(header1, line[1:21]))
+                value_dict = dict(zip(JACKHMMER_HEADER, line[1:21]))
                 hmm_dict[name].append(value_dict)
                 i += 3
 
