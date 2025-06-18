@@ -21,27 +21,17 @@ It is designed to be lightweight and easy to use.
 `Resistify` is available via the [Bioconda](https://anaconda.org/bioconda/resistify) channel:
 
 ```
-conda create -n resistify bioconda::resistify
+conda create -n resistify resistify
 conda activate resistify
 ```
 
 > [!NOTE]
-> If you want to use the GPU-accelerated pipelines, conda may fail to install a GPU-ready version of `pytorch`. If this occurs, try installing `pytorch-gpu bioconda::resistify` instead.
+> If you want to use the GPU-accelerated pipelines, conda may fail to install a GPU-ready version of `pytorch`. If this occurs, try installing `pytorch-gpu resistify` instead.
 
-When using `conda`, please ensure that your Bioconda has been [configured correctly](https://bioconda.github.io/#usage).
-
-Docker/Podman containers are also available through the [biocontainers repository](https://quay.io/repository/biocontainers/resistify?tab=tags).
-To use these with - for example - `singularity`, simply run:
+Containers are also available through the [biocontainers repository](https://quay.io/repository/biocontainers/resistify?tab=tags).
+To use these with `singularity`, simply run:
 
 `singularity exec docker://quay.io/biocontainers/resistify:<tag-goes-here> resistify`
-
-If you are having issues with `conda`, you can instead try installing directly from the repository:
-
-```sh
-pip install https://github.com/SwiftSeal/resistify/archive/refs/tags/v1.2.1.tar.gz
-```
-
-Note that `resistify` requires `hmmer` to be installed and available in your system's PATH, which will not be installed automatically when using `pip`.
 
 ## Usage
 
@@ -50,8 +40,9 @@ Note that `resistify` requires `hmmer` to be installed and available in your sys
 To predict NLRs within a set of protein sequences, simply run:
 
 ```
-resistify nlr <input.fa>
+resistify nlr <input.fa> -o $RESULTS_DIR
 ```
+
 and `Resistify` will identify and classify NLRs, and return some files:
  - `results.tsv` - A table containing the primary results of `Resistify`.
  - `motifs.tsv` - A table of all the NLR motifs identified for each sequence.
@@ -83,7 +74,7 @@ Together, this evidence is used to classify NLRs according to their domain archi
 To predict PRRs within a set of protein sequences, simply run:
 
 ```
-resistify prr <input.fa>
+resistify prr <input.fa> -o $RESULTS_DIR
 ```
 
 and `Resistify` will identify and classify PRRs, and return some files:
@@ -94,7 +85,7 @@ and `Resistify` will identify and classify PRRs, and return some files:
  - `prr.fasta` - A fasta file of all PRRs identified.
 
 > [!WARNING]
-> This pipeline is GPU-accelerated and will be extremely slow on CPU only.
+> This pipeline is GPU-accelerated and will be slow on CPU only.
 
 #### How does it work?
 
@@ -246,7 +237,10 @@ myplot <- myplot +
 **Q: Can `Resistify` be used to predict resistance genes from genomic data?**
 
 **A:** Unfortunately, `Resistify` cannot be directly applied to a genome to predict resistance genes, unlike tools such as `NLR-Annotator`.
-If gene annotations are unavailable for your genome, my advice would be to use a tool like [`Helixer`](https://github.com/weberlab-hhu/Helixer) to perform *ab initio* gene prediction.
+If gene annotations are unavailable for your genome, my advice would be to use a tool like [`Helixer`](https://github.com/weberlab-hhu/Helixer) or [`ANNEVO`](https://github.com/xjtu-omics/ANNEVO) to perform *ab initio* gene prediction first, then pass these to `Resistify`.
+Currently, I find that `Helixer` tends to identify more NLRs than `ANNEVO` (in *Solanum*):
+
+![A barplot of the number of NLRs identified by Helixer vs ANNEVO](assets/predictions.png)
 
 **Q: According to the Motif string, some of my genes have NLR motifs in unexpected places - are these significant?**
 
