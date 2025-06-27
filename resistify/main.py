@@ -115,7 +115,7 @@ def parse_args(args=None):
     )
     nlr_parser.add_argument(
         "--coconat",
-        help="If enabled, Coconat will be used to improve coiled-coil (CC) annotations.",
+        help="If enabled, CoCoNat will be used to improve coiled-coil (CC) annotations.",
         action="store_true",
     )
     add_common_args(nlr_parser)
@@ -130,13 +130,13 @@ def parse_args(args=None):
     # Download models subparser
     subparsers.add_parser(
         "download_models",
-        help="Download the models required for CoCoNat and TMbed. These will be stored in the default $HF_HOME and $TORCH_HOME directories.",
+        help="Download the models required for CoCoNat and TMbed. These will be stored in the default $HF_HOME and $TORCH_HOME directories. Otherwise, these will be downloaded automatically when required.",
     )
 
     # Draw subparser
     draw_parser = subparsers.add_parser(
         "draw",
-        help="Draw domain structure for target gene(s) from results.",
+        help="Draw domain structure for target gene(s) from a given results directory.",
     )
     draw_parser.add_argument(
         "--query",
@@ -261,7 +261,7 @@ def main():
         logger.info("Goodbye!")
         sys.exit(0)
     else:
-        logger.error(f"Unknown command: {args.command}")
+        args.print_help()
         sys.exit(1)
 
     write_results(sequences, args)
