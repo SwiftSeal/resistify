@@ -134,6 +134,7 @@ def parse_args(args=None):
     download_parser.add_argument(
         "models_path",
         help="Path to the directory which will be used to store downloaded models.",
+        default=None,
     )
     add_common_args(prr_parser)
 
@@ -205,7 +206,7 @@ def nlr(args):
 
     if args.coconat:
         logger.info("Running CoCoNat to identify additional CC domains...")
-        sequences = coconat(sequences, args.models_path)
+        sequences = coconat(sequences)
 
     logger.info("Classifying NLRs...")
 
@@ -229,7 +230,7 @@ def prr(args):
     sequences = parse_fasta(args.input)
     sequences = hmmsearch(sequences, "prr")
 
-    sequences = tmbed(sequences, args.models_path)
+    sequences = tmbed(sequences)
     sequences = [sequence for sequence in sequences if sequence.is_rlp()]
     if len(sequences) > 0:
         logger.info(f"{len(sequences)} PRRs identified...")
@@ -252,6 +253,12 @@ def main():
         logger.update_level("DEBUG")
 
     logger.info(f"Welcome to Resistify version {__version__}!")
+
+    # If models_path is provided, then set environment variables
+    if args.models_path:
+        logger.info(f"Using models from {args.models_path}")
+        os.environ["HF_HOME"] = args.models_path
+        os.environ["TORCH_HOME"] = args.models_path
 
     if args.command == "nlr":
         sequences = nlr(args)

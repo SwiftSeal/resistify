@@ -156,33 +156,23 @@ class Decoder(nn.Module):
 
 
 class T5Encoder:
-    def __init__(self, models_path, use_gpu=True):
+    def __init__(self, use_gpu=True):
         if use_gpu and torch.cuda.is_available():
-            self._load_models(models_path, torch.float16)
+            self._load_models(torch.float16)
             self.encoder_model = self.encoder_model.eval().cuda()
         else:
-            self._load_models(models_path, torch.float32)
+            self._load_models(torch.float32)
             self.encoder_model = self.encoder_model.eval()
 
         self.aa_map = str.maketrans("BJOUZ", "XXXXX")
 
-    def _load_models(self, models_path, dtype):
-        if models_path is not None:
-            self.tokenizer = T5Tokenizer.from_pretrained(
-                os.path.join(models_path, "prott5"),
-                do_lower_case=False,
-            )
-            self.encoder_model = T5EncoderModel.from_pretrained(
-                os.path.join(models_path, "prott5"),
-                torch_dtype=dtype,
-            )
-        else:
-            self.tokenizer = T5Tokenizer.from_pretrained(
-                "Rostlab/prot_t5_xl_half_uniref50-enc", do_lower_case=False
-            )
-            self.encoder_model = T5EncoderModel.from_pretrained(
-                "Rostlab/prot_t5_xl_half_uniref50-enc", torch_dtype=dtype
-            )
+    def _load_models(self, dtype):
+        self.tokenizer = T5Tokenizer.from_pretrained(
+            "Rostlab/prot_t5_xl_half_uniref50-enc", do_lower_case=False
+        )
+        self.encoder_model = T5EncoderModel.from_pretrained(
+            "Rostlab/prot_t5_xl_half_uniref50-enc", torch_dtype=dtype
+        )
 
     def device(self):
         return self.encoder_model.device
@@ -424,7 +414,7 @@ def predict_sequences(models, embedding, mask):
     return pred.detach()
 
 
-def tmbed(sequences, models_path):
+def tmbed(sequences):
     logger.info("Predicting transmembrane domains...")
 
     if torch.cuda.is_available():
@@ -434,7 +424,7 @@ def tmbed(sequences, models_path):
         logger.warning("No GPU found, so using CPU only. This will be very slow...")
 
     logger.debug("Loading encoder")
-    encoder = T5Encoder(models_path, torch.cuda.is_available())
+    encoder = T5Encoder(torch.cuda.is_available())
     logger.debug("Loading decoder")
     decoder = Decoder()
 
