@@ -4,11 +4,16 @@ import os
 from resistify.utility import (
     write_results,
     parse_fasta,
-    download_files,
-    verify_files,
 )
+from resistify.download_models import download_models
 from resistify._loguru import logger
 from resistify.__version__ import __version__
+from resistify.coconat import coconat
+from resistify.nlrexpress import nlrexpress
+from resistify.hmmsearch import hmmsearch
+from resistify.tmbed import tmbed
+from resistify.draw import draw
+
 
 
 def add_common_args(parser):
@@ -175,14 +180,6 @@ def parse_args(args=None):
 
 
 def nlr(args):
-    from resistify.coconat import coconat
-    from resistify.nlrexpress import nlrexpress
-    from resistify.hmmsearch import hmmsearch
-
-    # Check to see if all provided models exist
-    if args.models_path is not None:
-        verify_files(args.models_path)
-
     sequences = parse_fasta(args.input)
     logger.info("Searching for NLRs...")
     sequences = hmmsearch(sequences, "nlr")
@@ -223,14 +220,6 @@ def nlr(args):
 
 
 def prr(args):
-    from resistify.tmbed import tmbed
-    from resistify.nlrexpress import nlrexpress
-    from resistify.hmmsearch import hmmsearch
-
-    # Check to see if all provided models exist
-    if args.models_path is not None:
-        verify_files(args.models_path)
-
     if args.chunksize is None:
         chunksize = 5
     else:
@@ -256,16 +245,6 @@ def prr(args):
 
     return sequences
 
-
-def download(args):
-    logger.info("Downloading model data...")
-    download_files(args.models_path)
-    verify_files(args.models_path)
-    logger.info(
-        "Models downloaded successfully. You can supply these to Resistify with the argument `--models <path-to-directory>`"
-    )
-
-
 def main():
     args = parse_args()
 
@@ -279,11 +258,9 @@ def main():
     elif args.command == "prr":
         sequences = prr(args)
     elif args.command == "download_models":
-        download(args)
+        download_models(args.models_path)
         sys.exit(0)
     elif args.command == "draw":
-        from resistify.draw import draw
-
         draw(args)
         logger.info("Goodbye!")
         sys.exit(0)
