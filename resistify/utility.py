@@ -313,4 +313,3 @@ def coconat_table(sequences, results_dir):
         for sequence in sequences:
             for i, probability in enumerate(sequence.cc_probs):
                 f.write(f"{sequence.id}\t{i}\t{probability}\n")
-    

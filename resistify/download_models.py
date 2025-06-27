@@ -16,7 +16,6 @@ def download_models():
     logger.info(f"Hugging Face models will be stored under {hf_home}")
     logger.info(f"Torch models will be stored under {torch_home}")
 
-    
     # ProtT5
     logger.info("Loading ProtT5 models...")
     T5EncoderModel.from_pretrained("Rostlab/prot_t5_xl_half_uniref50-enc")
