@@ -4,18 +4,18 @@ import esm
 from resistify._loguru import logger
 
 
-def download_models(models_directory: str):
+def download_models():
     """
     Downloads the ESM, ProtT5, and ProtTrans models into the specified directory.
     Actually just loads the models, which will download them if not already present.
     """
-    # Create the directory if it doesn't exist
-    logger.info(f"Creating models directory at {models_directory}")
-    os.makedirs(models_directory, exist_ok=True)
 
-    # set environment variables to point to the models directory
-    os.environ["HF_HOME"] = models_directory
-    os.environ["TORCH_HOME"] = models_directory
+    hf_home = os.environ.get("HF_HOME", "~/.cache/huggingface/")
+    torch_home = os.environ.get("TORCH_HOME", "~/.cache/torch/")
+
+    logger.info(f"Hugging Face models will be stored under {hf_home}")
+    logger.info(f"Torch models will be stored under {torch_home}")
+
     
     # ProtT5
     logger.info("Loading ProtT5 models...")
@@ -27,4 +27,4 @@ def download_models(models_directory: str):
     logger.info("Loading ESM models...")
     model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
 
-    logger.info(f"Models downloaded successfully. \nSupply these with the argument `--models {models_directory}`\n Alternatively, you can set the environment variables HF_HOME and TORCH_HOME to {models_directory}")
+    logger.info("Models have been downloaded successfully")

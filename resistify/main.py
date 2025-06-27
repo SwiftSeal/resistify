@@ -125,18 +125,13 @@ def parse_args(args=None):
         "prr",
         help="Identify and classify PRR resistance genes.",
     )
+    add_common_args(prr_parser)
 
     # Download models subparser
-    download_parser = subparsers.add_parser(
+    subparsers.add_parser(
         "download_models",
-        help="Download models for CoCoNat and TMbed.",
+        help="Download the models required for CoCoNat and TMbed. These will be stored in the default $HF_HOME and $TORCH_HOME directories.",
     )
-    download_parser.add_argument(
-        "models_path",
-        help="Path to the directory which will be used to store downloaded models.",
-        default=None,
-    )
-    add_common_args(prr_parser)
 
     # Draw subparser
     draw_parser = subparsers.add_parser(
@@ -254,18 +249,12 @@ def main():
 
     logger.info(f"Welcome to Resistify version {__version__}!")
 
-    # If models_path is provided, then set environment variables
-    if args.models_path:
-        logger.info(f"Using models from {args.models_path}")
-        os.environ["HF_HOME"] = args.models_path
-        os.environ["TORCH_HOME"] = args.models_path
-
     if args.command == "nlr":
         sequences = nlr(args)
     elif args.command == "prr":
         sequences = prr(args)
     elif args.command == "download_models":
-        download_models(args.models_path)
+        download_models()
         sys.exit(0)
     elif args.command == "draw":
         draw(args)
