@@ -1,14 +1,42 @@
 import argparse
+from argparse import RawDescriptionHelpFormatter
 import sys
 import os
 from resistify.utility import (
     write_results,
     parse_fasta,
-    download_files,
-    verify_files,
 )
+from resistify.download_models import download_models
 from resistify._loguru import logger
 from resistify.__version__ import __version__
+from resistify.coconat import coconat
+from resistify.nlrexpress import nlrexpress
+from resistify.hmmsearch import hmmsearch
+from resistify.tmbed import tmbed
+from resistify.draw import draw
+
+DIAGRAM = """
+e.g., resistify nlr proteins.fa -o results/───────────────────┐
+                 │       │                    ┌───────────────▼────────────────┐
+    ┌────────────┼───────┘                    │* NLR identification            │
+    │            │    ┌────────────────────┐  │* NLR classification            │
+    │          ┌─▼─┐  │* hmmsearch         │  │* CC, TIR, RPW8                 │
+    │       ┌─►│NLR├─►│* NLRexpress        ├─►│* NB-ARC domains                │
+    │       │  └───┘  │* CoCoNat (optional)│  │* Motif and domain annotations  │
+┌───▼─────┐ │         └────────────────────┘  └────────────────────────────────┘
+│Resistify├─┤
+└─────────┘ │         ┌────────────────────┐  ┌────────────────────────────────┐
+            │  ┌───┐  │* hmmsearch         │  │* RLK/RLP identification        │
+┻┳│         └─►│PRR├─►│* NLRexpress (LRR)  ├─►│* Extracellular classification  │
+┳┻│_∆_         └───┘  │* TMbed             │  │* Signal peptide identification │
+┻┳│o~o)               └────────────────────┘  │* Motif and domain annotations  │
+┳┻│⊂J                                         └────────────────────────────────┘
+┻┳│j   It's quick!
+┻┳│    It's easy to install!                 ..^____/
+┳┻│    It's accurate!                       `-. ___ )
+┳┻│                                            ||  ||
+┻┳│^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""
 
 
 def add_common_args(parser):
@@ -78,7 +106,9 @@ def parse_args(args=None):
     Parse command-line arguments for Resistify.
     """
     parser = argparse.ArgumentParser(
+        formatter_class=RawDescriptionHelpFormatter,
         description="A tool for identifying and classifying resistance genes in plant genomes.",
+        epilog=DIAGRAM,
     )
 
     # Global arguments
@@ -110,7 +140,7 @@ def parse_args(args=None):
     )
     nlr_parser.add_argument(
         "--coconat",
-        help="If enabled, Coconat will be used to improve coiled-coil (CC) annotations.",
+        help="If enabled, CoCoNat will be used to improve coiled-coil (CC) annotations.",
         action="store_true",
     )
     add_common_args(nlr_parser)
@@ -120,22 +150,18 @@ def parse_args(args=None):
         "prr",
         help="Identify and classify PRR resistance genes.",
     )
+    add_common_args(prr_parser)
 
     # Download models subparser
-    download_parser = subparsers.add_parser(
+    subparsers.add_parser(
         "download_models",
-        help="Download models for CoCoNat and TMbed.",
+        help="Download the models required for CoCoNat and TMbed. These will be stored in the default $HF_HOME and $TORCH_HOME directories. Otherwise, these will be downloaded automatically when required.",
     )
-    download_parser.add_argument(
-        "models_path",
-        help="Path to the directory which will be used to store downloaded models.",
-    )
-    add_common_args(prr_parser)
 
     # Draw subparser
     draw_parser = subparsers.add_parser(
         "draw",
-        help="Draw domain structure for target gene(s) from results.",
+        help="Draw domain structure for target gene(s) from a given results directory.",
     )
     draw_parser.add_argument(
         "--query",
@@ -175,14 +201,6 @@ def parse_args(args=None):
 
 
 def nlr(args):
-    from resistify.coconat import coconat
-    from resistify.nlrexpress import nlrexpress
-    from resistify.hmmsearch import hmmsearch
-
-    # Check to see if all provided models exist
-    if args.models_path is not None:
-        verify_files(args.models_path)
-
     sequences = parse_fasta(args.input)
     logger.info("Searching for NLRs...")
     sequences = hmmsearch(sequences, "nlr")
@@ -208,7 +226,7 @@ def nlr(args):
 
     if args.coconat:
         logger.info("Running CoCoNat to identify additional CC domains...")
-        sequences = coconat(sequences, args.models_path)
+        sequences = coconat(sequences)
 
     logger.info("Classifying NLRs...")
 
@@ -223,14 +241,6 @@ def nlr(args):
 
 
 def prr(args):
-    from resistify.tmbed import tmbed
-    from resistify.nlrexpress import nlrexpress
-    from resistify.hmmsearch import hmmsearch
-
-    # Check to see if all provided models exist
-    if args.models_path is not None:
-        verify_files(args.models_path)
-
     if args.chunksize is None:
         chunksize = 5
     else:
@@ -240,7 +250,7 @@ def prr(args):
     sequences = parse_fasta(args.input)
     sequences = hmmsearch(sequences, "prr")
 
-    sequences = tmbed(sequences, args.models_path)
+    sequences = tmbed(sequences)
     sequences = [sequence for sequence in sequences if sequence.is_rlp()]
     if len(sequences) > 0:
         logger.info(f"{len(sequences)} PRRs identified...")
@@ -257,15 +267,6 @@ def prr(args):
     return sequences
 
 
-def download(args):
-    logger.info("Downloading model data...")
-    download_files(args.models_path)
-    verify_files(args.models_path)
-    logger.info(
-        "Models downloaded successfully. You can supply these to Resistify with the argument `--models <path-to-directory>`"
-    )
-
-
 def main():
     args = parse_args()
 
@@ -279,16 +280,14 @@ def main():
     elif args.command == "prr":
         sequences = prr(args)
     elif args.command == "download_models":
-        download(args)
+        download_models()
         sys.exit(0)
     elif args.command == "draw":
-        from resistify.draw import draw
-
         draw(args)
         logger.info("Goodbye!")
         sys.exit(0)
     else:
-        logger.error(f"Unknown command: {args.command}")
+        args.print_help()
         sys.exit(1)
 
     write_results(sequences, args)

@@ -100,11 +100,9 @@ Sequences are classified as being either RLPs or RLKs depending on the presence 
 > [!NOTE]
 This only applies to the `--coconat` and PRR pipelines! The standard NLR pipeline does not require any external databases.
 
-By default, `Resistify` will automatically download the models required for `CoCoNat` and `TMbed` to your `$HOME/.cache` directory.
-This default can be changed by adjusting the environment variable `$HF_HOME` to your preferred location.
-If you'd like to manually install the databases instead, you can use the `resistify download_models` utility to download these to a directory of your choice.
-To provide these local models to the `CoCoNat` and `TMbed` processes, simply pass the path of the models directory via the `--models` argument.
-Approximately 13G of disk space is required.
+By default, `resistify` will automatically download models to `$HOME/.cache` when required.
+This default can be changed by adjusting the environment variables `$HF_HOME` and `$TORCH_HOME` to your preferred location.
+If you need to download these prior (e.g. if running `resistify` as part of a pipeline) you can use the `download_models` utility.
 
 ## Results
 
