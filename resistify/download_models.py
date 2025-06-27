@@ -19,12 +19,11 @@ def download_models():
     
     # ProtT5
     logger.info("Loading ProtT5 models...")
-    model = T5EncoderModel.from_pretrained("Rostlab/prot_t5_xl_half_uniref50-enc")
-    tokenizer = T5Tokenizer.from_pretrained("Rostlab/prot_t5_xl_half_uniref50-enc")
+    T5EncoderModel.from_pretrained("Rostlab/prot_t5_xl_half_uniref50-enc")
+    T5Tokenizer.from_pretrained("Rostlab/prot_t5_xl_half_uniref50-enc")
 
     # ESM
-
     logger.info("Loading ESM models...")
-    model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
+    esm.pretrained.esm2_t33_650M_UR50D()
 
     logger.info("Models have been downloaded successfully")
