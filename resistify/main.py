@@ -1,4 +1,5 @@
 import argparse
+from argparse import RawDescriptionHelpFormatter
 import sys
 import os
 from resistify.utility import (
@@ -14,7 +15,28 @@ from resistify.hmmsearch import hmmsearch
 from resistify.tmbed import tmbed
 from resistify.draw import draw
 
-
+DIAGRAM="""
+e.g., resistify nlr proteins.fa -o results/───────────────────┐                 
+                 │       │                    ┌───────────────▼────────────────┐
+    ┌────────────┼───────┘                    │* NLR identification            │
+    │            │    ┌────────────────────┐  │* NLR classification            │
+    │          ┌─▼─┐  │* hmmsearch         │  │* CC, TIR, RPW8                 │
+    │       ┌─►│NLR├─►│* NLRexpress        ├─►│* NB-ARC domains                │
+    │       │  └───┘  │* CoCoNat (optional)│  │* Motif and domain annotations  │
+┌───▼─────┐ │         └────────────────────┘  └────────────────────────────────┘
+│Resistify├─┤                                                                   
+└─────────┘ │         ┌────────────────────┐  ┌────────────────────────────────┐
+            │  ┌───┐  │* hmmsearch         │  │* RLK/RLP identification        │
+┻┳│         └─►│PRR├─►│* NLRexpress (LRR)  ├─►│* Extracellular classification  │
+┳┻│_∆_         └───┘  │* TMbed             │  │* Signal peptide identification │
+┻┳│o~o)               └────────────────────┘  │* Motif and domain annotations  │
+┳┻│⊂J                                         └────────────────────────────────┘
+┻┳│j   It's quick!                                                              
+┻┳│    It's easy to install!                 ..^____/                           
+┳┻│    It's accurate!                       `-. ___ )                           
+┳┻│                                            ||  ||                           
+┻┳│^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^    
+"""
 
 def add_common_args(parser):
     """
@@ -83,7 +105,9 @@ def parse_args(args=None):
     Parse command-line arguments for Resistify.
     """
     parser = argparse.ArgumentParser(
+        formatter_class=RawDescriptionHelpFormatter,
         description="A tool for identifying and classifying resistance genes in plant genomes.",
+        epilog=DIAGRAM,
     )
 
     # Global arguments
