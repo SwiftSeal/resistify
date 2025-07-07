@@ -5,12 +5,13 @@ import pickle
 import os
 import tempfile
 from multiprocessing import cpu_count, get_context
-import concurrent.futures
+from concurrent.futures import ProcessPoolExecutor
 from threadpoolctl import threadpool_limits
 import shutil
 import warnings
 from resistify.utility import ProgressLogger
 from resistify._loguru import logger
+from resistify.annotations import Sequence
 
 # Version 1.3 of sklearn introduced InconsistentVersionWarning, fall back to UserWarning if not available
 # Necessary to suppress pickle version warnings
@@ -128,7 +129,9 @@ def parse_jackhmmer(file, iteration=False):
     return hmm_dict
 
 
-def nlrexpress(sequences, search_type, chunk_size, threads):
+def nlrexpress(
+    sequences: list[Sequence], search_type, chunk_size, threads
+) -> list[Sequence]:
     # Test that jackhmmer is functional
     try:
         subprocess.run(
@@ -150,11 +153,11 @@ def nlrexpress(sequences, search_type, chunk_size, threads):
 
     models = load_models(search_type)
 
-    with tempfile.NamedTemporaryFile(delete=False) as jackhmmer_db:
-        nlrexpress_database = os.path.join(
-            os.path.dirname(__file__), "data", "nlrexpress.fasta"
-        )
-        shutil.copyfile(nlrexpress_database, jackhmmer_db.name)
+    jackhmmer_db = tempfile.NamedTemporaryFile()
+    nlrexpress_database = os.path.join(
+        os.path.dirname(__file__), "data", "nlrexpress.fasta"
+    )
+    shutil.copyfile(nlrexpress_database, jackhmmer_db.name)
 
     batches = [
         sequences[i : i + chunk_size] for i in range(0, len(sequences), chunk_size)
@@ -163,24 +166,28 @@ def nlrexpress(sequences, search_type, chunk_size, threads):
     logger.info("Running NLRexpress - this could take a while...")
 
     progress_logger = ProgressLogger(len(batches))
-    results = []
-    with concurrent.futures.ProcessPoolExecutor(
-        max_workers=-(-threads // 2), mp_context=get_context("spawn")
-    ) as executor:
-        futures = [
-            executor.submit(nlrexpress_subprocess, (batch, jackhmmer_db.name, models))
-            for batch in batches
-        ]
 
-        for future in concurrent.futures.as_completed(futures):
+    executor = ProcessPoolExecutor(
+        max_workers=-(-threads // 2), mp_context=get_context("spawn")
+    )
+
+    process_arguments = [(batch, jackhmmer_db.name, models) for batch in batches]
+
+    results = []
+
+    try:
+        for result in executor.map(nlrexpress_subprocess, process_arguments):
             progress_logger.update()
-            for sequence in future.result():
-                results.append(sequence)
+            results.extend(result)
+    except KeyboardInterrupt:
+        executor.shutdown(wait=False, cancel_futures=True)
+        sys.exit(1)
 
     if len(results) != len(sequences):
         logger.critical(
             "Sequences dropped during NLRexpress - this should not happen and must be reported"
         )
+        sys.exit(1)
 
     return results
 
@@ -202,10 +209,11 @@ def load_models(search_type):
     return models
 
 
+@logger.catch
 def nlrexpress_subprocess(params):
     sequences, jackhmmer_db, models = params
 
-    temp_dir = tempfile.TemporaryDirectory()
+    temp_dir = tempfile.TemporaryDirectory(delete=False)
     fasta_path = os.path.join(temp_dir.name, "seq.fa")
     iteration_1_path = fasta_path + ".out-1.hmm"
     iteration_2_path = fasta_path + ".out-2.hmm"
@@ -229,7 +237,7 @@ def nlrexpress_subprocess(params):
         "--chkhmm",
         fasta_path + ".out",
         fasta_path,
-        jackhmmer_db,
+        jackhmmer_db,  # path to the jackhmmer database
     ]
 
     try:
@@ -241,8 +249,12 @@ def nlrexpress_subprocess(params):
             stderr=subprocess.PIPE,
             universal_newlines=True,
         )
-    except subprocess.CalledProcessError:
-        sys.exit(1)
+    except subprocess.CalledProcessError as e:
+        logger.critical(f"stdout: {e.stderr.strip()}")
+        logger.critical(f"stderr: {e.stderr.strip()}")
+        raise
+
+    logger.debug(f"Jackhmmer for {fasta_path} has completed")
 
     iteration_1 = parse_jackhmmer(iteration_1_path, iteration=False)
 

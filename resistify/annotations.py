@@ -442,10 +442,6 @@ class Annotation:
 
 
 class Motif:
-    classification = str
-    probability = float
-    position = int
-
     def __init__(self, classification, probability, position):
         self.classification = classification
         self.probability = probability
