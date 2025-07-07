@@ -6,6 +6,8 @@ build-backend = "hatchling.build"
 name = "resistify"
 version = "1.3.1"
 dependencies = [
+  "typer-slim",
+  "typing_extensions",
   "scikit-learn>=0.24.2",
   "numpy",
   "loguru",
@@ -32,7 +34,7 @@ classifiers = [
 test = ["pytest"]
 
 [project.scripts]
-resistify = "resistify.main:main"
+resistify = "resistify.main:app"
 
 [tool.hatch.build]
 include = [

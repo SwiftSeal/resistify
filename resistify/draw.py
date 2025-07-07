@@ -1,4 +1,6 @@
+import typer
 from resistify._loguru import logger
+from pathlib import Path
 import os
 import csv
 import matplotlib.pyplot as plt
@@ -34,6 +36,10 @@ MOTIF_IDENTIFIERS = {
     "MHD": "NB-ARC",
     "LxxLxL": "LRR",
 }
+
+app = typer.Typer(
+    name="draw", help="Draw NLR and PRR protein diagrams with motifs and domains."
+)
 
 
 def collect_data(queries, results_dir):
@@ -80,9 +86,15 @@ def collect_data(queries, results_dir):
     return sequences
 
 
-def draw_nlr(args, sequence_data):
-    logger.info(f"Drawing NLRs to {args.output}...")
-    fig, ax = plt.subplots(figsize=(args.width, args.height), dpi=600)
+def draw_nlr(
+    sequence_data: dict,
+    outfile: Path,
+    width: int = 10,
+    height: int = 5,
+    hide_motifs: bool = False,
+):
+    logger.info(f"Drawing NLRs to {outfile}...")
+    fig, ax = plt.subplots(figsize=(width, height), dpi=600)
 
     # Calculate y-offsets for multiple sequences to stack them
     y_offset = 0
@@ -106,7 +118,7 @@ def draw_nlr(args, sequence_data):
         )
 
         # Draw lollipop for motifs
-        if not args.hide_motifs:
+        if not hide_motifs:
             for motif_info in motifs:
                 position = motif_info["position"]
                 motif_name = motif_info["motif"]
@@ -174,12 +186,18 @@ def draw_nlr(args, sequence_data):
     ax.set_xlim(left=0)
     ax.set_ylim(-0.5, y_offset - 0.5)
     plt.tight_layout()
-    plt.savefig(args.output, transparent=True)
+    plt.savefig(outfile, transparent=True)
 
 
-def draw_prr(args, sequence_data):
-    logger.info(f"Drawing PRRs to {args.output}...")
-    fig, ax = plt.subplots(figsize=(args.width, args.height), dpi=600)
+def draw_prr(
+    sequence_data: dict,
+    outfile: Path,
+    width: int = 10,
+    height: int = 5,
+    hide_motifs: bool = False,
+):
+    logger.info(f"Drawing PRRs to {outfile}...")
+    fig, ax = plt.subplots(figsize=(width, height), dpi=600)
 
     # Calculate y-offsets for multiple sequences to stack them
     y_offset = 0
@@ -210,7 +228,7 @@ def draw_prr(args, sequence_data):
             linewidth=2,
         )
 
-        if not args.hide_motifs:
+        if not hide_motifs:
             for motif_info in motifs:
                 position = motif_info["position"]
                 motif_name = motif_info["motif"]
@@ -288,27 +306,4 @@ def draw_prr(args, sequence_data):
     ax.set_xlabel("Position (aa)")
     ax.set_ylim(-0.5, y_offset - 0.5)
     plt.tight_layout()
-    plt.savefig(args.output, transparent=True)
-
-
-def draw(args):
-    if not os.path.exists(args.results_dir):
-        logger.error(f"Results directory {args.results_dir} does not exist.")
-        return
-
-    if args.query is None:
-        logger.info("No specific queries provided, plotting all sequences.")
-        queries = None
-    else:
-        queries = [q.strip() for q in args.query.split(",") if q.strip()]
-
-    sequence_data = collect_data(queries, args.results_dir)
-
-    # First, need to detect if we are drawing NLRs or PRRs
-    # Can do this by checking for prr.fasta or nlr.fasta in directory
-    if "nlr.fasta" in os.listdir(args.results_dir):
-        logger.info("Detected NLR sequences, drawing NLRs...")
-        draw_nlr(args, sequence_data)
-    elif "prr.fasta" in os.listdir(args.results_dir):
-        logger.info("Detected PRR sequences, drawing PRRs...")
-        draw_prr(args, sequence_data)
+    plt.savefig(outfile, transparent=True)

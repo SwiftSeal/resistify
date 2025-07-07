@@ -1,9 +1,11 @@
 import sys
+from pathlib import Path
 import os
 import csv
 import gzip
 from resistify.annotations import Sequence, NBARC_MOTIFS
 from resistify._loguru import logger
+from resistify.__version__ import __version__
 
 
 class ProgressLogger:
@@ -32,7 +34,34 @@ class ProgressLogger:
                 self.last_reported_percent = percent_complete
 
 
-def create_output_directory(outdir):
+def hello(models: bool = False):
+    """
+    Print some introductory information for the user.
+    """
+    logger.info(f"Welcome to Resistify {__version__}!")
+    logger.info("Need help? Visit https://github.com/SwiftSeal/Resistify")
+
+    if models:
+        hf_home = os.environ.get("HF_HOME", "~/.cache/huggingface/")
+        torch_home = os.environ.get("TORCH_HOME", "~/.cache/torch/")
+
+        logger.info("Models will be downloaded/retrieved from the following locations:")
+        logger.info(f"$HF_HOME: {hf_home}")
+        logger.info(f"$TORCH_HOME: {torch_home}")
+
+
+def goodbye(coconat: bool = False, tmbed: bool = False):
+    logger.info("Thank you for using Resistify!")
+    logger.info("If you used Resistify in your research, please cite the following:")
+    logger.info(" - Resistify: https://doi.org/10.1177/11779322241308944")
+    logger.info(" - NLRexpress: https://doi.org/10.3389/fpls.2022.975888")
+    if tmbed:
+        logger.info(" - TMbed: https://doi.org/10.1186/s12859-022-04873-x")
+    elif coconat:
+        logger.info(" - CoCoNat: https://doi.org/10.1093/bioinformatics/btad495")
+
+
+def create_output_directory(outdir: Path):
     try:
         expanded_outdir = os.path.expanduser(os.path.expandvars(outdir))
         os.makedirs(expanded_outdir, exist_ok=True)
@@ -43,19 +72,25 @@ def create_output_directory(outdir):
         sys.exit(1)
 
 
-def write_results(sequences, args):
-    results_dir = create_output_directory(args.outdir)
-    if args.command == "nlr":
-        result_table(sequences, results_dir, "nlr", retain=args.retain)
+def write_results(
+    sequences: list,
+    outdir: Path,
+    command: str,
+    coconat: bool = False,
+    retain: bool = False,
+):
+    results_dir = create_output_directory(outdir)
+    if command == "nlr":
+        result_table(sequences, results_dir, "nlr", retain=retain)
         save_fasta(
             sequences,
             os.path.join(results_dir, "nlr.fasta"),
-            classified_only=args.retain,
+            classified_only=retain,
         )
         extract_nbarc(sequences, results_dir)
-        if args.coconat:
+        if coconat:
             coconat_table(sequences, results_dir)
-    elif args.command == "prr":
+    elif command == "prr":
         result_table(sequences, results_dir, "prr")
         save_fasta(
             sequences, os.path.join(results_dir, "prr.fasta"), classified_only=True
@@ -87,13 +122,13 @@ def check_sequence(sequence):
     return False
 
 
-def parse_fasta(path):
+def parse_fasta(infile: Path):
     sequences = []
 
     # Automatically detect if the file is gzipped
-    open_func = gzip.open if path.endswith(".gz") else open
+    open_func = gzip.open if infile.suffix == ".gz" else open
 
-    with open_func(path, "rt") as file:
+    with open_func(infile, "rt") as file:
         seq_id = None
         seq = ""
         for line in file:
