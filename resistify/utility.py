@@ -1,9 +1,10 @@
 import sys
 from pathlib import Path
-import os
 import csv
 import gzip
-from resistify.annotations import Sequence, NBARC_MOTIFS
+import os
+from multiprocessing import cpu_count
+from resistify.annotations import Sequence
 from resistify._loguru import logger
 from resistify.__version__ import __version__
 
@@ -34,20 +35,19 @@ class ProgressLogger:
                 self.last_reported_percent = percent_complete
 
 
-def hello(models: bool = False):
+def get_threads() -> int:
+    try:
+        return len(os.sched_getaffinity(0))
+    except AttributeError:
+        return cpu_count()
+
+
+def hello():
     """
     Print some introductory information for the user.
     """
     logger.info(f"Welcome to Resistify {__version__}!")
     logger.info("Need help? Visit https://github.com/SwiftSeal/Resistify")
-
-    if models:
-        hf_home = os.environ.get("HF_HOME", "~/.cache/huggingface/")
-        torch_home = os.environ.get("TORCH_HOME", "~/.cache/torch/")
-
-        logger.info("Models will be downloaded/retrieved from the following locations:")
-        logger.info(f"$HF_HOME: {hf_home}")
-        logger.info(f"$TORCH_HOME: {torch_home}")
 
 
 def goodbye(coconat: bool = False, tmbed: bool = False):
@@ -61,17 +61,6 @@ def goodbye(coconat: bool = False, tmbed: bool = False):
         logger.info(" - CoCoNat: https://doi.org/10.1093/bioinformatics/btad495")
 
 
-def create_output_directory(outdir: Path):
-    try:
-        expanded_outdir = os.path.expanduser(os.path.expandvars(outdir))
-        os.makedirs(expanded_outdir, exist_ok=True)
-        logger.debug(f"Output directory created at {expanded_outdir}")
-        return expanded_outdir
-    except OSError as e:
-        logger.error(f"Error creating output directory: {e}")
-        sys.exit(1)
-
-
 def write_results(
     sequences: list,
     outdir: Path,
@@ -79,28 +68,28 @@ def write_results(
     coconat: bool = False,
     retain: bool = False,
 ):
-    results_dir = create_output_directory(outdir)
+    logger.info(f"Writing results to {outdir}...")
+    outdir.mkdir(parents=True, exist_ok=True)
+
     if command == "nlr":
-        result_table(sequences, results_dir, "nlr", retain=retain)
+        result_table(sequences, outdir, "nlr", retain=retain)
         save_fasta(
             sequences,
-            os.path.join(results_dir, "nlr.fasta"),
+            outdir / "nlr.fasta",
             classified_only=retain,
         )
-        extract_nbarc(sequences, results_dir)
+        extract_nbarc(sequences, outdir)
         if coconat:
-            coconat_table(sequences, results_dir)
+            coconat_table(sequences, outdir)
     elif command == "prr":
-        result_table(sequences, results_dir, "prr")
-        save_fasta(
-            sequences, os.path.join(results_dir, "prr.fasta"), classified_only=True
-        )
-    annotation_table(sequences, results_dir)
-    domain_table(sequences, results_dir)
-    motif_table(sequences, results_dir)
+        result_table(sequences, outdir, "prr")
+        save_fasta(sequences, outdir / "prr.fasta", classified_only=True)
+    annotation_table(sequences, outdir)
+    domain_table(sequences, outdir)
+    motif_table(sequences, outdir)
 
 
-def check_sequence(sequence):
+def check_sequence(sequence: Sequence) -> bool:
     if "*" in sequence.seq:
         logger.warning(
             f"An internal '*' character is present in {sequence.id} - skipping this sequence..."
@@ -156,15 +145,15 @@ def parse_fasta(infile: Path):
     return sequences
 
 
-def wrap_sequence(sequence, wrap_length=80):
+def wrap_sequence(sequence: Sequence, wrap_length: int = 80):
     wrapped_sequence = ""
     for i in range(0, len(sequence), wrap_length):
         wrapped_sequence += sequence[i : i + wrap_length] + "\n"
     return wrapped_sequence
 
 
-def save_fasta(sequences, path, classified_only=False):
-    with open(path, "w") as file:
+def save_fasta(sequences: list[Sequence], outfile: Path, classified_only: bool = False):
+    with open(outfile, "w") as file:
         for sequence in sequences:
             # Special case for PRRs as we are interested in type
             if classified_only and sequence.type in ["RLP", "RLK"]:
@@ -175,11 +164,10 @@ def save_fasta(sequences, path, classified_only=False):
             else:
                 file.write(f">{sequence.id}\n")
                 file.write(f"{wrap_sequence(sequence.seq)}")
-    return path
 
 
-def result_table(sequences, results_dir, type, retain=False):
-    with open(os.path.join(results_dir, "results.tsv"), "w") as file:
+def result_table(sequences: list[Sequence], outdir, type, retain=False):
+    with open(outdir / "results.tsv", "w") as file:
         table_writer = csv.writer(file, delimiter="\t")
         if type == "nlr":
             table_writer.writerow(
@@ -199,10 +187,7 @@ def result_table(sequences, results_dir, type, retain=False):
 
             for sequence in sequences:
                 if sequence.type == "NLR" or retain:
-                    n_nbarc_motifs = 0
-                    for motif in NBARC_MOTIFS:
-                        if len(sequence.motifs[motif]) > 0:
-                            n_nbarc_motifs += 1
+                    n_nbarc_motifs = len(sequence.get_motifs("N"))
 
                     table_writer.writerow(
                         [
@@ -245,8 +230,8 @@ def result_table(sequences, results_dir, type, retain=False):
                     )
 
 
-def domain_table(sequences, results_dir):
-    with open(os.path.join(results_dir, "domains.tsv"), "w") as file:
+def domain_table(sequences, outdir):
+    with open(outdir / "domains.tsv", "w") as file:
         table_writer = csv.writer(file, delimiter="\t")
         table_writer.writerow(["Sequence", "Domain", "Start", "End"])
         for sequence in sequences:
@@ -261,8 +246,8 @@ def domain_table(sequences, results_dir):
                 )
 
 
-def annotation_table(sequences, results_dir):
-    with open(os.path.join(results_dir, "annotations.tsv"), "w") as file:
+def annotation_table(sequences: list[Sequence], outdir: Path):
+    with open(outdir / "annotations.tsv", "w") as file:
         table_writer = csv.writer(file, delimiter="\t")
         table_writer.writerow(
             ["Sequence", "Domain", "Start", "End", "E_value", "Score", "Source"]
@@ -282,11 +267,8 @@ def annotation_table(sequences, results_dir):
                 )
 
 
-def motif_table(sequences, results_dir):
-    from resistify.nlrexpress import MOTIF_SPAN_LENGTHS
-
-    output_path = os.path.join(results_dir, "motifs.tsv")
-    with open(output_path, "w") as file:
+def motif_table(sequences: list[Sequence], outdir: Path):
+    with open(outdir / "motifs.tsv", "w") as file:
         table_writer = csv.writer(file, delimiter="\t")
         table_writer.writerow(
             [
@@ -301,35 +283,24 @@ def motif_table(sequences, results_dir):
         )
         for sequence in sequences:
             for motif in sequence.motifs:
-                for item in sequence.motifs[motif]:
-                    aa_sequence = sequence.seq
-                    downstream_sequence = aa_sequence[item.position - 5 : item.position]
-                    motif_sequence = aa_sequence[
-                        item.position : item.position + MOTIF_SPAN_LENGTHS[motif]
+                table_writer.writerow(
+                    [
+                        sequence.id,
+                        motif.type,
+                        motif.position,
+                        motif.probability,
+                        motif.downstream,
+                        motif.sequence,
+                        motif.upstream,
                     ]
-                    upstream_sequence = aa_sequence[
-                        item.position + MOTIF_SPAN_LENGTHS[motif] : item.position
-                        + MOTIF_SPAN_LENGTHS[motif]
-                        + 5
-                    ]
-                    table_writer.writerow(
-                        [
-                            sequence.id,
-                            motif,
-                            item.position,
-                            item.probability,
-                            downstream_sequence,
-                            motif_sequence,
-                            upstream_sequence,
-                        ]
-                    )
+                )
 
 
-def extract_nbarc(sequences, results_dir):
+def extract_nbarc(sequences: list[Sequence], outdir: Path):
     """
     Extract all nbarc domains of all proteins into a fasta file.
     """
-    with open(os.path.join(results_dir, "nbarc.fasta"), "w") as file:
+    with open(outdir / "nbarc.fasta", "w") as file:
         for sequence in sequences:
             count = 1
             for annotation in sequence.merged_annotations:
@@ -341,9 +312,8 @@ def extract_nbarc(sequences, results_dir):
                     count += 1
 
 
-def coconat_table(sequences, results_dir):
-    output_path = os.path.join(results_dir, "coconat.tsv")
-    with open(output_path, "w") as f:
+def coconat_table(sequences: list[Sequence], outdir: Path):
+    with open(outdir / "coconat.tsv", "w") as f:
         f.write("Sequence\tPosition\tProbability\n")
         for sequence in sequences:
             for i, probability in enumerate(sequence.cc_probs):

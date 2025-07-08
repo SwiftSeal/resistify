@@ -1,11 +1,13 @@
 import subprocess
 import sys
-import os
+from pathlib import Path
 import tempfile
 from resistify._loguru import logger
+from resistify.annotations import Sequence
+from resistify.utility import save_fasta
 
 
-accession_families = {
+ACCESSION_FAMILIES = {
     "PF00931": ("NB-ARC", 23.5),
     "PF01582": ("TIR", 21.3),
     "PF05659": ("RPW8", 30.4),
@@ -42,30 +44,25 @@ accession_families = {
 }
 
 
-def hmmsearch(sequences, search_type):
+def hmmsearch(sequences: list[Sequence], search_type: str):
     if search_type == "nlr":
-        hmmsearch_db = os.path.join(os.path.dirname(__file__), "data", "nlrdb.hmm")
+        hmmsearch_db = Path(__file__).parent / "data" / "nlrdb.hmm"
     elif search_type == "prr":
-        hmmsearch_db = os.path.join(os.path.dirname(__file__), "data", "prrdb.hmm")
-    output_file = tempfile.NamedTemporaryFile()
+        hmmsearch_db = Path(__file__).parent / "data" / "prrdb.hmm"
+    outfile = tempfile.NamedTemporaryFile()
 
-    input_fasta = tempfile.NamedTemporaryFile()
+    infile = tempfile.NamedTemporaryFile()
 
-    logger.debug(f"Writing sequences to {input_fasta.name}")
-    with open(input_fasta.name, "w") as f:
-        for sequence in sequences:
-            f.write(f">{sequence.id}\n{sequence.seq}\n")
+    save_fasta(sequences, infile.name)
 
     cmd = [
         "hmmsearch",
         "--noali",
         "-Z 45638612",
-        # "--domE",
-        # evalue,
         "--domtblout",
-        output_file.name,
+        outfile.name,
         hmmsearch_db,
-        input_fasta.name,
+        infile.name,
     ]
 
     try:
@@ -86,7 +83,7 @@ def hmmsearch(sequences, search_type):
 
     sequence_dict = {sequence.id: sequence for sequence in sequences}
 
-    with open(output_file.name) as file:
+    with open(outfile.name) as file:
         for line in file:
             if line.startswith("#"):
                 continue
@@ -98,7 +95,7 @@ def hmmsearch(sequences, search_type):
             start = int(line[17])
             end = int(line[18])
 
-            domain_name, domain_bit_threshold = accession_families[accession]
+            domain_name, domain_bit_threshold = ACCESSION_FAMILIES[accession]
 
             if bitscore < domain_bit_threshold:
                 continue

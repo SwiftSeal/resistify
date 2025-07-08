@@ -1,19 +1,8 @@
+from __future__ import annotations
 from resistify._loguru import logger
+from dataclasses import dataclass
 
 nlr_classifications = ["RNL", "CNL", "TNL", "RN", "CN", "TN", "NL", "N"]
-
-TIR_MOTIFS = ["aA", "aC", "aD3", "bA", "bC", "bDaD1"]
-NBARC_MOTIFS = [
-    "VG",
-    "P-loop",
-    "RNSB-A",
-    "Walker-B",
-    "RNSB-B",
-    "RNSB-C",
-    "RNSB-D",
-    "GLPL",
-    "MHD",
-]
 
 rlp_external_domains = [
     "LRR",
@@ -72,7 +61,7 @@ DOMAINS_TO_MERGE = [
     "signal_peptide",
 ]
 
-motif_translation = {
+MOTIF_TRANSLATION = {
     "extEDVID": "C",
     "bA": "T",
     "aA": "T",
@@ -93,43 +82,64 @@ motif_translation = {
 }
 
 
+@dataclass
+class Annotation:
+    domain: str
+    start: int
+    end: int
+    evalue: float = None
+    score: float = None
+    source: str = None
+
+
+@dataclass
+class Motif:
+    type: str
+    probability: float
+    position: int
+    parent_sequence: Sequence
+    length: int
+
+    @property
+    def domain(self):
+        """
+        Return the domain type of the motif.
+        """
+        return MOTIF_TRANSLATION.get(self.type, "?")
+
+    @property
+    def sequence(self):
+        return self.parent_sequence.seq[self.position : self.position + self.length]
+
+    @property
+    def upstream(self, flank=5):
+        return self.parent_sequence.seq[max(0, self.position - flank) : self.position]
+
+    @property
+    def downstream(self, flank=5):
+        end = self.position + self.length
+        return self.parent_sequence.seq[end : end + flank]
+
+
+@dataclass
 class Sequence:
-    def __init__(self, id, seq):
-        self.id = id
-        self.seq = seq
-        self.type = None
-        self.classification = None
-        self.annotations = []
-        self.merged_annotations = []
-        self.motifs = {
-            "extEDVID": [],
-            "VG": [],
-            "P-loop": [],
-            "RNSB-A": [],
-            "Walker-B": [],
-            "RNSB-B": [],
-            "RNSB-C": [],
-            "RNSB-D": [],
-            "GLPL": [],
-            "MHD": [],
-            "LxxLxL": [],
-            "aA": [],
-            "aC": [],
-            "aD3": [],
-            "bA": [],
-            "bC": [],
-            "bDaD1": [],
-        }
-        self.cc_probs = []
-        self.transmembrane_predictions = None
+    id: str
+    seq: str
+    type: str = None
+    classification: str = None
+    annotations: list[Annotation] = None
+    merged_annotations: list[Annotation] = None
+    motifs: list[Motif] = None
+    cc_probs: list[float] = None
+    transmembrane_predictions: str = None
 
     @property
     def motif_string(self):
-        sorted_motifs = [item for sublist in self.motifs.values() for item in sublist]
+        sorted_motifs = []
         sorted_motifs.sort(key=lambda x: x.position)
         motif_string = ""
         for motif in sorted_motifs:
-            motif_string += motif_translation[motif.classification]
+            motif_string += MOTIF_TRANSLATION[motif.classification]
         return motif_string
 
     @property
@@ -165,10 +175,12 @@ class Sequence:
 
     @property
     def has_nbarc(self):
-        for annotation in self.annotations:
-            if annotation.domain == "NB-ARC":
-                return True
-        return False
+        if self.annotations is None:
+            return False
+        else:
+            for annotation in self.annotations:
+                if annotation.domain == "NB-ARC":
+                    return True
 
     @property
     def has_mada(self):
@@ -210,12 +222,21 @@ class Sequence:
         else:
             return None
 
-    def add_annotation(self, domain, source, start, end, evalue=None, score=None):
+    def add_annotation(
+        self,
+        domain: str,
+        source: str,
+        start: int,
+        end: int,
+        evalue: float = None,
+        score: float = None,
+    ):
         """
         Add annotation and keep sorted by start position.
         """
-        start = int(start)
-        end = int(end)
+        if not self.annotations:
+            self.annotations = []
+
         if start > end:
             logger.error(f"Invalid annotation coordinates for {self.id}")
             return
@@ -223,8 +244,23 @@ class Sequence:
         self.annotations.append(Annotation(domain, start, end, evalue, score, source))
         self.annotations.sort(key=lambda x: x.start)
 
-    def add_motif(self, predictor, value, i):
-        self.motifs[predictor].append(Motif(predictor, value, i))
+    def add_motif(self, type, probability, position, length):
+        """
+        Add a motif to the sequence.
+        Motifs are guaranteed to be sorted by position.
+        """
+        logger.debug(
+            f"Adding motif {type} to {self.id} at position {position} with probability {probability}"
+        )
+        if not self.motifs:
+            self.motifs = []
+        self.motifs.append(Motif(type, probability, position, self, length))
+        self.motifs.sort(key=lambda x: x.position)
+
+    def get_motifs(self, domain=None):
+        if domain:
+            return [m for m in self.motifs if m.domain == domain]
+        return self.motifs
 
     def identify_cc_domains(self):
         """
@@ -257,20 +293,22 @@ class Sequence:
         if start is not None:
             self.add_annotation("CC", "coconat", start, end)
 
-    def identify_lrr_domains(self, lrr_gap, lrr_length):
+    def identify_lrr_domains(self, lrr_gap: int, lrr_length: int):
         """
         Identify LRR domains based on LxxLxL motifs.
         """
-        if len(self.motifs["LxxLxL"]) == 0:
+
+        lrr_motifs = self.get_motifs("L")
+
+        if len(lrr_motifs) == 0:
+            logger.debug(f"No LRR motifs found in {self.id}")
             return
 
-        sorted_lrr = sorted(self.motifs["LxxLxL"], key=lambda x: x.position)
-
-        current_motif = sorted_lrr[0]
+        current_motif = lrr_motifs[0]
         start = current_motif.position
         end = current_motif.position
         count = 0
-        for motif in sorted_lrr[1:]:
+        for motif in lrr_motifs[1:]:
             if motif.position - end < lrr_gap:
                 end = motif.position
                 count += 1
@@ -320,17 +358,8 @@ class Sequence:
                     nbarc_start = annotation.start
                     break
 
-            CC_motifs = [
-                motif
-                for motif in self.motifs["extEDVID"]
-                if motif.position < nbarc_start
-            ]
-            TIR_motifs = [
-                item
-                for motif in TIR_MOTIFS
-                for item in self.motifs[motif]
-                if item.position < nbarc_start
-            ]
+            CC_motifs = [m for m in self.get_motifs("C") if m.position < nbarc_start]
+            TIR_motifs = [m for m in self.get_motifs("T") if m.position < nbarc_start]
 
             if len(CC_motifs) > 0:
                 self.add_annotation(
@@ -429,20 +458,3 @@ class Sequence:
         # sort merged annotations by start position
         merged_annotations.sort(key=lambda x: x.start)
         self.merged_annotations = merged_annotations
-
-
-class Annotation:
-    def __init__(self, domain, start, end, evalue, score, source):
-        self.domain = domain
-        self.start = start
-        self.end = end
-        self.evalue = evalue
-        self.score = score
-        self.source = source
-
-
-class Motif:
-    def __init__(self, classification, probability, position):
-        self.classification = classification
-        self.probability = probability
-        self.position = int(position)

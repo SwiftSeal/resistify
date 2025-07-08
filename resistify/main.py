@@ -3,7 +3,7 @@ from pathlib import Path
 import typer
 from typing_extensions import Annotated
 from resistify._loguru import logger
-from resistify.utility import hello, goodbye
+from resistify.utility import hello, goodbye, get_threads
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -16,16 +16,21 @@ def callback(verbose: bool = False):
     hello()
 
 
-@app.command()
+@app.command(short_help="Identify and classify NLR sequences.")
 def nlr(
     infile: Annotated[
         Path,
         typer.Argument(
-            help="Input FASTA file containing sequences to analyze.", exists=True
+            help="Input FASTA file containing sequences to analyze.",
+            exists=True,
+            readable=True,
         ),
     ],
     outdir: Annotated[
-        Path, typer.Option("--outdir", "-o", help="Directory to save results.")
+        Path,
+        typer.Option(
+            "--outdir", "-o", help="Directory to save results.", writable=True
+        ),
     ] = ".",
     run_coconat: Annotated[
         bool,
@@ -70,12 +75,16 @@ def nlr(
     threads: Annotated[
         int,
         typer.Option(
-            "--threads", "-t", help="Number of threads available for NLRexpress."
+            "--threads",
+            "-t",
+            help="Number of threads available for NLRexpress. Defaults to all available threads",
         ),
-    ] = None,
+    ] = get_threads(),
 ):
     """
     Identify and classify NLR sequences.
+    This command will search for NLRs using HMMs, run NLRexpress to identify NLR-associated motifs, and optionally run CoCoNat to identify additional CC domains.
+    Together, this information will be used to classify NLRs into their respective classes.
     """
     from resistify.coconat import coconat
     from resistify.nlrexpress import nlrexpress
@@ -158,7 +167,7 @@ def prr(
         typer.Option(
             "--chunksize", help="Number of sequences per split for jackhmmer."
         ),
-    ] = None,
+    ] = 5,
     threads: Annotated[
         int,
         typer.Option(
@@ -173,11 +182,6 @@ def prr(
     from resistify.tmbed import tmbed
     from resistify.nlrexpress import nlrexpress
     from resistify.utility import parse_fasta, write_results
-
-    if chunksize is None:
-        chunksize = 5
-    else:
-        chunksize = chunksize
 
     logger.info("Searching for PRRs...")
     sequences = parse_fasta(infile)
@@ -201,7 +205,7 @@ def prr(
     goodbye(tmbed=True)
 
 
-@app.command()
+@app.command(short_help="Draw NLRs or PRRs from results directory.")
 def draw(
     results_dir: Annotated[
         str, typer.Argument(help="Directory containing results files.")
@@ -229,6 +233,11 @@ def draw(
         typer.Option("--hide-motifs", help="Hide motifs in the plot.", is_flag=True),
     ] = False,
 ):
+    """
+    Draw NLR or PRR sequences from the results directory.
+    This command will automatically detect whether to draw NLRs or PRRs based on the presence of `nlr.fasta` or `prr.fasta` in the results directory.
+    I'd recommend using --query to specify which sequences to plot, as otherwise it will plot all sequences in the directory!
+    """
     from resistify.draw import collect_data, draw_nlr, draw_prr
     import os
 
@@ -250,7 +259,7 @@ def draw(
         draw_prr(sequence_data, outfile, width, height, hide_motifs)
 
 
-@app.command()
+@app.command(short_help="Manually download ESM and ProtT5 models.")
 def download_models():
     """
     Manually download models - by default, models will be downloaded automatically when required.
