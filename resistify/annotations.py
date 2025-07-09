@@ -1,6 +1,6 @@
 from __future__ import annotations
 from resistify._loguru import logger
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 nlr_classifications = ["RNL", "CNL", "TNL", "RN", "CN", "TN", "NL", "N"]
 
@@ -87,9 +87,9 @@ class Annotation:
     domain: str
     start: int
     end: int
-    evalue: float = None
-    score: float = None
-    source: str = None
+    evalue: float | None = None
+    score: float | None = None
+    source: str | None = None
 
 
 @dataclass
@@ -125,21 +125,19 @@ class Motif:
 class Sequence:
     id: str
     seq: str
-    type: str = None
-    classification: str = None
-    annotations: list[Annotation] = None
-    merged_annotations: list[Annotation] = None
-    motifs: list[Motif] = None
-    cc_probs: list[float] = None
-    transmembrane_predictions: str = None
+    type: str | None = None
+    classification: str | None = None
+    annotations: list[Annotation] = field(default_factory=list)
+    merged_annotations: list[Annotation] = field(default_factory=list)
+    motifs: list[Motif] = field(default_factory=list)
+    cc_probs: list[float] = field(default_factory=list)
+    transmembrane_predictions: str | None = None
 
     @property
     def motif_string(self):
-        sorted_motifs = []
-        sorted_motifs.sort(key=lambda x: x.position)
         motif_string = ""
-        for motif in sorted_motifs:
-            motif_string += MOTIF_TRANSLATION[motif.classification]
+        for motif in self.motifs:
+            motif_string += motif.domain
         return motif_string
 
     @property
@@ -228,15 +226,12 @@ class Sequence:
         source: str,
         start: int,
         end: int,
-        evalue: float = None,
-        score: float = None,
+        evalue: float | None = None,
+        score: float | None = None,
     ):
         """
         Add annotation and keep sorted by start position.
         """
-        if not self.annotations:
-            self.annotations = []
-
         if start > end:
             logger.error(f"Invalid annotation coordinates for {self.id}")
             return
@@ -252,8 +247,6 @@ class Sequence:
         logger.debug(
             f"Adding motif {type} to {self.id} at position {position} with probability {probability}"
         )
-        if not self.motifs:
-            self.motifs = []
         self.motifs.append(Motif(type, probability, position, self, length))
         self.motifs.sort(key=lambda x: x.position)
 

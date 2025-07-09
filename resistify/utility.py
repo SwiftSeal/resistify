@@ -3,17 +3,18 @@ from pathlib import Path
 import csv
 import gzip
 import os
+from dataclasses import dataclass
 from multiprocessing import cpu_count
 from resistify.annotations import Sequence
 from resistify._loguru import logger
 from resistify.__version__ import __version__
 
 
+@dataclass
 class ProgressLogger:
-    def __init__(self, total_count):
-        self.total_count = total_count
-        self.current_count = 0
-        self.last_reported_percent = -1  # Initialize with an invalid percentage
+    total_count: int
+    current_count: int = 0
+    last_reported_percent: int = -1
 
     def update(self):
         self.current_count += 1
@@ -46,7 +47,7 @@ def hello():
     """
     Print some introductory information for the user.
     """
-    logger.info(f"Welcome to Resistify {__version__}!")
+    logger.info(f"Welcome to Resistify v{__version__}!")
     logger.info("Need help? Visit https://github.com/SwiftSeal/Resistify")
 
 
@@ -145,7 +146,7 @@ def parse_fasta(infile: Path):
     return sequences
 
 
-def wrap_sequence(sequence: Sequence, wrap_length: int = 80):
+def wrap_sequence(sequence: str, wrap_length: int = 80):
     wrapped_sequence = ""
     for i in range(0, len(sequence), wrap_length):
         wrapped_sequence += sequence[i : i + wrap_length] + "\n"

@@ -31,7 +31,7 @@ def nlr(
         typer.Option(
             "--outdir", "-o", help="Directory to save results.", writable=True
         ),
-    ] = ".",
+    ] = Path("."),
     run_coconat: Annotated[
         bool,
         typer.Option(
@@ -67,7 +67,7 @@ def nlr(
         ),
     ] = 100,
     chunksize: Annotated[
-        int,
+        int | None,
         typer.Option(
             "--chunksize", help="Number of sequences per split for jackhmmer."
         ),
@@ -141,7 +141,7 @@ def prr(
     ],
     outdir: Annotated[
         Path, typer.Option("--outdir", "-o", help="Directory to save results.")
-    ] = ".",
+    ] = Path("."),
     lrr_gap: Annotated[
         int,
         typer.Option(
@@ -173,7 +173,7 @@ def prr(
         typer.Option(
             "--threads", "-t", help="Number of threads available for NLRexpress."
         ),
-    ] = None,
+    ] = get_threads(),
 ):
     """
     Identify and classify PRR sequences.
@@ -212,9 +212,9 @@ def draw(
     ],
     outfile: Annotated[
         Path, typer.Option("--outfile", "-o", help="Output file for the plot.")
-    ] = "resistify_plot.png",
+    ] = Path("resistify_plot.png"),
     query: Annotated[
-        str,
+        str | None,
         typer.Option(
             "--query",
             "-q",
@@ -222,7 +222,8 @@ def draw(
         ),
     ] = None,
     width: Annotated[
-        int, typer.Option("--width", "-w", help="Width of the output figure in inches.")
+        int | None,
+        typer.Option("--width", "-w", help="Width of the output figure in inches."),
     ] = 10,
     height: Annotated[
         int,

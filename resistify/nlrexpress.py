@@ -22,37 +22,18 @@ try:
 except ImportError:
     warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
 
-JACKHMMER_HEADER = [
-    "A",
-    "C",
-    "D",
-    "E",
-    "F",
-    "G",
-    "H",
-    "I",
-    "K",
-    "L",
-    "M",
-    "N",
-    "P",
-    "Q",
-    "R",
-    "S",
-    "T",
-    "V",
-    "W",
-    "Y",
-]
-
 
 def parse_jackhmmer(iteration_1_path: Path, iteration_2_path: Path):
     """
     Parse jackhmmer output for one or two iterations and return jackhmmer_results dict.
     If iteration_2_path is not provided or does not exist, only iteration 1 is used.
+    Returns a concatenated matrix of the two iterations for each sequence ID.
     """
 
     def parse_matrix(file: Path, iteration: bool = False):
+        """
+        Parse jackhmmer iteration file, returning a dictionary of sequence ID
+        """
         hmm_dict = {}
         with open(file) as f:
             i = 1
@@ -70,14 +51,8 @@ def parse_jackhmmer(iteration_1_path: Path, iteration_2_path: Path):
                 elif line[0] == "HMM":
                     i += 5
                 else:
-                    for value in line[1:21]:
-                        try:
-                            float(value)
-                        except ValueError:
-                            logger.error(f"{value} is not a float. {name} {file}")
-                            sys.exit(1)
-                    value_dict = dict(zip(JACKHMMER_HEADER, line[1:21]))
-                    hmm_dict[name].append(value_dict)
+                    values = [float(value) for value in line[1:21]]
+                    hmm_dict[name].append(values)
                     i += 3
         return hmm_dict
 
@@ -90,17 +65,9 @@ def parse_jackhmmer(iteration_1_path: Path, iteration_2_path: Path):
 
     jackhmmer_results = {}
     for seq_id, matrix1 in iteration_1.items():
-        jackhmmer_data = []
-        for i, aa_dict in enumerate(matrix1):
-            jackhmmer_data.append([])
-            # Add iteration 1 values
-            jackhmmer_data[-1].extend(list(aa_dict.values()))
-            # Add iteration 2 values if available, else repeat iteration 1
-            if iteration_2 and seq_id in iteration_2:
-                jackhmmer_data[-1].extend(list(iteration_2[seq_id][i].values()))
-            else:
-                jackhmmer_data[-1].extend(list(aa_dict.values()))
-        jackhmmer_results[seq_id] = jackhmmer_data
+        matrix2 = iteration_2.get(seq_id, matrix1)
+        jackhmmer_results[seq_id] = [aa1 + aa2 for aa1, aa2 in zip(matrix1, matrix2)]
+
     return jackhmmer_results
 
 
