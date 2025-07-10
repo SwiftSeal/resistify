@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from multiprocessing import cpu_count
 from resistify.annotations import Sequence
 from resistify._loguru import logger
-from resistify.__version__ import __version__
 
 
 @dataclass
@@ -41,25 +40,6 @@ def get_threads() -> int:
         return len(os.sched_getaffinity(0))
     except AttributeError:
         return cpu_count()
-
-
-def hello():
-    """
-    Print some introductory information for the user.
-    """
-    logger.info(f"Welcome to Resistify v{__version__}!")
-    logger.info("Need help? Visit https://github.com/SwiftSeal/Resistify")
-
-
-def goodbye(coconat: bool = False, tmbed: bool = False):
-    logger.info("Thank you for using Resistify!")
-    logger.info("If you used Resistify in your research, please cite the following:")
-    logger.info(" - Resistify: https://doi.org/10.1177/11779322241308944")
-    logger.info(" - NLRexpress: https://doi.org/10.3389/fpls.2022.975888")
-    if tmbed:
-        logger.info(" - TMbed: https://doi.org/10.1186/s12859-022-04873-x")
-    elif coconat:
-        logger.info(" - CoCoNat: https://doi.org/10.1093/bioinformatics/btad495")
 
 
 def write_results(

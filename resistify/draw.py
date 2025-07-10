@@ -1,10 +1,9 @@
-import typer
-from resistify._loguru import logger
 from pathlib import Path
 import os
 import csv
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+from resistify._loguru import logger
 
 COLOUR_PALETTE = {
     "CC": "#648FFF",
@@ -37,9 +36,40 @@ MOTIF_IDENTIFIERS = {
     "LxxLxL": "LRR",
 }
 
-app = typer.Typer(
-    name="draw", help="Draw NLR and PRR protein diagrams with motifs and domains."
-)
+
+def draw(
+    results_dir: Path,
+    outfile: Path = Path("resistify_plot.png"),
+    query: str | None = None,
+    width: int = 10,
+    height: int = 5,
+    hide_motifs: bool = False,
+    dpi: int = 300,
+):
+    """
+    Draw NLR or PRR sequences from the results directory.
+    This command will automatically detect whether to draw NLRs or PRRs based on the presence of `nlr.fasta` or `prr.fasta` in the results directory.
+    I'd recommend using --query to specify which sequences to plot, as otherwise it will plot all sequences in the directory!
+    """
+    from resistify.draw import collect_data, draw_nlr, draw_prr
+    import os
+
+    if query is None:
+        logger.info("No specific queries provided, plotting all sequences.")
+        queries = None
+    else:
+        queries = [q.strip() for q in query.split(",") if q.strip()]
+
+    sequence_data = collect_data(queries, results_dir)
+
+    # First, need to detect if we are drawing NLRs or PRRs
+    # Can do this by checking for prr.fasta or nlr.fasta in directory
+    if "nlr.fasta" in os.listdir(results_dir):
+        logger.info("Detected NLR sequences, drawing NLRs...")
+        draw_nlr(sequence_data, outfile, width, height, hide_motifs, dpi)
+    elif "prr.fasta" in os.listdir(results_dir):
+        logger.info("Detected PRR sequences, drawing PRRs...")
+        draw_prr(sequence_data, outfile, width, height, hide_motifs, dpi)
 
 
 def collect_data(queries, results_dir):
@@ -92,9 +122,10 @@ def draw_nlr(
     width: int = 10,
     height: int = 5,
     hide_motifs: bool = False,
+    dpi: int = 300,
 ):
     logger.info(f"Drawing NLRs to {outfile}...")
-    fig, ax = plt.subplots(figsize=(width, height), dpi=600)
+    fig, ax = plt.subplots(figsize=(width, height), dpi=dpi)
 
     # Calculate y-offsets for multiple sequences to stack them
     y_offset = 0
@@ -195,9 +226,10 @@ def draw_prr(
     width: int = 10,
     height: int = 5,
     hide_motifs: bool = False,
+    dpi: int = 300,
 ):
     logger.info(f"Drawing PRRs to {outfile}...")
-    fig, ax = plt.subplots(figsize=(width, height), dpi=600)
+    fig, ax = plt.subplots(figsize=(width, height), dpi=dpi)
 
     # Calculate y-offsets for multiple sequences to stack them
     y_offset = 0
