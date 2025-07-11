@@ -160,19 +160,28 @@ class Sequence:
         return length
 
     @property
-    def nterminal_sequence(self):
+    def nbarc_start_position(self) -> int | None:
+        for annotation in self.annotations:
+            if annotation.domain == "NB-ARC":
+                return annotation.start
+        return None
+
+    @property
+    def nterminal_sequence(self) -> str | None:
         """
         Return the N-terminal sequence up to the start of the NB-ARC domain.
         Only the first NB-ARC domain is considered.
         """
-        for annotation in self.annotations:
-            if annotation.domain == "NB-ARC":
-                return self.seq[: annotation.start]
-        # If no NB-ARC domain, return the whole sequence
-        return None
+        nbarc_start = self.nbarc_start_position
+        if nbarc_start is not None:
+                return self.seq[: nbarc_start]
+        else:
+            logger.warning(f"No NB-ARC domain found in {self.id}")
+            return None
+            
 
     @property
-    def has_nbarc(self):
+    def has_nbarc(self) -> bool:
         if self.annotations is None:
             return False
         else:
@@ -181,35 +190,35 @@ class Sequence:
                     return True
 
     @property
-    def has_mada(self):
+    def has_mada(self) -> bool:
         for annotation in self.annotations:
             if annotation.domain == "MADA" and annotation.score >= 20:
                 return True
         return False
 
     @property
-    def has_madal(self):
+    def has_madal(self) -> bool:
         for annotation in self.annotations:
             if annotation.domain == "MADA" and annotation.score < 20:
                 return True
         return False
 
     @property
-    def has_cjid(self):
+    def has_cjid(self) -> bool:
         for annotation in self.annotations:
             if annotation.domain == "C-JID":
                 return True
         return False
 
     @property
-    def has_signal_peptide(self):
+    def has_signal_peptide(self) -> bool:
         for annotation in self.annotations:
             if annotation.domain == "signal_peptide":
                 return True
         return False
 
     @property
-    def extracellular_length(self):
+    def extracellular_length(self) -> int | None:
         """
         Calculate the length of the extracellular domain of an RLP/RLK.
         """
@@ -250,7 +259,7 @@ class Sequence:
         self.motifs.append(Motif(type, probability, position, self, length))
         self.motifs.sort(key=lambda x: x.position)
 
-    def get_motifs(self, domain=None):
+    def get_motifs(self, domain=None) -> list[Motif]:
         if domain:
             return [m for m in self.motifs if m.domain == domain]
         return self.motifs
@@ -316,63 +325,60 @@ class Sequence:
             self.add_annotation("LRR", "nlrexpress", start, end)
 
     def classify_nlr(self):
-        # create a simplified domain string
-        domain_string = self.domain_string
+        # Build a set of merged domains
+        domains = {ann.domain for ann in self.merged_annotations}
+        # Always require NB-ARC for NLRs
+        if "NB-ARC" not in domains:
+            return
+    
+        # Classify based on domain combinations
+        # Prioritise RPW8, as CC domains can often be present
+        # Assume TIR is the most conserved, so check last
+        if "RPW8" in domains:
+            if "NB-ARC" in domains and "LRR" in domains:
+                self.classification = "RNL"
+            elif "NB-ARC" in domains:
+                self.classification = "RN"
+        elif "CC" in domains:
+            if "NB-ARC" in domains and "LRR" in domains:
+                self.classification = "CNL"
+            elif "NB-ARC" in domains:
+                self.classification = "CN"
+        elif "TIR" in domains:
+            if "NB-ARC" in domains and "LRR" in domains:
+                self.classification = "TNL"
+            elif "NB-ARC" in domains:
+                self.classification = "TN"
+        elif "NB-ARC" in domains and "LRR" in domains:
+            self.classification = "NL"
+        elif "NB-ARC" in domains:
+            self.classification = "N"
+        else:
+            self.classification = None
+        
+        # Motif rescue
+        if self.classification in ("N", "NL"):
+            nbarc_start = self.nbarc_start_position
+            if nbarc_start is not None:
+                upstream_motifs = set()
+                for motif in self.motifs:
+                    if motif.position < nbarc_start and motif.domain in ("C", "T"):
+                        upstream_motifs.add(motif.domain)
+                # Rescue with motifs if available
+                # Prioritise CC over TIR
+                if "C" in upstream_motifs and "T" in upstream_motifs:
+                    logger.warning(f"CC and TIR motifs found in {self.id} during rescue, prioritising CC")
+                if "C" in upstream_motifs:
+                    logger.debug(f"Rescuing {self.id} with CC")
+                    self.classification = "C" + self.classification
+                elif "T" in upstream_motifs:
+                    logger.debug(f"Rescuing {self.id} with TIR")
+                    self.classification = "T" + self.classification
+    
+        if self.classification:
+            self.type = "NLR"
 
-        # collapse adjacent identical domains for classification
-        collapsed_domain_string = ""
-        if len(domain_string) > 0:
-            collapsed_domain_string = [domain_string[0]]
-            for domain in domain_string[1:]:
-                if domain != collapsed_domain_string[-1]:
-                    collapsed_domain_string.append(domain)
-            collapsed_domain_string = "".join(collapsed_domain_string)
-
-        logger.debug(
-            f"Collapsed domain string for {self.id}: {collapsed_domain_string}"
-        )
-
-        # Absolutely mawkit, but catch RC collapsed string which will occur when coconat is applied to rpw8
-        collapsed_domain_string = collapsed_domain_string.replace("RC", "R")
-
-        # classify based on primary architecture - first match wins (go team CNL!)
-        for classification in nlr_classifications:
-            if classification in collapsed_domain_string:
-                self.classification = classification
-                self.type = "NLR"
-                break
-
-        # scavenge for missed classifications with motifs
-        # this is all very janky
-        if self.classification == "N" or self.classification == "NL":
-            # get the start of the NB-ARC domain
-            for annotation in self.annotations:
-                if annotation.domain == "NB-ARC":
-                    nbarc_start = annotation.start
-                    break
-
-            CC_motifs = [m for m in self.get_motifs("C") if m.position < nbarc_start]
-            TIR_motifs = [m for m in self.get_motifs("T") if m.position < nbarc_start]
-
-            if len(CC_motifs) > 0:
-                self.add_annotation(
-                    "CC",
-                    "nlrexpress",
-                    CC_motifs[0].position,
-                    CC_motifs[-1].position,
-                )
-                self.classification = "C" + self.classification
-            elif len(TIR_motifs) > 0:
-                TIR_motifs.sort(key=lambda x: x.position)
-                self.add_annotation(
-                    "TIR",
-                    "nlrexpress",
-                    TIR_motifs[0].position,
-                    TIR_motifs[-1].position,
-                )
-                self.classification = "T" + self.classification
-
-    def is_rlp(self, extracellular_length=50):
+    def is_rlp(self, extracellular_length: int = 50) -> bool:
         tm_detected = False
         n_terminal_length = 0
 
