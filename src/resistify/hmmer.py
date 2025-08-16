@@ -35,7 +35,9 @@ def hmmsearch(fasta: Path, pfam_path: Path) -> list[Protein]:
 
         # Initialise a dict of protein sequences - convert to list at end
         proteins = {}
-        with pyhmmer.easel.SequenceFile(fasta, digital=True, alphabet=alphabet) as seq_file:
+        with pyhmmer.easel.SequenceFile(
+            fasta, digital=True, alphabet=alphabet
+        ) as seq_file:
             sequences = list(seq_file)
             for sequence in sequences:
                 id = sequence.name.decode()
@@ -45,7 +47,9 @@ def hmmsearch(fasta: Path, pfam_path: Path) -> list[Protein]:
         console.log(f"{len(proteins)} sequences have been loaded")
 
         with pyhmmer.plan7.HMMFile(pfam_path) as hmm_file:
-            for tophit in pyhmmer.hmmsearch(hmm_file, sequences, bit_cutoffs="gathering", Z=45638612):
+            for tophit in pyhmmer.hmmsearch(
+                hmm_file, sequences, bit_cutoffs="gathering", Z=45638612
+            ):
                 accession = tophit.query.accession.decode().split(".")[0]
                 try:
                     name = ACCESSION_DOMAINS[accession]
@@ -78,6 +82,7 @@ def update_pfam_db(pfam_path: Path):
             accession = hmm.accession.decode().split(".")[0]
             if accession in ACCESSION_DOMAINS.keys():
                 hmm.write(f, binary=False)
+
 
 if __name__ == "__main__":
     app()

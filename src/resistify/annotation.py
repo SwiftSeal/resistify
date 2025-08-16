@@ -5,10 +5,10 @@ from pathlib import Path
 
 @dataclass
 class Annotation:
-    name: str # Primary name of domain
+    name: str  # Primary name of domain
     start: int  # 1-based
     end: int  # funnily enough also 1-based
-    type: str = "domain" # can also be motif
+    type: str = "domain"  # can also be motif
     source: str | None = None
     accession: str | None = None
     score: float | None = None
@@ -29,7 +29,11 @@ class Protein:
         self.length = len(self.sequence)
 
     def get_annotation_by_name(self, annotation_name: str) -> list[Annotation]:
-        return [annotation for annotation in self.annotations if annotation.name == annotation_name]
+        return [
+            annotation
+            for annotation in self.annotations
+            if annotation.name == annotation_name
+        ]
 
     def add_annotation(self, annotation: Annotation):
         if not (1 <= annotation.start <= annotation.end <= self.length):
@@ -37,7 +41,7 @@ class Protein:
                 f"Annotation boundaries ({annotation.start}-{annotation.end}) out of bounds for sequence of length {self.length}."
             )
         self.annotations.append(annotation)
-    
+
     @property
     def has_nbarc(self) -> bool:
         """
@@ -47,6 +51,7 @@ class Protein:
             if annotation.name == "NBARC":
                 return True
         return False
+
 
 def classify_nlrs(proteins: list[Protein]):
     """
@@ -67,32 +72,33 @@ def classify_nlrs(proteins: list[Protein]):
             # No NB-ARC domain, classify as non-NLR
             protein.classification = "non-NLR"
 
+
 def save_results(proteins: list[Protein], output_dir: Path):
     results = csv.writer(open(output_dir / "results.tsv", "w"), delimiter="\t")
     annotations = csv.writer(open(output_dir / "annotations.tsv", "w"), delimiter="\t")
 
-    results.writerow(
-        ["id", "classification", "length", "num_lrr_motifs"]
-    )
-    annotations.writerow(
-        ["id", "name", "start", "end", "type", "accession", "score"]
-    )
+    results.writerow(["id", "classification", "length", "num_lrr_motifs"])
+    annotations.writerow(["id", "name", "start", "end", "type", "accession", "score"])
 
     for protein in proteins:
-        results.writerow([
-            protein.id,
-            protein.classification,
-            protein.length,
-            sum(1 for a in protein.annotations if a.name == "LxxLxL")
-        ])
-        for annotation in protein.annotations:
-            annotations.writerow([
+        results.writerow(
+            [
                 protein.id,
-                annotation.name,
-                annotation.start,
-                annotation.end,
-                annotation.type,
-                annotation.source,
-                annotation.accession,
-                annotation.score
-            ])
+                protein.classification,
+                protein.length,
+                sum(1 for a in protein.annotations if a.name == "LxxLxL"),
+            ]
+        )
+        for annotation in protein.annotations:
+            annotations.writerow(
+                [
+                    protein.id,
+                    annotation.name,
+                    annotation.start,
+                    annotation.end,
+                    annotation.type,
+                    annotation.source,
+                    annotation.accession,
+                    annotation.score,
+                ]
+            )
