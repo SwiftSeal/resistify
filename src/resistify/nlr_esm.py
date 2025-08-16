@@ -16,7 +16,7 @@ def predict_lrr(
     lrr_gap: int = 75,
     lrr_length: int = 4,
 ):
-    with Progress(console=console) as progress:
+    with Progress(console=console, transient=True) as progress:
         task = progress.add_task("Predicting LRR motifs", total=len(proteins))
 
         model_name = "MoraySmith/LRR_ESMplusplus_small"
@@ -31,7 +31,7 @@ def predict_lrr(
             batch_sequences = [p.sequence for p in batch_proteins]
 
             inputs = tokenizer(
-                batch_sequences, return_tensors="pt", padding=True, truncation=True
+                batch_sequences, return_tensors="pt", padding=True, truncation=False
             ).to(device)
             with torch.no_grad():
                 outputs = model(**inputs)
@@ -91,3 +91,4 @@ def predict_lrr(
                             )
                         )
                 progress.update(task, advance=1)
+    console.log("LRR prediction complete")

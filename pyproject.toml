@@ -25,7 +25,6 @@ classifiers = [
 
 [project.scripts]
 resistify = "resistify.main:app"
-update_pfam_db = "resistify.hmmer:app"
 
 [build-system]
 requires = ["uv_build>=0.8.9,<0.9.0"]

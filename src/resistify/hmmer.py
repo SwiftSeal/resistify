@@ -8,6 +8,7 @@ from resistify.console import console
 app = typer.Typer()
 
 ACCESSION_DOMAINS = {
+    "PF05659": "RPW8",
     "PF18052": "CC",
     "PF01582": "TIR",
     "PF13676": "TIR",

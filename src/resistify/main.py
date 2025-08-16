@@ -62,3 +62,6 @@ def main(
     classify_nlrs(proteins)
 
     save_results(proteins, output_dir)
+
+    console.print("Thank you for using Resistify!", style="bold")
+    console.print(":page_facing_up: https://doi.org/10.1177/11779322241308944")

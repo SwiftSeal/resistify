@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 import csv
 from pathlib import Path
+from resistify.console import console
 
 
 @dataclass
@@ -43,12 +44,9 @@ class Protein:
         self.annotations.append(annotation)
 
     @property
-    def has_nbarc(self) -> bool:
-        """
-        Searches annotations for NB-ARC domain, reports true if found.
-        """
+    def has_annotation(self, annotation_name: str) -> bool:
         for annotation in self.annotations:
-            if annotation.name == "NBARC":
+            if annotation.name == annotation_name:
                 return True
         return False
 
@@ -57,23 +55,35 @@ def classify_nlrs(proteins: list[Protein]):
     """
     Uses available annotation data to classify NLRs according to structure.
     """
+    console.log("Classifying NLRs")
     for protein in proteins:
-        if protein.has_nbarc:
-            # Check for CC or TIR domains
-            cc_domains = protein.get_annotation_by_name("CC")
-            tir_domains = protein.get_annotation_by_name("TIR")
-            if cc_domains:
-                protein.classification = "CNL"
-            elif tir_domains:
-                protein.classification = "TNL"
+        present_domains = {a.name for a in protein.annotations}
+        if "NBARC" in present_domains:
+            if "LRR" in present_domains:
+                if "RPW8" in present_domains:
+                    protein.classification = "RNL"
+                elif "CC" in present_domains:
+                    protein.classification = "CNL"
+                elif "TIR" in present_domains:
+                    protein.classification = "TNL"
+                else:
+                    protein.classification = "NL"
             else:
-                protein.classification = "RNL"
+                if "RPW8" in present_domains:
+                    protein.classification = "RN"
+                elif "CC" in present_domains:
+                    protein.classification = "CN"
+                elif "TIR" in present_domains:
+                    protein.classification = "TN"
+                else:
+                    protein.classification = "N"
         else:
             # No NB-ARC domain, classify as non-NLR
             protein.classification = "non-NLR"
 
 
 def save_results(proteins: list[Protein], output_dir: Path):
+    console.log("Saving results")
     results = csv.writer(open(output_dir / "results.tsv", "w"), delimiter="\t")
     annotations = csv.writer(open(output_dir / "annotations.tsv", "w"), delimiter="\t")
 
