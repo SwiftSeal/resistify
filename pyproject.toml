@@ -1,54 +1,31 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [project]
 name = "resistify"
-version = "1.3.0"
+version = "2.0.0"
 dependencies = [
-  "scikit-learn>=0.24.2",
-  "numpy",
-  "loguru",
-  "torch",
-  "fair-esm",
-  "transformers",
-  "sentencepiece",
-  "threadpoolctl",
-  "matplotlib",
+    "einops>=0.8.1",
+    "pyhmmer>=0.11.1",
+    "sentencepiece>=0.2.0",
+    "torch>=2.7.1",
+    "transformers>=4.53.2",
+    "peft>=0.17.0",
+    "typer>=0.16.0",
 ]
 authors = [
   { name="Moray Smith", email="moraysmith98@gmail.com" },
 ]
 description = "A resistance gene annotation tool"
 readme = "README.md"
-requires-python = ">=3.9,<3.13"
+requires-python = ">=3.13"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Operating System :: OS Independent",
 ]
 
-[project.optional-dependencies]
-test = ["pytest"]
-
 [project.scripts]
-resistify = "resistify.main:main"
+resistify = "resistify.main:app"
+update_pfam_db = "resistify.hmmer:app"
 
-[tool.hatch.build]
-include = [
-  "resistify",
-]
-
-[tool.pixi.project]
-channels = ["conda-forge", "bioconda"]
-platforms = ["linux-64", "osx-arm64"]
-
-[tool.pixi.pypi-dependencies]
-resistify = { path = ".", editable = true }
-
-[tool.pixi.dependencies]
-hmmer = ">=3.4,<4"
-
-[tool.pixi.environments]
-default = {features = [], solve-group = "default"}
-test = {features = ["test"], solve-group = "default"}
+[build-system]
+requires = ["uv_build>=0.8.9,<0.9.0"]
+build-backend = "uv_build"
