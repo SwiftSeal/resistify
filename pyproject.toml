@@ -8,8 +8,6 @@ dependencies = [
     "torch>=2.7.1",
     "transformers>=4.53.2",
     "peft>=0.17.0",
-    "typer>=0.16.0",
-    "rich>=14.1.0",
 ]
 authors = [
   { name="Moray Smith", email="moraysmith98@gmail.com" },
@@ -24,7 +22,7 @@ classifiers = [
 ]
 
 [project.scripts]
-resistify = "resistify.main:app"
+resistify = "resistify.main:main"
 
 [build-system]
 requires = ["uv_build>=0.8.9,<0.9.0"]

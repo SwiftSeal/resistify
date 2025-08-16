@@ -1,13 +1,14 @@
-import typer
 import os
 import platform
 import torch
-from typing_extensions import Annotated
+import argparse
+import logging
 from pathlib import Path
 from resistify.annotation import classify_nlrs, save_results
 from resistify.hmmer import hmmsearch
 from resistify.nlr_esm import predict_lrr
-from resistify.console import console
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_DEVICE = str(
     torch.device(
@@ -19,49 +20,67 @@ DEFAULT_DEVICE = str(
     )
 )
 
-app = typer.Typer()
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Resistify: A tool for NLR annotation",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument("fasta", type=Path, help="Path to the input FASTA file")
+    parser.add_argument(
+        "-o",
+        "--output-dir",
+        type=Path,
+        default=Path("."),
+        help="Output directory for results.",
+    )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default=DEFAULT_DEVICE,
+        help="Torch device to be used - can be 'cpu', 'cuda', or 'mps'.",
+    )
+    parser.add_argument(
+        "--quick",
+        action="store_true",
+        help="Enable to skip all ESM predictions.",
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=8,
+        help="Batch size for ESM predictions - reduce this value for lower memory usage.",
+    )
+    parser.add_argument(
+        "--pfam",
+        type=Path,
+        default=Path(os.path.dirname(__file__)) / "data" / "db.hmm",
+        help="Path to the Pfam database file - by default a smaller NLR-specific database is used.",
+    )
+    return parser.parse_args()
 
 
-@app.command()
-def main(
-    fasta: Path,
-    output_dir: Annotated[
-        Path, typer.Option(help="Output directory for results.")
-    ] = Path("."),
-    device: Annotated[
-        str,
-        typer.Option(help="Torch device to be used - can be 'cpu', 'cuda', or 'mps'."),
-    ] = DEFAULT_DEVICE,
-    quick: Annotated[
-        bool, typer.Option(help="Enable to skip all ESM predictions.")
-    ] = False,
-    batch_size: Annotated[
-        int,
-        typer.Option(
-            help="Batch size for ESM predictions - reduce this value for lower memory usage."
-        ),
-    ] = 8,
-    pfam: Annotated[
-        Path,
-        typer.Option(
-            help="Path to the Pfam database file - by default a smaller NLR-specific database is used."
-        ),
-    ] = Path(os.path.dirname(__file__)) / "data" / "db.hmm",
-):
-    console.rule("Resistify 2.0.0")
-    console.log(f"Python version: {platform.python_version()}")
-    console.log(f"PyTorch version: {torch.__version__}")
-    console.log(f"Using device: {device}")
-    console.log(f"OS: {platform.system()} {platform.machine()}")
+def main():
+    args = parse_args()
 
-    proteins = hmmsearch(fasta, pfam)
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    )
 
-    if not quick:
-        predict_lrr(proteins, device, batch_size=batch_size)
+    logger.info("Resistify 2.0.0")
+    logger.info(f"Python version: {platform.python_version()}")
+    logger.info(f"PyTorch version: {torch.__version__}")
+    logger.info(f"Using device: {args.device}")
+    logger.info(f"OS: {platform.system()} {platform.machine()}")
+
+    proteins = hmmsearch(args.fasta, args.pfam)
+
+    if not args.quick:
+        predict_lrr(proteins, args.device, batch_size=args.batch_size)
 
     classify_nlrs(proteins)
 
-    save_results(proteins, output_dir)
+    save_results(proteins, args.output_dir)
 
-    console.print("Thank you for using Resistify!", style="bold")
-    console.print(":page_facing_up: https://doi.org/10.1177/11779322241308944")
+    logger.info("Thank you for using Resistify!")
+    logger.info(":page_facing_up: https://doi.org/10.1177/11779322241308944")

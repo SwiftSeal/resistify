@@ -1,7 +1,9 @@
 from dataclasses import dataclass, field
 import csv
+import logging
 from pathlib import Path
-from resistify.console import console
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -55,7 +57,7 @@ def classify_nlrs(proteins: list[Protein]):
     """
     Uses available annotation data to classify NLRs according to structure.
     """
-    console.log("Classifying NLRs")
+    logger.info("Classifying NLRs")
     for protein in proteins:
         present_domains = {a.name for a in protein.annotations}
         if "NBARC" in present_domains:
@@ -83,7 +85,7 @@ def classify_nlrs(proteins: list[Protein]):
 
 
 def save_results(proteins: list[Protein], output_dir: Path):
-    console.log("Saving results")
+    logger.info("Saving results")
     results = csv.writer(open(output_dir / "results.tsv", "w"), delimiter="\t")
     annotations = csv.writer(open(output_dir / "annotations.tsv", "w"), delimiter="\t")
 
