@@ -9,6 +9,7 @@ dependencies = [
     "transformers>=4.53.2",
     "peft>=0.17.0",
     "typer>=0.16.0",
+    "rich>=14.1.0",
 ]
 authors = [
   { name="Moray Smith", email="moraysmith98@gmail.com" },
