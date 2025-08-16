@@ -1,3 +1,6 @@
+> [!WARNING]
+> This branch is in development!
+
 <div align="center">
 
 # Resistify 🍃
@@ -5,16 +8,13 @@
 ![Conda Version](https://img.shields.io/conda/vn/bioconda/resistify)
 ![Conda Downloads](https://img.shields.io/conda/dn/bioconda/resistify)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/swiftseal/resistify/blob/main/assets/resistify.ipynb)
-[![Pixi Badge](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/prefix-dev/pixi/main/assets/badge/v0.json)](https://pixi.sh)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 
-*Resistify can now make plots! Try `resistify draw`*
 
 </div>
 
 Resistify is a program which rapidly identifies and classifies plant resistance genes from protein sequences.
 It is designed to be lightweight and easy to use.
-
-![A screenshot of the help interface of resistify](assets/terminal.png)
 
 ## Getting started
 
