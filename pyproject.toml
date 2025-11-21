@@ -2,19 +2,20 @@
 name = "resistify"
 version = "2.0.0"
 dependencies = [
-    "einops>=0.8.1",
-    "pyhmmer>=0.11.1",
-    "sentencepiece>=0.2.0",
-    "torch>=2.7.1",
-    "transformers>=4.53.2",
-    "peft>=0.17.0",
+    "pyhmmer",
+    "sentencepiece",
+    "torch",
+    "transformers",
+    "fair-esm",
+    "scikit-learn>=0.24.2",
+    "svg-py>=1.9.1",
 ]
 authors = [
   { name="Moray Smith", email="moraysmith98@gmail.com" },
 ]
 description = "A resistance gene annotation tool"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.13,<3.14"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",

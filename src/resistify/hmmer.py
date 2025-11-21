@@ -30,10 +30,9 @@ ACCESSION_DOMAINS = {
 }
 
 
-def hmmsearch(fasta: Path, pfam_path: Path) -> list[Protein]:
+def hmmsearch(fasta: Path, pfam_path: Path) -> dict[str, Protein]:
     alphabet = pyhmmer.easel.Alphabet.amino()
 
-    # Initialise a dict of protein sequences - convert to list at end
     proteins = {}
     with pyhmmer.easel.SequenceFile(fasta, digital=True, alphabet=alphabet) as seq_file:
         sequences = list(seq_file)
@@ -63,10 +62,11 @@ def hmmsearch(fasta: Path, pfam_path: Path) -> list[Protein]:
                             domain.env_from,
                             domain.env_to,
                             score=float(domain.score),
+                            source="hmmer",
                             accession=accession,
                         )
                     )
-    return list(proteins.values())
+    return proteins
 
 
 def update_pfam_db(pfam_path: Path):
