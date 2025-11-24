@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+import bisect
 import csv
 import logging
 from pathlib import Path
@@ -18,13 +19,61 @@ COLOUR_PALETTE = {
     "PKinase": "#FE6100",
 }
 
+SHORT_MOTIF_IDS = {
+    "extEDVID": "C",
+    "bA": "T",
+    "aA": "T",
+    "bC": "T",
+    "aC": "T",
+    "bDaD1": "T",
+    "aD3": "T",
+    "VG": "N",
+    "P-loop": "N",
+    "RNSB-A": "N",
+    "Walker-B": "N",
+    "RNSB-B": "N",
+    "RNSB-C": "N",
+    "RNSB-D": "N",
+    "GLPL": "N",
+    "MHD": "N",
+    "LxxLxL": "L",
+}
+
+SHORT_DOMAIN_IDS = {
+    "CC": "C",
+    "RPW8": "R",
+    "TIR": "T",
+    "NBARC": "N",
+    "LRR": "L",
+    "MADA": "m",
+    "C-JID": "j",
+}
+
+RLP_EXTERNAL_DOMAINS = [
+    "LRR",
+    "G-LecRLK",
+    "L-LecRLK",
+    "C-LecRLK",
+    "WAK",
+    "CrRLK1L",
+    "LysM",
+    "CRK",
+    "Thaumatin",
+    "CR-like",
+    "SPARK",
+    "GH18",
+    "GH19",
+    "CAP",
+    "PRIMA1",
+]
+
 
 @dataclass
 class Annotation:
     name: str  # Primary name of domain
     start: int  # 1-based
     end: int  # funnily enough also 1-based
-    type: str = "domain"  # can also be motif
+    type: str | None = None  # e.g., 'domain' or 'motif'
     source: str | None = None
     accession: str | None = None
     score: float | None = None
@@ -41,23 +90,112 @@ class Protein:
     classification: str | None = None
     annotations: list[Annotation] = field(default_factory=list)
     cc_probs: list[float] | None = None
+    transmembrane_predictions: str | None = None
 
     def __post_init__(self):
         self.length = len(self.sequence)
 
-    def get_annotation_by_name(self, annotation_name: str) -> list[Annotation]:
-        return [
-            annotation
-            for annotation in self.annotations
-            if annotation.name == annotation_name
+    @property
+    def motifs(self) -> list[Annotation]:
+        """
+        Return a list of motif annotations.
+        """
+        return [a for a in self.annotations if a.type == "motif"]
+
+    @property
+    def lrr_length(self) -> int:
+        """
+        Calculate and return the total length of all LRR domain annotations.
+        """
+        total_length = 0
+        for annotation in self.annotations:
+            if annotation.name == "LRR" and annotation.type == "domain":
+                total_length += annotation.end - annotation.start + 1
+        return total_length
+
+    @property
+    def extracellular_length(self) -> int:
+        """
+        Calculate and return the length of the extracellular region based on transmembrane predictions.
+        """
+        if self.transmembrane_predictions is None:
+            return 0
+
+        tm_end = None
+        for annotation in self.annotations:
+            if annotation.name == "alpha_inwards":
+                tm_end = annotation.start
+                break
+
+        if tm_end is None:
+            return 0
+
+        return tm_end - 1
+
+    @property
+    def nbarc_start(self) -> int | None:
+        """
+        Return the start position of the NBARC domain, if present.
+        """
+        for annotation in self.annotations:
+            if annotation.name == "NBARC" and annotation.type == "domain":
+                return annotation.start
+        return None
+
+    @property
+    def motif_string(self) -> str:
+        """
+        Returns a string of single-letter codes representing NLR motifs.
+        """
+        string = ""
+        for motif in self.motifs:
+            string += SHORT_MOTIF_IDS.get(motif.name, "")
+        return string
+
+    @property
+    def domain_string(self) -> str:
+        """
+        Returns a string of single-letter codes representing NLR domains.
+        Uses the merged domain annotations only.
+        """
+        string = ""
+        domain_annotations = [
+            a for a in self.annotations if a.type == "domain" and a.source == "merged"
         ]
+        for domain in domain_annotations:
+            string += SHORT_DOMAIN_IDS.get(domain.name, "")
+        return string
+
+    @property
+    def nbarc_motif_count(self) -> int:
+        """
+        Count the number of NBARC motifs present in the protein.
+        """
+        count = 0
+        for motif in self.motifs:
+            if motif.name in [
+                "VG",
+                "P-loop",
+                "RNSB-A",
+                "Walker-B",
+                "RNSB-B",
+                "RNSB-C",
+                "RNSB-D",
+                "GLPL",
+                "MHD",
+            ]:
+                count += 1
+        return count
 
     def add_annotation(self, annotation: Annotation):
+        """
+        Add an annotation to the protein, ensuring that it is sorted by start position.
+        """
         if not (1 <= annotation.start <= annotation.end <= self.length):
             raise ValueError(
                 f"Annotation boundaries ({annotation.start}-{annotation.end}) out of bounds for sequence of length {self.length}."
             )
-        self.annotations.append(annotation)
+        bisect.insort(self.annotations, annotation, key=lambda x: x.start)
 
     def has_annotation(self, annotation_name: str) -> bool:
         for annotation in self.annotations:
@@ -86,7 +224,9 @@ class Protein:
                     count = 1
             if count >= lrr_length:
                 # Annotate if big enough
-                self.add_annotation(Annotation("LRR", start + 1, end))
+                self.add_annotation(
+                    Annotation("LRR", start + 1, end, type="domain", source="resistify")
+                )
 
     def annotate_cc(self):
         """
@@ -135,11 +275,10 @@ class Protein:
         Add as new annotations.
         """
         domain_types = set(a.name for a in self.annotations if a.type == "domain")
+
         for domain_type in domain_types:
-            domain_annotations = sorted(
-                (a for a in self.annotations if a.name == domain_type),
-                key=lambda x: x.start,
-            )
+            domain_annotations = [a for a in self.annotations if a.name == domain_type]
+
             current_start, current_end = (
                 domain_annotations[0].start,
                 domain_annotations[0].end,
@@ -197,7 +336,64 @@ class Protein:
                     self.classification = "N"
         else:
             # No NB-ARC domain, classify as non-NLR
-            self.classification = "non-NLR"
+            self.classification = None
+
+    def is_nlr(self):
+        """
+        Determines if a protein is an NLR based on presence of NBARC domain.
+        """
+        return self.has_annotation("NBARC")
+
+    def is_rlp(self, minimum_extracellular_length=50):
+        tm_detected = False
+        n_terminal_length = 0
+
+        for annotation in self.annotations:
+            # Immediately skip beta barrels or outward alpha helices
+            if annotation.name in ["beta_inwards", "beta_outwards", "alpha_outwards"]:
+                return False
+            elif annotation.name == "alpha_inwards":
+                # If already detected an alpha helix, not single-pass
+                if tm_detected:
+                    return False
+                tm_detected = True
+                n_terminal_length = annotation.start
+
+        if not tm_detected:
+            return False
+
+        # Use extracellular length threshold to filter out non-RLPs
+        if n_terminal_length < minimum_extracellular_length:
+            return False
+        else:
+            return True
+
+    def classify_rlp(self):
+        """
+        Extract features indicative of a RLK/RLP based on TMBed topology.
+        Update protein with relevant topology information
+        """
+        # Get the positions of the transmembrane domain
+        for annotation in self.annotations:
+            if annotation.name == "alpha_inwards":
+                tm_end = annotation.end
+                tm_start = annotation.start
+
+        # Iterate through extracellular annotations and use to set the classification. Motifs and other annotations will be picked up in this, but as long as they are not in the dictionary it doesn't really matter.
+        external_domains = set()
+        for annotation in self.annotations:
+            if annotation.name == "PKinase" and annotation.start > tm_end:
+                self.type = "RLK"
+            if annotation.name in RLP_EXTERNAL_DOMAINS and annotation.end < tm_start:
+                external_domains.add(annotation.name)
+
+        external_domains = ";".join(external_domains)
+
+        # If no external domains identified, set classification to None
+        if not external_domains:
+            self.classification = None
+        else:
+            self.classification = external_domains
 
     def draw_svg(self, output_path: Path):
         elements: list[Element]
@@ -225,7 +421,7 @@ class Protein:
                     x=motif.start,
                     y=20,
                     text=motif.name,
-                    transform=[svg.Rotate(45, motif.start, 20)],
+                    transform=[svg.Rotate(-45, motif.start, 20)],
                     font_size=8,
                     font_family="sans-serif",
                 )
@@ -262,25 +458,72 @@ class Protein:
             f.write(str(canvas))
 
 
-def save_results(proteins: dict[str, Protein], output_dir: Path):
+def save_results(proteins: dict[str, Protein], output_dir: Path, command: str):
     logger.info("Saving results")
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "plots").mkdir(parents=True, exist_ok=True)
     results = csv.writer(open(output_dir / "results.tsv", "w"), delimiter="\t")
     annotations = csv.writer(open(output_dir / "annotations.tsv", "w"), delimiter="\t")
 
-    results.writerow(["id", "classification", "length", "num_lrr_motifs"])
+    if command == "nlr":
+        results.writerow(
+            [
+                "Sequence",
+                "Length",
+                "LRR_Length",
+                "Motifs",
+                "Domains",
+                "Classification",
+                "NBARC_motifs",
+                "MADA",
+                "MADAL",
+                "CJID",
+            ]
+        )
+    elif command == "prr":
+        results.writerow(
+            [
+                "Sequence",
+                "Length",
+                "Extracellular_Length",
+                "LRR_Length",
+                "Type",
+                "Classification",
+                "Signal_peptide",
+            ]
+        )
+
     annotations.writerow(["id", "name", "start", "end", "type", "accession", "score"])
 
     for protein in proteins.values():
-        results.writerow(
-            [
-                protein.id,
-                protein.classification,
-                protein.length,
-                sum(1 for a in protein.annotations if a.name == "LxxLxL"),
-            ]
-        )
+        if command == "nlr":
+            results.writerow(
+                [
+                    protein.id,
+                    protein.length,
+                    protein.lrr_length,
+                    protein.motif_string,
+                    protein.domain_string,
+                    protein.classification,
+                    protein.nbarc_motif_count,
+                    protein.has_annotation("MADA"),
+                    protein.has_annotation("MADA-like"),
+                    protein.has_annotation("C-JID"),
+                ]
+            )
+        elif command == "prr":
+            results.writerow(
+                [
+                    protein.id,
+                    protein.length,
+                    protein.extracellular_length,
+                    protein.lrr_length,
+                    protein.type,
+                    protein.classification,
+                    protein.has_annotation("signal_peptide"),
+                ]
+            )
+
         for annotation in protein.annotations:
             annotations.writerow(
                 [
@@ -294,4 +537,5 @@ def save_results(proteins: dict[str, Protein], output_dir: Path):
                     annotation.score,
                 ]
             )
+
         protein.draw_svg(output_dir / "plots" / f"{protein.id}.svg")

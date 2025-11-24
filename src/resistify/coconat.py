@@ -9,6 +9,7 @@ import os
 import warnings
 from pathlib import Path
 from resistify.annotation import Protein
+from resistify.progress import ProgressLogger
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +134,7 @@ class CoCoNatPredictor:
     def _load_models(self):
         self.embedding_processor = EmbeddingProcessor(device=self.device)
 
-        registers_model = Path(os.path.dirname(__file__)) / "models" / "dlModel.ckpt"
+        registers_model = Path(os.path.dirname(__file__)) / "data" / "coconat.ckpt"
         logger.debug("Loading registers model...")
 
         checkpoint = torch.load(registers_model, map_location=self.device)
@@ -142,7 +143,7 @@ class CoCoNatPredictor:
         self.register_model.load_state_dict(checkpoint["state_dict"])
         self.register_model.to(self.device)
         self.register_model.eval()
-        logger.info("CoCoNat models loaded successfully.")
+        logger.debug("CoCoNat models loaded successfully.")
 
     def predict_sequence(self, sequence: str, seq_id: str) -> list[float]:
         nterminal_len = len(sequence)
@@ -172,43 +173,37 @@ class CoCoNatPredictor:
         return cc_probability.tolist()
 
 
-def predict_coils(proteins: dict[str, Protein], device: str) -> dict[str, Protein]:
+def predict_coils(proteins: dict[str, Protein], device: str):
     predictor = CoCoNatPredictor(device=device)
+    logger.info("Predicting coiled-coil regions with CoCoNat...")
+    progress_logger = ProgressLogger(len(proteins))
 
     for key, protein in proteins.items():
         logger.debug(f"Processing {protein.id}...")
 
-        nbarc_domains = protein.get_annotation_by_name("NBARC")
-        nterminal_start = min([domain.start for domain in nbarc_domains], default=None)
-
-        # Use the N-terminal sequence for prediction
-        nterminal_seq = protein.sequence[0 : nterminal_start - 1]
-
-        if nterminal_seq is None:
-            logger.debug(f"{protein.id} has no N-terminal sequence, skipping...")
+        if protein.nbarc_start is None:
+            logger.debug(f"{protein.id} has no NBARC domain, skipping...")
             continue
+        else:
+            nterminal_seq = protein.sequence[: protein.nbarc_start - 1]
 
         nterminal_len = len(nterminal_seq)
 
         if nterminal_len < 5:
-            logger.debug(f"{protein.id} sequence too short for CoCoNat (< 5 residues)")
+            logger.warning(
+                f"{protein.id} sequence too short for CoCoNat (< 5 residues)"
+            )
             continue
         elif nterminal_len >= 1022:
             logger.warning(
                 f"{protein.id} sequence quite long (>= 1022), errors might occur."
             )
 
-        try:
-            cc_probs_list: list[float] = predictor.predict_sequence(
-                sequence=nterminal_seq, seq_id=protein.id
-            )
+        cc_probs_list: list[float] = predictor.predict_sequence(
+            sequence=nterminal_seq, seq_id=protein.id
+        )
 
-            protein.cc_probs = cc_probs_list
-
-        except Exception as e:
-            logger.error(f"Prediction failed for {protein.id}: {e}")
+        protein.cc_probs = cc_probs_list
 
         protein.annotate_cc()
-
-    logger.info("CoCoNat prediction complete.")
-    return proteins
+        progress_logger.update()

@@ -3,10 +3,23 @@ import pickle
 import numpy as np
 import os
 from pathlib import Path
-from resistify.annotation import Protein, Annotation
 import logging
+import warnings
+from resistify.annotation import Protein, Annotation
+from resistify.progress import ProgressLogger
 
 logger = logging.getLogger(__name__)
+
+# Version 1.3 of sklearn introduced InconsistentVersionWarning, fall back to UserWarning if not available
+# Necessary to suppress pickle version warnings
+# This will probably blow up at some point in the future
+try:
+    from sklearn.exceptions import InconsistentVersionWarning
+
+    warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
+except ImportError:
+    warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
+
 
 MOTIF_SPAN_LENGTHS = {
     "extEDVID": 12,
@@ -53,20 +66,30 @@ def load_models(search_type: str):
     models = {}
     if search_type == "all":
         for predictor, path in MOTIF_MODELS.items():
-            model_path = Path(os.path.dirname(__file__)) / "models" / path
+            model_path = (
+                Path(os.path.dirname(__file__)) / "data" / "nlrexpress_models" / path
+            )
             logger.debug(f"Loading model for {predictor}")
             model = pickle.load(open(model_path, "rb"))
             models[predictor] = model
     elif search_type == "lrr":
-        model_path = Path(os.path.dirname(__file__)) / "data" / MOTIF_MODELS["LxxLxL"]
+        model_path = (
+            Path(os.path.dirname(__file__))
+            / "data"
+            / "nlrexpress_models"
+            / MOTIF_MODELS["LxxLxL"]
+        )
         model = pickle.load(open(model_path, "rb"))
         models["LxxLxL"] = model
     return models
 
 
-def nlrexpress(proteins: dict[str, Protein]):
+def nlrexpress(
+    proteins: dict[str, Protein], search_type: str = "all", threads: int = 0
+):
     logger.info("Running NLRexpress")
-    models = load_models("all")
+    models = load_models(search_type)
+    db_path = Path(os.path.dirname(__file__)) / "data" / "nlrexpress.fa"
 
     alphabet = pyhmmer.easel.Alphabet.amino()
 
@@ -80,12 +103,18 @@ def nlrexpress(proteins: dict[str, Protein]):
             )
         )
 
-    sequences = pyhmmer.easel.SequenceFile(
-        "src/resistify/data/nlrexpress.fa", digital=True, alphabet=alphabet
-    )
+    sequences = pyhmmer.easel.SequenceFile(db_path, digital=True, alphabet=alphabet)
+
+    progress_logger = ProgressLogger(len(proteins))
 
     for result in pyhmmer.hmmer.jackhmmer(
-        queries, sequences, max_iterations=2, E=1e-5, domE=1e-5, checkpoints=True
+        queries,
+        sequences,
+        max_iterations=2,
+        E=1e-5,
+        domE=1e-5,
+        checkpoints=True,
+        cpus=threads,
     ):
         sequence_id = result[0].hmm.name.decode()
         logger.debug(f"Processing {sequence_id}")
@@ -126,3 +155,4 @@ def nlrexpress(proteins: dict[str, Protein]):
                             score=prob[1],
                         )
                     )
+        progress_logger.update()
