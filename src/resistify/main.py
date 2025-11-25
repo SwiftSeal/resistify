@@ -5,24 +5,13 @@ import argparse
 from pathlib import Path
 import logging
 from resistify.__version__ import __version__
+from resistify.parse_fasta import parse_fasta
 from resistify.annotation import save_results
 from resistify.hmmer import hmmsearch
 from resistify.nlrexpress import nlrexpress
 from resistify.coconat import predict_coils
 from resistify.tmbed import tmbed
 from resistify.hmmer import NLR_HMM_DB, RLP_HMM_DB
-
-# rich is optional
-try:
-    from resistify.console import console
-    from rich.logging import RichHandler
-    from rich_argparse import ArgumentDefaultsRichHelpFormatter
-
-    help_formatter = ArgumentDefaultsRichHelpFormatter
-    logging_handler = [RichHandler(console=console)]
-except ImportError:
-    help_formatter = argparse.ArgumentDefaultsHelpFormatter
-    logging_handler = None
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +84,7 @@ def add_common_args(parser):
 def parse_args():
     parser = argparse.ArgumentParser(
         description="A tool for identifying and classifying resistance genes in plant genomes",
-        formatter_class=help_formatter,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "-v",
@@ -145,20 +134,20 @@ def main():
     args = parse_args()
 
     level = logging.DEBUG if args.debug else logging.INFO
-    FORMAT = "%(message)s"
-    logging.basicConfig(
-        level=level, format=FORMAT, datefmt="[%X]", handlers=logging_handler
-    )
+    FORMAT = "%(asctime)s %(levelname)s - %(message)s"
+    logging.basicConfig(level=level, format=FORMAT, datefmt="[%X]")
 
-    logger.info("Resistify 2.0.0")
+    logger.info("Welcome to Resistify 2.0.0!")
     logger.info(f"Python version: {platform.python_version()}")
     logger.info(f"PyTorch version: {torch.__version__}")
     logger.info(f"Using device: {args.device}")
     logger.info(f"OS: {platform.system()} {platform.machine()}")
 
+    proteins = parse_fasta(args.input)
+
     if args.command == "nlr":
         hmmer_db = args.pfam if args.pfam is not None else NLR_HMM_DB
-        proteins = hmmsearch(args.input, hmmer_db, threads=args.threads)
+        proteins = hmmsearch(proteins, hmmer_db, threads=args.threads)
 
         if not args.retain:
             proteins = {k: v for k, v in proteins.items() if v.is_nlr()}
@@ -175,7 +164,7 @@ def main():
 
     elif args.command == "prr":
         hmmer_db = args.pfam if args.pfam is not None else RLP_HMM_DB
-        proteins = hmmsearch(args.input, hmmer_db, threads=args.threads)
+        proteins = hmmsearch(proteins, hmmer_db, threads=args.threads)
         tmbed(proteins, device=args.device)
         proteins = {k: v for k, v in proteins.items() if v.is_rlp()}
 

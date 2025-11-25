@@ -5,11 +5,11 @@ import regex as re
 import numpy as np
 import torch.nn as nn
 import logging
+from tqdm.auto import tqdm
 import os
 import warnings
 from pathlib import Path
 from resistify.annotation import Protein
-from resistify.progress import ProgressLogger
 
 logger = logging.getLogger(__name__)
 
@@ -175,14 +175,13 @@ class CoCoNatPredictor:
 
 def predict_coils(proteins: dict[str, Protein], device: str):
     predictor = CoCoNatPredictor(device=device)
-    logger.info("Predicting coiled-coil regions with CoCoNat...")
-    progress_logger = ProgressLogger(len(proteins))
+    logger.info("Predicting coiled-coil regions with CoCoNat")
 
-    for key, protein in proteins.items():
-        logger.debug(f"Processing {protein.id}...")
+    for key, protein in tqdm(proteins.items(), desc="CoCoNat"):
+        logger.debug(f"Processing {protein.id}")
 
         if protein.nbarc_start is None:
-            logger.debug(f"{protein.id} has no NBARC domain, skipping...")
+            logger.debug(f"{protein.id} has no NBARC domain - skipping")
             continue
         else:
             nterminal_seq = protein.sequence[: protein.nbarc_start - 1]
@@ -196,7 +195,7 @@ def predict_coils(proteins: dict[str, Protein], device: str):
             continue
         elif nterminal_len >= 1022:
             logger.warning(
-                f"{protein.id} sequence quite long (>= 1022), errors might occur."
+                f"{protein.id} sequence quite long (>= 1022) - errors might occur."
             )
 
         cc_probs_list: list[float] = predictor.predict_sequence(
@@ -206,4 +205,3 @@ def predict_coils(proteins: dict[str, Protein], device: str):
         protein.cc_probs = cc_probs_list
 
         protein.annotate_cc()
-        progress_logger.update()

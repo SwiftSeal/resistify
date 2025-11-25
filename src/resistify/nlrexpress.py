@@ -5,8 +5,8 @@ import os
 from pathlib import Path
 import logging
 import warnings
+from tqdm.auto import tqdm
 from resistify.annotation import Protein, Annotation
-from resistify.progress import ProgressLogger
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +87,7 @@ def load_models(search_type: str):
 def nlrexpress(
     proteins: dict[str, Protein], search_type: str = "all", threads: int = 0
 ):
-    logger.info("Running NLRexpress")
+    logger.info(f"Running NLRexpress to identify {search_type} motifs")
     models = load_models(search_type)
     db_path = Path(os.path.dirname(__file__)) / "data" / "nlrexpress.fa"
 
@@ -105,54 +105,53 @@ def nlrexpress(
 
     sequences = pyhmmer.easel.SequenceFile(db_path, digital=True, alphabet=alphabet)
 
-    progress_logger = ProgressLogger(len(proteins))
+    with tqdm(total=len(proteins)) as pbar:
+        for result in pyhmmer.hmmer.jackhmmer(
+            queries,
+            sequences,
+            max_iterations=2,
+            E=1e-5,
+            domE=1e-5,
+            checkpoints=True,
+            cpus=threads,
+            callback=lambda _, __: pbar.update(1),
+        ):
+            sequence_id = result[0].hmm.name.decode()
+            logger.debug(f"Processing {sequence_id}")
+            emission_matrix = np.concatenate(
+                (
+                    np.asarray(result[0].hmm.match_emissions[1:]),
+                    np.asarray(result[1].hmm.match_emissions[1:]),
+                ),
+                axis=1,
+            )
 
-    for result in pyhmmer.hmmer.jackhmmer(
-        queries,
-        sequences,
-        max_iterations=2,
-        E=1e-5,
-        domE=1e-5,
-        checkpoints=True,
-        cpus=threads,
-    ):
-        sequence_id = result[0].hmm.name.decode()
-        logger.debug(f"Processing {sequence_id}")
-        emission_matrix = np.concatenate(
-            (
-                np.asarray(result[0].hmm.match_emissions[1:]),
-                np.asarray(result[1].hmm.match_emissions[1:]),
-            ),
-            axis=1,
-        )
+            emission_matrix = -np.log(emission_matrix)
 
-        emission_matrix = -np.log(emission_matrix)
+            for motif_type, model in models.items():
+                logger.debug(f"Searching for {motif_type} in {sequence_id}")
+                input_rows = []
+                for i in range(
+                    5, len(emission_matrix) - MOTIF_SPAN_LENGTHS[motif_type] - 5
+                ):
+                    flattened = emission_matrix[
+                        i - 5 : i + MOTIF_SPAN_LENGTHS[motif_type] + 5 + 1
+                    ].flatten()
+                    input_rows.append(flattened)
 
-        for motif_type, model in models.items():
-            logger.debug(f"Searching for {motif_type} in {sequence_id}")
-            input_rows = []
-            for i in range(
-                5, len(emission_matrix) - MOTIF_SPAN_LENGTHS[motif_type] - 5
-            ):
-                flattened = emission_matrix[
-                    i - 5 : i + MOTIF_SPAN_LENGTHS[motif_type] + 5 + 1
-                ].flatten()
-                input_rows.append(flattened)
+                input_array = np.array(input_rows)
 
-            input_array = np.array(input_rows)
+                predictions = model.predict_proba(input_array)
 
-            predictions = model.predict_proba(input_array)
-
-            for i, prob in enumerate(predictions):
-                if prob[1] > 0.8:
-                    proteins[sequence_id].add_annotation(
-                        Annotation(
-                            name=motif_type,
-                            type="motif",
-                            start=i + 1,
-                            end=i + MOTIF_SPAN_LENGTHS[motif_type],
-                            source="nlrexpress",
-                            score=prob[1],
+                for i, prob in enumerate(predictions):
+                    if prob[1] > 0.8:
+                        proteins[sequence_id].add_annotation(
+                            Annotation(
+                                name=motif_type,
+                                type="motif",
+                                start=i + 1,
+                                end=i + MOTIF_SPAN_LENGTHS[motif_type],
+                                source="nlrexpress",
+                                score=prob[1],
+                            )
                         )
-                    )
-        progress_logger.update()

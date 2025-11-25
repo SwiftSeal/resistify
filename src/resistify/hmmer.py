@@ -3,6 +3,8 @@ import os
 import logging
 from pathlib import Path
 import pyhmmer
+from tqdm.auto import tqdm
+from pyhmmer.easel import DigitalSequence
 from resistify.annotation import Protein, Annotation
 
 logger = logging.getLogger(__name__)
@@ -65,23 +67,28 @@ RLP_ACCESSION_DOMAINS = {
 ACCESSION_DOMAINS = {**NLR_ACCESSION_DOMAINS, **RLP_ACCESSION_DOMAINS}
 
 
-def hmmsearch(fasta: Path, database: Path, threads: int = 0) -> dict[str, Protein]:
+def hmmsearch(proteins: dict[str, Protein], database: Path, threads: int = 0):
+    logger.info(f"Running hmmsearch against {database}")
     alphabet = pyhmmer.easel.Alphabet.amino()
-    proteins = {}
     sequences = []
 
-    with pyhmmer.easel.SequenceFile(fasta, digital=True, alphabet=alphabet) as seq_file:
-        sequences = list(seq_file)
-        for sequence in sequences:
-            id = sequence.name.decode()
-            aa = alphabet.decode(sequence.sequence)
-            proteins[id] = Protein(id, aa)
+    for protein in proteins.values():
+        sequences.append(
+            DigitalSequence(
+                name=protein.id.encode(),
+                sequence=alphabet.encode(protein.sequence),
+                alphabet=alphabet,
+            )
+        )
 
-    logger.info(f"{len(proteins)} sequences have been loaded")
-
-    with pyhmmer.plan7.HMMFile(database) as hmm_file:
+    with pyhmmer.plan7.HMMFile(database) as hmm_file, tqdm(total=len(proteins)) as pbar:
         for tophit in pyhmmer.hmmsearch(
-            hmm_file, sequences, bit_cutoffs="gathering", Z=45638612, cpus=threads
+            hmm_file,
+            sequences,
+            bit_cutoffs="gathering",
+            Z=45638612,
+            cpus=threads,
+            callback=lambda _, __: pbar.update(1),
         ):
             accession = tophit.query.accession.decode().split(".")[0]
             try:
@@ -103,6 +110,7 @@ def hmmsearch(fasta: Path, database: Path, threads: int = 0) -> dict[str, Protei
                             accession=accession,
                         )
                     )
+    logger.info("hmmsearch completed")
     return proteins
 
 

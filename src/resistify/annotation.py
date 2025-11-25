@@ -193,7 +193,7 @@ class Protein:
         """
         if not (1 <= annotation.start <= annotation.end <= self.length):
             raise ValueError(
-                f"Annotation boundaries ({annotation.start}-{annotation.end}) out of bounds for sequence of length {self.length}."
+                f"Annotation boundaries ({annotation.start}-{annotation.end}) out of bounds for sequence of length {self.length}"
             )
         bisect.insort(self.annotations, annotation, key=lambda x: x.start)
 
@@ -218,7 +218,11 @@ class Protein:
                 else:
                     if count >= lrr_length:
                         # Annotate if big enough
-                        self.add_annotation(Annotation("LRR", start + 1, end))
+                        self.add_annotation(
+                            Annotation(
+                                "LRR", start + 1, end, type="domain", source="resistify"
+                            )
+                        )
                     start = pos
                     end = pos
                     count = 1
@@ -276,6 +280,9 @@ class Protein:
         """
         domain_types = set(a.name for a in self.annotations if a.type == "domain")
 
+        # Add these last to avoid modifying the list while iterating
+        merged_domains = []
+
         for domain_type in domain_types:
             domain_annotations = [a for a in self.annotations if a.name == domain_type]
 
@@ -289,7 +296,7 @@ class Protein:
                     current_end = max(current_end, annotation.end)
                 else:
                     # No overlap, save current and move to next
-                    self.add_annotation(
+                    merged_domains.append(
                         Annotation(
                             name=domain_type,
                             start=current_start,
@@ -300,7 +307,7 @@ class Protein:
                     )
                     current_start, current_end = annotation.start, annotation.end
             # Add the last merged domain
-            self.add_annotation(
+            merged_domains.append(
                 Annotation(
                     name=domain_type,
                     start=current_start,
@@ -309,6 +316,9 @@ class Protein:
                     source="merged",
                 )
             )
+
+        for merged_domain in merged_domains:
+            self.add_annotation(merged_domain)
 
     def classify_nlr(self):
         """

@@ -1,15 +1,13 @@
 import os
-import numpy
 import math
-import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import logging
 import warnings
+from tqdm.auto import tqdm
 from transformers import T5EncoderModel, T5Tokenizer
 from resistify.annotation import Protein, Annotation
-from resistify.progress import ProgressLogger
 
 logger = logging.getLogger(__name__)
 
@@ -335,15 +333,6 @@ class Predictor(nn.Module):
         return x
 
 
-def seed_all(seed):
-    random.seed(seed)
-    numpy.random.seed(seed)
-    torch.manual_seed(seed)
-
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.deterministic = True
-
-
 def gaussian(x, std):
     pi = torch.tensor(math.pi)
     s2 = 2.0 * torch.tensor(std).square()
@@ -413,7 +402,7 @@ def predict_sequences(models, embedding, mask):
 
 
 def tmbed(proteins: dict[str, Protein], device: str):
-    logger.info("Predicting transmembrane domains...")
+    logger.info("Predicting transmembrane domains with TMBed")
 
     logger.debug("Loading encoder")
     encoder = T5Encoder(torch.cuda.is_available())
@@ -422,14 +411,13 @@ def tmbed(proteins: dict[str, Protein], device: str):
 
     models = load_models(device)
 
-    progress_logger = ProgressLogger(len(proteins))
-    for key, protein in proteins.items():
+    for key, protein in tqdm(proteins.items()):
         try:
-            logger.debug(f"Predicting transmembrane domains for {protein.id}...")
+            logger.debug(f"Predicting transmembrane domains for {protein.id}")
             embedding = encoder.embed(protein.sequence)
         except torch.cuda.OutOfMemoryError:
             logger.warning(
-                f"GPU ran out of memory when encoding {protein.id} - skipping..."
+                f"GPU ran out of memory when encoding {protein.id} - skipping"
             )
             continue
 
@@ -480,4 +468,5 @@ def tmbed(proteins: dict[str, Protein], device: str):
                 source="tmbed",
             )
         )
-        progress_logger.update()
+
+    logger.info("TMBed prediction completed")
