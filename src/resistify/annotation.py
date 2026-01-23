@@ -445,9 +445,12 @@ class Protein:
                 svg.Rect(
                     x=domain.start,
                     y=30,
+                    rx=10,
+                    ry=10,
                     width=domain.end - domain.start + 1,
                     height=40,
                     fill=COLOUR_PALETTE.get(domain.name, "grey"),
+                    color="black"
                 )
             )
             elements.append(
@@ -455,10 +458,10 @@ class Protein:
                     x=domain.start + (domain.end - domain.start) / 2,
                     y=50,
                     text=domain.name,
-                    font_size=12,
+                    font_size=24,
                     font_family="sans-serif",
-                    font_weight="bold",
                     text_anchor="middle",
+                    dominant_baseline="middle"
                 )
             )
 

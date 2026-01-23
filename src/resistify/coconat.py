@@ -85,7 +85,7 @@ class EmbeddingProcessor:
 
         # ESM Model
         self.esm_model, self.esm_alphabet = esm.pretrained.esm2_t33_650M_UR50D()
-        self.esm_model.eval()
+        self.esm_model.eval().to(self.device)
         self.batch_converter = self.esm_alphabet.get_batch_converter()
 
     def process_prot_t5_embedding(self, sequence: str, length: int) -> np.ndarray:

@@ -118,13 +118,20 @@ def nlrexpress(
         ):
             sequence_id = result[0].hmm.name.decode()
             logger.debug(f"Processing {sequence_id}")
-            emission_matrix = np.concatenate(
-                (
-                    np.asarray(result[0].hmm.match_emissions[1:]),
-                    np.asarray(result[1].hmm.match_emissions[1:]),
-                ),
-                axis=1,
-            )
+            try:
+                emission_matrix = np.concatenate(
+                    (
+                        np.asarray(result[0].hmm.match_emissions[1:]),
+                        np.asarray(result[1].hmm.match_emissions[1:]),
+                    ),
+                    axis=1,
+                )
+            except IndexError:
+                # This will occur if the second iteration fails.
+                logger.warning(
+                    f"No second iteration result for {sequence_id} - skipping"
+                )
+                continue
 
             emission_matrix = -np.log(emission_matrix)
 

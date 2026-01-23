@@ -20,7 +20,7 @@ NLR_ACCESSION_DOMAINS = {
     "PF00931": "NBARC",
     "PF00560": "LRR",
     "PF07725": "LRR",
-    "PF12061": "LRR",
+    #"PF12061": "LRR", R1
     "PF12799": "LRR",
     "PF13855": "LRR",
     "PF23211": "LRR",
@@ -81,14 +81,13 @@ def hmmsearch(proteins: dict[str, Protein], database: Path, threads: int = 0):
             )
         )
 
-    with pyhmmer.plan7.HMMFile(database) as hmm_file, tqdm(total=len(proteins)) as pbar:
+    with pyhmmer.plan7.HMMFile(database) as hmm_file:
         for tophit in pyhmmer.hmmsearch(
             hmm_file,
             sequences,
             bit_cutoffs="gathering",
             Z=45638612,
             cpus=threads,
-            callback=lambda _, __: pbar.update(1),
         ):
             accession = tophit.query.accession.decode().split(".")[0]
             try:
