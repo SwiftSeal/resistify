@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = "==3.13.*"
 
 [[package]]
@@ -358,33 +358,19 @@ wheels = [
 ]
 
 [[package]]
-name = "pyfastx"
-version = "2.2.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/a5/54/b91919749f641cae82a804a8d0c582443d32db1ec0cc0d3af30b135567d6/pyfastx-2.2.0.tar.gz", hash = "sha256:80f1585a0c0fd021d1e0091ec4275a2bed6587633bf69165748ff1a541fdcc27", size = 261063, upload-time = "2024-12-24T15:02:27.47Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/03/6b/3714e63b7419f3ae409769ae3e0b8cbbdb6c0139136af46a018cc00ae072/pyfastx-2.2.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:f8c7f07c70db9fee1769baafd75e89e2a9d9eb6055269fc2dc349a6e5c7f6b3c", size = 781767, upload-time = "2024-12-24T15:00:49.105Z" },
-    { url = "https://files.pythonhosted.org/packages/ed/7a/ff65d178a9276ab71349f046ce5ca23d1d354afa5efad063ee0c5da5e44c/pyfastx-2.2.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:bff0eb6452ceca2d5402259014a1cb1f9cf4359f3f1cb5059a3ccaf4874f0d81", size = 841789, upload-time = "2024-12-24T15:00:52.235Z" },
-    { url = "https://files.pythonhosted.org/packages/32/a4/54f6b8565771ced2cb1338ce0535f1a69848891b3a20382b076f97233255/pyfastx-2.2.0-cp313-cp313-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:110fe413ba9eaece38857db77e75fa18f7ff5426013cac260819715ab3738f1a", size = 904392, upload-time = "2024-12-24T15:00:54.806Z" },
-    { url = "https://files.pythonhosted.org/packages/68/a9/c315455c6937e626dabe564a7cd01021b4dd264bd096e51f5cb9a04e7c1b/pyfastx-2.2.0-cp313-cp313-musllinux_1_2_i686.whl", hash = "sha256:1183e7c2be568186bcb7b7ccd76d3b80d37d14191c80236dca2de23e18e42d10", size = 939572, upload-time = "2024-12-24T15:00:57.476Z" },
-    { url = "https://files.pythonhosted.org/packages/03/51/ac63cf8bb9b14627084004ddfdc3fcf7adf9672187af4d765d6f75f6549a/pyfastx-2.2.0-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:16a211abc16184e20edcc7f4329590d4a68ec43a4782fa70e5883adae41703cf", size = 869502, upload-time = "2024-12-24T15:01:00.713Z" },
-    { url = "https://files.pythonhosted.org/packages/44/8c/f02503197b99b09c62a90af4dc8189efbe0aefe2786655c77fcd51207aad/pyfastx-2.2.0-cp313-cp313-win32.whl", hash = "sha256:346c6f54019ae065ab6194d75c821bdbbdc27e667f41f3675bc1364785737313", size = 575085, upload-time = "2024-12-24T15:01:02.961Z" },
-    { url = "https://files.pythonhosted.org/packages/f5/df/8b44bfe9c43a2d4d3ba48da23c2becddd053ea9065a894559f322aa38f8b/pyfastx-2.2.0-cp313-cp313-win_amd64.whl", hash = "sha256:3d6b882594b233724dfa9ecca4d2fd55456bf6b08c9b79aa4dc06ff15c1ffdea", size = 681832, upload-time = "2024-12-24T15:01:05.275Z" },
-]
-
-[[package]]
 name = "pyhmmer"
-version = "0.11.1"
+version = "0.12.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "psutil" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/71/c6/19e7c009e9c58c1d0d30a47ca0ac0c60ccb9effb62848afa55d53d3a17e3/pyhmmer-0.11.1.tar.gz", hash = "sha256:f83e9a7d80f31713c52291b5c888dddb98c1e765222e064c40d56e87ad91cc4e", size = 7289346, upload-time = "2025-05-08T16:42:31.347Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b7/55/44372be1e0883df7c056bbfb979d329c033db6a1b5b304144fbaebdd55e7/pyhmmer-0.12.0.tar.gz", hash = "sha256:27cdfd3cdf72abcc7a6670825fc0195e8ff01d4820efd0f99aec03d3972a922e", size = 4403687, upload-time = "2026-01-22T18:21:20.365Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d7/d4/eafdce604df0ee2c26fb7ef63c22669eca3c8a62f56013d3fab881ddd58d/pyhmmer-0.11.1-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:3b1ea653527b8b366ef22f77ec706f39511db74b391c5ebc5de0e16922da83bf", size = 4869039, upload-time = "2025-05-08T16:41:54.308Z" },
-    { url = "https://files.pythonhosted.org/packages/fb/80/610b4cf30d427414b661f7e06396c066d385086bab6a95f1882a12a5e9ba/pyhmmer-0.11.1-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:6ef01b65abda8d663d508fb130b1eafc9270ffe1ce3798f8cacf68f23e6b40c9", size = 4679328, upload-time = "2025-05-08T16:41:56.094Z" },
-    { url = "https://files.pythonhosted.org/packages/7a/a2/fa6ef30567cbb6937edbc851687e807983527ef62125bce102ac2b6d9f46/pyhmmer-0.11.1-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:0baf15441642dd19ed717fe96d6d26b7ae766922b9555c1b7a4fa72f4ed41b52", size = 4997941, upload-time = "2025-05-08T16:41:58.438Z" },
-    { url = "https://files.pythonhosted.org/packages/42/1a/4713dc267dc590665f7ab34618b976cbede4d590b99fd08ac54d6c6254e9/pyhmmer-0.11.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:23676d466fa80fa208690bbb16e2f986bc252e721f87770c08194dca909a9bd4", size = 5107012, upload-time = "2025-05-08T16:42:00.909Z" },
+    { url = "https://files.pythonhosted.org/packages/5b/9f/a658a4ab7097554f8f9658c73b6a3fc122c90b4276cca09f577c4fbabd06/pyhmmer-0.12.0-cp312-abi3-macosx_10_13_x86_64.whl", hash = "sha256:3f1a8b457d3b2431649850abfce4913aaef8fd5df6eef3fa6459615cf41d40e1", size = 3676665, upload-time = "2026-01-22T18:20:43.669Z" },
+    { url = "https://files.pythonhosted.org/packages/29/26/f577dfa0589803c16e2605d589a4bd35b939bff27a958646eee1bc1c400f/pyhmmer-0.12.0-cp312-abi3-macosx_11_0_arm64.whl", hash = "sha256:8ba597ac43dae659f72129c0128e2b770535a8287f47703583de30ee00af3114", size = 3506887, upload-time = "2026-01-22T18:20:45.161Z" },
+    { url = "https://files.pythonhosted.org/packages/c3/3f/f71d11a064cdbd4db2538e4fb60d4f4729dc3c2dea03e723f007ed0ac08c/pyhmmer-0.12.0-cp312-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:aa608776044ddc1b975193f66421db8c4d0aa0068b4e749fced3c17444688de2", size = 3846540, upload-time = "2026-01-22T18:20:46.557Z" },
+    { url = "https://files.pythonhosted.org/packages/ee/a1/c8856bad09a1e1687d40bf73f1ffddf154aeab580b3824f0766d9c05b61a/pyhmmer-0.12.0-cp312-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:dba96c620f479ec21a5d8ca6c233fd611202f2b757809cd30d838c73a2e681ff", size = 3962878, upload-time = "2026-01-22T18:20:48.111Z" },
+    { url = "https://files.pythonhosted.org/packages/d3/ab/56a3ce5386ac1e3a5c39d00d3fd90b9dca61ffce40566992de083f361178/pyhmmer-0.12.0-cp312-abi3-win_amd64.whl", hash = "sha256:5e710318098088f17cb2bfa9f2f3daeb055618c2790211e00f7157032b328de1", size = 4050280, upload-time = "2026-01-22T18:20:49.485Z" },
 ]
 
 [[package]]
@@ -448,7 +434,6 @@ source = { editable = "." }
 dependencies = [
     { name = "fair-esm" },
     { name = "numpy" },
-    { name = "pyfastx" },
     { name = "pyhmmer" },
     { name = "scikit-learn" },
     { name = "sentencepiece" },
@@ -462,8 +447,7 @@ dependencies = [
 requires-dist = [
     { name = "fair-esm" },
     { name = "numpy", specifier = ">=2.3.2" },
-    { name = "pyfastx", specifier = ">=2.2.0" },
-    { name = "pyhmmer" },
+    { name = "pyhmmer", specifier = ">=0.12.0" },
     { name = "scikit-learn", specifier = ">=0.24.2" },
     { name = "sentencepiece" },
     { name = "svg-py", specifier = ">=1.9.1" },

@@ -116,7 +116,7 @@ def nlrexpress(
             cpus=threads,
             callback=lambda _, __: pbar.update(1),
         ):
-            sequence_id = result[0].hmm.name.decode()
+            sequence_id = result[0].hmm.name
             logger.debug(f"Processing {sequence_id}")
             try:
                 emission_matrix = np.concatenate(

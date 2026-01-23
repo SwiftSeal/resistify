@@ -53,7 +53,7 @@ def add_common_args(parser):
         "--device",
         type=str,
         default=DEFAULT_DEVICE,
-        help="Torch device to be used - can be 'cpu', 'cuda', or 'mps'",
+        choices=["cpu", "cuda", "mps"],
     )
     parser.add_argument(
         "--lrr_gap",

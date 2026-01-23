@@ -89,13 +89,13 @@ def hmmsearch(proteins: dict[str, Protein], database: Path, threads: int = 0):
             Z=45638612,
             cpus=threads,
         ):
-            accession = tophit.query.accession.decode().split(".")[0]
+            accession = tophit.query.accession.split(".")[0]
             try:
                 name = ACCESSION_DOMAINS[accession]
             except KeyError:
-                name = tophit.query.name.decode()
+                name = tophit.query.name
             for hit in tophit:
-                id = hit.name.decode()
+                id = hit.name
                 # Can use included to only add high-scoring domain matches
                 for domain in hit.domains.included:
                     proteins[id].add_annotation(
@@ -120,7 +120,7 @@ def update_pfam_db(pfam_path: Path):
         open(RLP_HMM_DB, "wb") as rlp,
     ):
         for hmm in hmm_file:
-            accession = hmm.accession.decode().split(".")[0]
+            accession = hmm.accession.split(".")[0]
             if accession in NLR_ACCESSION_DOMAINS.keys():
                 hmm.write(nlr, binary=False)
             elif accession in RLP_ACCESSION_DOMAINS.keys():

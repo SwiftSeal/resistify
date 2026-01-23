@@ -87,6 +87,7 @@ class Annotation:
 class Protein:
     id: str
     sequence: str
+    type: str | None = None # Can be NLR, RLK, RLP, or None
     classification: str | None = None
     annotations: list[Annotation] = field(default_factory=list)
     cc_probs: list[float] | None = None
