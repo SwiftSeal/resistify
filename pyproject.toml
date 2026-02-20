@@ -3,16 +3,13 @@ name = "resistify"
 version = "2.0.0"
 dependencies = [
     "pyhmmer>=0.12.0",
-    "sentencepiece",
-    "torch",
-    "transformers",
-    "fair-esm",
     "scikit-learn>=0.24.2",
     "svg-py>=1.9.1",
     "numpy>=2.3.2",
-    "tqdm>=4.67.1",
+    "fair-esm",
+    "torch",
+    "transformers",
 ]
-
 authors = [
   { name="Moray Smith", email="moraysmith98@gmail.com" },
 ]

@@ -5,6 +5,7 @@ import logging
 from pathlib import Path
 import svg
 from svg import Element
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,23 @@ COLOUR_PALETTE = {
     "signal_peptide": "#648FFF",
     "alpha_inwards": "#DC267F",
     "PKinase": "#FE6100",
+    "extEDVID": "#648FFF",
+    "bA": "#DC267F",
+    "aA": "#DC267F",
+    "bC": "#DC267F",
+    "aC": "#DC267F",
+    "bDaD1": "#DC267F",
+    "aD3": "#DC267F",
+    "VG": "#FE6100",
+    "P-loop": "#FE6100",
+    "RNSB-A": "#FE6100",
+    "Walker-B": "#FE6100",
+    "RNSB-B": "#FE6100",
+    "RNSB-C": "#FE6100",
+    "RNSB-D": "#FE6100",
+    "GLPL": "#FE6100",
+    "MHD": "#FE6100",
+    "LxxLxL": "#FFB000",
 }
 
 SHORT_MOTIF_IDS = {
@@ -409,9 +427,16 @@ class Protein:
     def draw_svg(self, output_path: Path):
         elements: list[Element]
 
+        # Draw main sequence
         elements = [
-            svg.Line(
-                x1=0, x2=self.length, y1=50, y2=50, stroke="black", stroke_width=2
+            svg.Rect(
+                x=0,
+                y=30,
+                width=self.length,
+                height=40,
+                fill="lightgrey",
+                stroke="black",
+                stroke_width=2,
             ),
         ]
 
@@ -421,10 +446,10 @@ class Protein:
                 svg.Line(
                     x1=motif.start,
                     x2=motif.start,
-                    y1=50,
-                    y2=20,
+                    y1=10,
+                    y2=30,
                     stroke="black",
-                    stroke_width=1,
+                    stroke_width=2,
                 ),
             )
             elements.append(
@@ -435,6 +460,7 @@ class Protein:
                     transform=[svg.Rotate(-45, motif.start, 20)],
                     font_size=8,
                     font_family="sans-serif",
+                    fill=COLOUR_PALETTE.get(motif.name, "black"),
                 )
             )
 
@@ -446,12 +472,11 @@ class Protein:
                 svg.Rect(
                     x=domain.start,
                     y=30,
-                    rx=10,
-                    ry=10,
                     width=domain.end - domain.start + 1,
                     height=40,
                     fill=COLOUR_PALETTE.get(domain.name, "grey"),
-                    color="black"
+                    stroke="black",
+                    stroke_width=2,
                 )
             )
             elements.append(
@@ -552,4 +577,5 @@ def save_results(proteins: dict[str, Protein], output_dir: Path, command: str):
                 ]
             )
 
-        protein.draw_svg(output_dir / "plots" / f"{protein.id}.svg")
+        protein.draw_svg(output_dir / "plots" / f"{re.sub(r'[\\/*?:<>|]', '', protein.id)}.svg")
+

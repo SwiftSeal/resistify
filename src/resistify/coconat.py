@@ -1,20 +1,13 @@
 import torch
 import esm
 from transformers import T5EncoderModel, T5Tokenizer
-import regex as re
-import numpy as np
 import torch.nn as nn
 import logging
-from tqdm.auto import tqdm
-import os
-import warnings
 from pathlib import Path
 from resistify.annotation import Protein
+from resistify.device import get_device
 
 logger = logging.getLogger(__name__)
-
-warnings.filterwarnings("ignore", category=FutureWarning)
-
 
 class TransposeX(nn.Module):
     def __init__(self):
@@ -23,10 +16,7 @@ class TransposeX(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return torch.transpose(x, -2, -1)
 
-
-# MMModelLSTM and EmbeddingProcessor remain unchanged (except for minor type adjustments)
 class MMModelLSTM(nn.Module):
-    # ... (MMModelLSTM implementation as before) ...
     def __init__(
         self,
         IN_SIZE: int = 2304,
@@ -61,147 +51,90 @@ class MMModelLSTM(nn.Module):
 
     def forward(self, x: torch.Tensor, lengths: list[int]) -> torch.Tensor:
         x = self.cnn(x)
-        # Type casting `lengths` to torch.Tensor for pack_padded_sequence
+        
+        # Ensure lengths is a CPU tensor for pack_padded_sequence
+        len_tensor = torch.as_tensor(lengths, dtype=torch.int64, device='cpu')
+        
         x = torch.nn.utils.rnn.pack_padded_sequence(
-            x, torch.tensor(lengths), batch_first=True, enforce_sorted=False
+            x, len_tensor, batch_first=True, enforce_sorted=False
         )
         x, _ = self.lstm(x)
         x, _ = torch.nn.utils.rnn.pad_packed_sequence(x, batch_first=True)
-        x = self.final(self.linear(x))
-        return x
-
-
-class EmbeddingProcessor:
-    # ... (EmbeddingProcessor implementation as before) ...
-    def __init__(self, device: str):
-        self.device = device
-        # ProtT5 Model
-        self.prot_t5_model: T5EncoderModel = T5EncoderModel.from_pretrained(
-            "Rostlab/prot_t5_xl_half_uniref50-enc"
-        ).to(self.device)
-        self.prot_t5_tokenizer: T5Tokenizer = T5Tokenizer.from_pretrained(
-            "Rostlab/prot_t5_xl_half_uniref50-enc"
-        )
-
-        # ESM Model
-        self.esm_model, self.esm_alphabet = esm.pretrained.esm2_t33_650M_UR50D()
-        self.esm_model.eval().to(self.device)
-        self.batch_converter = self.esm_alphabet.get_batch_converter()
-
-    def process_prot_t5_embedding(self, sequence: str, length: int) -> np.ndarray:
-        # ... (ProtT5 embedding logic as before) ...
-        seq = [" ".join(list(re.sub(r"[UZOB]", "X", sequence)))]
-
-        ids = self.prot_t5_tokenizer.batch_encode_plus(
-            seq, add_special_tokens=True, padding="longest"
-        )
-        input_ids = torch.tensor(ids["input_ids"]).to(self.device)
-        attention_mask = torch.tensor(ids["attention_mask"]).to(self.device)
-
-        with torch.no_grad():
-            embedding_repr = self.prot_t5_model(
-                input_ids=input_ids, attention_mask=attention_mask
-            )
-
-        return embedding_repr.last_hidden_state[0, :length].detach().cpu().numpy()
-
-    def process_esm_embedding(self, seq_id: str, seq: str) -> np.ndarray:
-        # ... (ESM embedding logic as before) ...
-        batch_labels, batch_strs, batch_tokens = self.batch_converter(
-            [
-                (seq_id, seq),
-            ]
-        )
-
-        with torch.no_grad():
-            results = self.esm_model(
-                batch_tokens.to(self.device), repr_layers=[33], return_contacts=False
-            )
-
-        token_representations = results["representations"][33]
-        seq_len = len(seq)
-
-        return token_representations[0, 1 : seq_len + 1].detach().cpu().numpy()
-
+        
+        x = self.linear(x)
+        return self.final(x)
 
 class CoCoNatPredictor:
     def __init__(self, device: str):
         self.device = torch.device(device)
-        logger.info(f"Initializing CoCoNat on device: {self.device}")
-
         self._load_models()
 
     def _load_models(self):
-        self.embedding_processor = EmbeddingProcessor(device=self.device)
+        # ProtT5 - Use half precision by default
+        self.t5_tokenizer = T5Tokenizer.from_pretrained("Rostlab/prot_t5_xl_half_uniref50-enc", do_lower_case=False)
+        self.t5_model = T5EncoderModel.from_pretrained("Rostlab/prot_t5_xl_half_uniref50-enc").to(self.device).eval()
 
-        registers_model = Path(os.path.dirname(__file__)) / "data" / "coconat.ckpt"
-        logger.debug("Loading registers model...")
+        # ESM2
+        self.esm_model, self.esm_alphabet = esm.pretrained.esm2_t33_650M_UR50D()
+        self.esm_model = self.esm_model.to(self.device).eval()
+        self.esm_batch_converter = self.esm_alphabet.get_batch_converter()
 
-        checkpoint = torch.load(registers_model, map_location=self.device)
+        # CoCoNat LSTM
+        model_path = Path(__file__).parent / "data" / "coconat.ckpt"
+        checkpoint = torch.load(model_path, map_location=self.device)
+        self.reg_model = MMModelLSTM().to(self.device).eval()
+        self.reg_model.load_state_dict(checkpoint["state_dict"])
 
-        self.register_model = MMModelLSTM()
-        self.register_model.load_state_dict(checkpoint["state_dict"])
-        self.register_model.to(self.device)
-        self.register_model.eval()
-        logger.debug("CoCoNat models loaded successfully.")
+    @torch.inference_mode()
+    def predict_batch(self, batch_proteins: list[tuple[str, str]]):
+        # batch_proteins = [(id, seq), ...]
+        ids, seqs = zip(*batch_proteins)
+        lengths = [len(s) for s in seqs]
 
-    def predict_sequence(self, sequence: str, seq_id: str) -> list[float]:
-        nterminal_len = len(sequence)
+        # 1. ProtT5 Embeddings
+        # Pre-process sequences: replace rare AAs and add spaces for T5
+        t5_seqs = [" ".join(list(s.replace("U", "X").replace("Z", "X").replace("O", "X").replace("B", "X"))) for s in seqs]
+        t5_inputs = self.t5_tokenizer(t5_seqs, return_tensors="pt", padding=True).to(self.device)
+        t5_emb = self.t5_model(**t5_inputs).last_hidden_state
+        
+        # Remove padding and special tokens to match original lengths
+        # In a batch, we take only the valid residue parts
+        t5_res = [t5_emb[i, :lengths[i]] for i in range(len(lengths))]
 
-        prot_t5_embeddings = self.embedding_processor.process_prot_t5_embedding(
-            sequence, nterminal_len
-        )
-        esm_embeddings = self.embedding_processor.process_esm_embedding(
-            seq_id, sequence
-        )
+        # 2. ESM Embeddings
+        _, _, esm_tokens = self.esm_batch_converter(batch_proteins)
+        esm_out = self.esm_model(esm_tokens.to(self.device), repr_layers=[33])["representations"][33]
+        esm_res = [esm_out[i, 1 : lengths[i] + 1] for i in range(len(lengths))]
 
-        merged_np = np.hstack((prot_t5_embeddings, esm_embeddings))
-        merged_tensor = torch.from_numpy(merged_np).unsqueeze(0).to(self.device).float()
+        # 3. Merge and Predict
+        results = {}
+        for i in range(len(lengths)):
+            merged = torch.cat([t5_res[i], esm_res[i]], dim=-1).unsqueeze(0)
+            pred = self.reg_model(merged, [lengths[i]])
+            cc_prob = 1 - pred[0, :, 0]
+            results[ids[i]] = cc_prob.cpu().numpy().tolist()
 
-        with torch.no_grad():
-            prediction_output = (
-                self.register_model(merged_tensor, [nterminal_len])
-                .detach()
-                .cpu()
-                .numpy()
-            )
+        return results
 
-        non_cc_probability = prediction_output[0, :, 0]
-
-        cc_probability = 1 - non_cc_probability
-
-        return cc_probability.tolist()
-
-
-def predict_coils(proteins: dict[str, Protein], device: str):
+def predict_coils(proteins: dict[str, Protein], device: str, batch_size: int):
+    if device is None:
+        device = get_device()
+    
     predictor = CoCoNatPredictor(device=device)
-    logger.info("Predicting coiled-coil regions with CoCoNat")
+    
+    # Filter and prepare N-terminal sequences
+    to_process = []
+    for p in proteins.values():
+        if p.nbarc_start and p.nbarc_start > 5:
+            seq = p.sequence[: p.nbarc_start - 1]
+            # Cap sequence for ESM/T5 memory safety if necessary, but you mentioned N-term focus
+            to_process.append((p.id, seq))
 
-    for key, protein in tqdm(proteins.items(), desc="CoCoNat"):
-        logger.debug(f"Processing {protein.id}")
-
-        if protein.nbarc_start is None:
-            logger.debug(f"{protein.id} has no NBARC domain - skipping")
-            continue
-        else:
-            nterminal_seq = protein.sequence[: protein.nbarc_start - 1]
-
-        nterminal_len = len(nterminal_seq)
-
-        if nterminal_len < 5:
-            logger.warning(
-                f"{protein.id} sequence too short for CoCoNat (< 5 residues)"
-            )
-            continue
-        elif nterminal_len >= 1022:
-            logger.warning(
-                f"{protein.id} sequence quite long (>= 1022) - errors might occur."
-            )
-
-        cc_probs_list: list[float] = predictor.predict_sequence(
-            sequence=nterminal_seq, seq_id=protein.id
-        )
-
-        protein.cc_probs = cc_probs_list
-
-        protein.annotate_cc()
+    # Process in batches
+    for i in range(0, len(to_process), batch_size):
+        batch = to_process[i : i + batch_size]
+        batch_results = predictor.predict_batch(batch)
+        
+        for p_id, cc_probs in batch_results.items():
+            proteins[p_id].cc_probs = cc_probs
+            proteins[p_id].annotate_cc()

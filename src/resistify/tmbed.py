@@ -8,6 +8,7 @@ import warnings
 from tqdm.auto import tqdm
 from transformers import T5EncoderModel, T5Tokenizer
 from resistify.annotation import Protein, Annotation
+from resistify.device import get_device
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +26,6 @@ STATES = {
     "i": "inside",
     "o": "outside",
 }
-
 
 class Decoder(nn.Module):
     def __init__(self):
@@ -150,15 +150,10 @@ class Decoder(nn.Module):
 
         return best_tags_arr.transpose(0, 1)
 
-
 class T5Encoder:
-    def __init__(self, use_gpu=True):
-        if use_gpu and torch.cuda.is_available():
-            self._load_models(torch.float16)
-            self.encoder_model = self.encoder_model.eval().cuda()
-        else:
-            self._load_models(torch.float32)
-            self.encoder_model = self.encoder_model.eval()
+    def __init__(self, device: str):
+        self.device = torch.device(device)
+        self._load_models(torch.float16 if device == "cuda" else torch.float32)
 
         self.aa_map = str.maketrans("BJOUZ", "XXXXX")
 
@@ -168,35 +163,29 @@ class T5Encoder:
         )
         self.encoder_model = T5EncoderModel.from_pretrained(
             "Rostlab/prot_t5_xl_half_uniref50-enc", torch_dtype=dtype
+        ).to(self.device).eval()
+
+    @torch.inference_mode()
+    def embed(self, sequences: list[str]):
+        processed_seqs = [s.upper().translate(self.aa_map) for s in sequences]
+        tokens = [" ".join(list(s)) for s in processed_seqs]
+        
+        encoded = self.tokenizer.batch_encode_plus(
+            tokens, 
+            padding="longest", 
+            add_special_tokens=True, 
+            return_tensors="pt"
         )
 
-    def device(self):
-        return self.encoder_model.device
+        input_ids = encoded["input_ids"].to(self.device)
+        attention_mask = encoded["attention_mask"].to(self.device)
 
-    def to_cpu(self):
-        self.encoder_model = self.encoder_model.cpu().float()
-
-    def to_cuda(self):
-        self.encoder_model = self.encoder_model.half().cuda()
-
-    def embed(self, sequence):
-        sequence = sequence.upper().translate(self.aa_map)
-
-        tokens = [" ".join(list(sequence))]
-        tokens = self.tokenizer.batch_encode_plus(
-            tokens, padding="longest", add_special_tokens=True
+        embeddings = self.encoder_model(
+            input_ids=input_ids, 
+            attention_mask=attention_mask
         )
 
-        device = self.encoder_model.device
-        input_ids = torch.tensor(tokens["input_ids"], device=device)
-        attention_mask = torch.tensor(tokens["attention_mask"], device=device)
-
-        with torch.no_grad():
-            embeddings = self.encoder_model(
-                input_ids=input_ids, attention_mask=attention_mask
-            )
-
-        return embeddings.last_hidden_state.detach()
+        return embeddings.last_hidden_state.detach(), attention_mask
 
 
 class SeqNorm(nn.Module):
@@ -350,13 +339,8 @@ def gaussian_kernel(kernel_size, std=1.0):
     return kernel
 
 
-def make_mask(embeddings):
-    B, N, _ = embeddings.shape
-
-    mask = torch.zeros((B, N), dtype=embeddings.dtype, device=embeddings.device)
-    mask[0, :N] = 1.0
-
-    return mask
+def make_mask(embeddings, attention_mask):
+    return attention_mask.to(dtype=embeddings.dtype, device=embeddings.device)
 
 
 def load_models(device):
@@ -400,73 +384,73 @@ def predict_sequences(models, embedding, mask):
 
     return pred.detach()
 
-
-def tmbed(proteins: dict[str, Protein], device: str):
+def tmbed(proteins: dict[str, Protein], device: str, batch_size: int):
+    if device is None:
+        device = get_device()
     logger.info("Predicting transmembrane domains with TMBed")
 
-    logger.debug("Loading encoder")
-    encoder = T5Encoder(torch.cuda.is_available())
-    logger.debug("Loading decoder")
+    encoder = T5Encoder(device)
     decoder = Decoder()
-
     models = load_models(device)
 
-    for key, protein in tqdm(proteins.items()):
+    protein_list = list(proteins.values())
+    
+    for i in tqdm(range(0, len(protein_list), batch_size)):
+        batch = protein_list[i : i + batch_size]
+        batch_seqs = [p.sequence for p in batch]
+        
         try:
-            logger.debug(f"Predicting transmembrane domains for {protein.id}")
-            embedding = encoder.embed(protein.sequence)
+            embeddings, att_mask = encoder.embed(batch_seqs)
+            embeddings = embeddings.to(device=device, dtype=torch.float32)
+            
+            mask = make_mask(embeddings, att_mask)
+            probabilities = predict_sequences(models, embeddings, mask)
+            
+            predictions = decoder(probabilities.cpu(), mask.cpu()).byte()
+            
+            for idx, protein in enumerate(batch):
+                seq_len = len(protein.sequence)
+                pred_seq = predictions[idx, :seq_len]
+                
+                protein.transmembrane_predictions = "".join(
+                    PRED_MAP[int(x)] for x in pred_seq
+                )
+                
+                _annotate_protein(protein)
+
         except torch.cuda.OutOfMemoryError:
-            logger.warning(
-                f"GPU ran out of memory when encoding {protein.id} - skipping"
-            )
+            logger.error("GPU OOM for batch - try reducing batch_size")
+            raise
+
+def _annotate_protein(protein):
+    """Extracted annotation logic for readability."""
+    for i, state in enumerate(protein.transmembrane_predictions):
+        if i == 0:
+            previous_state = state
+            state_start = i
             continue
 
-        embedding = embedding.to(device=device)
-        embedding = embedding.to(dtype=torch.float32)
-
-        mask = make_mask(embedding)
-
-        probabilities = predict_sequences(models, embedding, mask)
-
-        mask = mask.cpu()
-        probabilities = probabilities.cpu()
-
-        prediction = decoder(probabilities, mask).byte()
-
-        protein.transmembrane_predictions = "".join(
-            PRED_MAP[int(x)] for x in prediction[0, : len(protein.sequence)]
-        )
-
-        # Annotate relevant transmembrane domains
-        for i, state in enumerate(protein.transmembrane_predictions):
-            if i == 0:
-                previous_state = state
-                state_start = i
-                continue
-
-            if state != previous_state:
-                protein.add_annotation(
-                    Annotation(
-                        name=STATES[previous_state],
-                        start=state_start + 1,
-                        end=i,
-                        type="domain",
-                        source="tmbed",
-                    )
+        if state != previous_state:
+            protein.add_annotation(
+                Annotation(
+                    name=STATES[previous_state],
+                    start=state_start + 1,
+                    end=i,
+                    type="domain",
+                    source="tmbed",
                 )
-
-                state_start = i
-                previous_state = state
-
-        # Add final annotation
-        protein.add_annotation(
-            Annotation(
-                name=STATES[previous_state],
-                start=state_start + 1,
-                end=len(protein.sequence),
-                type="domain",
-                source="tmbed",
             )
-        )
 
-    logger.info("TMBed prediction completed")
+            state_start = i
+            previous_state = state
+
+    # Add final annotation
+    protein.add_annotation(
+        Annotation(
+            name=STATES[previous_state],
+            start=state_start + 1,
+            end=len(protein.sequence),
+            type="domain",
+            source="tmbed",
+        )
+    )

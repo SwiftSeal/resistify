@@ -18,6 +18,8 @@ It is designed to be lightweight and easy to use.
 
 ## Getting started
 
+### Conda
+
 `Resistify` is available via the [Bioconda](https://anaconda.org/bioconda/resistify) channel:
 
 ```
@@ -27,6 +29,8 @@ conda activate resistify
 
 > [!NOTE]
 > If you want to use the GPU-accelerated pipelines, conda may fail to install a GPU-ready version of `pytorch`. If this occurs, try installing `pytorch-gpu resistify` instead.
+
+### Singularity
 
 Containers are also available through the [biocontainers repository](https://quay.io/repository/biocontainers/resistify?tab=tags).
 To use these with `singularity`, simply run:
@@ -102,7 +106,6 @@ This only applies to the `--coconat` and PRR pipelines! The standard NLR pipelin
 
 By default, `resistify` will automatically download models to `$HOME/.cache` when required.
 This default can be changed by adjusting the environment variables `$HF_HOME` and `$TORCH_HOME` to your preferred location.
-If you need to download these prior (e.g. if running `resistify` as part of a pipeline) you can use the `download_models` utility.
 
 ## Results
 

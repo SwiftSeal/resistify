@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 
 def parse_fasta(file_path: Path, sort: bool = True) -> dict[str, Protein]:
-    logger.info(f"Loading sequencing from {file_path}")
+    logger.info(f"Loading sequences from {file_path}")
     
     def read_fasta(path):
         with open(path, 'r') as f:
@@ -48,5 +48,5 @@ def parse_fasta(file_path: Path, sort: bool = True) -> dict[str, Protein]:
             )
         )
 
-    logger.info(f"{len(proteins)} sequences have been loaded from {file_path}")
+    logger.info(f"{len(proteins)} sequences have been loaded")
     return proteins

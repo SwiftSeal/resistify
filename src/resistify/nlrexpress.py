@@ -5,21 +5,16 @@ import os
 from pathlib import Path
 import logging
 import warnings
-from tqdm.auto import tqdm
+from numpy.lib.stride_tricks import sliding_window_view
 from resistify.annotation import Protein, Annotation
 
 logger = logging.getLogger(__name__)
 
-# Version 1.3 of sklearn introduced InconsistentVersionWarning, fall back to UserWarning if not available
-# Necessary to suppress pickle version warnings
-# This will probably blow up at some point in the future
 try:
-    from sklearn.exceptions import InconsistentVersionWarning
-
+    from sklearn.exceptions import InconsistentVersionWarning # type: ignore
     warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
 except ImportError:
     warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
-
 
 MOTIF_SPAN_LENGTHS = {
     "extEDVID": 12,
@@ -61,104 +56,84 @@ MOTIF_MODELS = {
     "bDaD1": "MLP_TIR_bD-aD1.pkl",
 }
 
-
 def load_models(search_type: str):
     models = {}
+    base_path = Path(os.path.dirname(__file__)) / "data" / "nlrexpress_models"
+    
     if search_type == "all":
         for predictor, path in MOTIF_MODELS.items():
-            model_path = (
-                Path(os.path.dirname(__file__)) / "data" / "nlrexpress_models" / path
-            )
-            logger.debug(f"Loading model for {predictor}")
-            model = pickle.load(open(model_path, "rb"))
-            models[predictor] = model
+            model_path = base_path / path
+            models[predictor] = pickle.load(open(model_path, "rb"))
     elif search_type == "lrr":
-        model_path = (
-            Path(os.path.dirname(__file__))
-            / "data"
-            / "nlrexpress_models"
-            / MOTIF_MODELS["LxxLxL"]
-        )
-        model = pickle.load(open(model_path, "rb"))
-        models["LxxLxL"] = model
+        model_path = base_path / MOTIF_MODELS["LxxLxL"]
+        models["LxxLxL"] = pickle.load(open(model_path, "rb"))
     return models
 
-
-def nlrexpress(
-    proteins: dict[str, Protein], search_type: str = "all", threads: int = 0
-):
+def nlrexpress(proteins: dict[str, Protein], search_type: str = "all", threads: int = 0):
     logger.info(f"Running NLRexpress to identify {search_type} motifs")
     models = load_models(search_type)
     db_path = Path(os.path.dirname(__file__)) / "data" / "nlrexpress.fa"
 
     alphabet = pyhmmer.easel.Alphabet.amino()
-
-    queries = []
-    for protein in proteins.values():
-        queries.append(
-            pyhmmer.easel.DigitalSequence(
-                name=protein.id.encode(),
-                sequence=alphabet.encode(protein.sequence),
-                alphabet=alphabet,
-            )
-        )
+    queries = [
+        pyhmmer.easel.DigitalSequence(
+            name=p.id.encode(),
+            sequence=alphabet.encode(p.sequence),
+            alphabet=alphabet,
+        ) for p in proteins.values()
+    ]
 
     sequences = pyhmmer.easel.SequenceFile(db_path, digital=True, alphabet=alphabet)
 
-    with tqdm(total=len(proteins)) as pbar:
-        for result in pyhmmer.hmmer.jackhmmer(
-            queries,
-            sequences,
-            max_iterations=2,
-            E=1e-5,
-            domE=1e-5,
-            checkpoints=True,
-            cpus=threads,
-            callback=lambda _, __: pbar.update(1),
-        ):
-            sequence_id = result[0].hmm.name
-            logger.debug(f"Processing {sequence_id}")
-            try:
-                emission_matrix = np.concatenate(
-                    (
-                        np.asarray(result[0].hmm.match_emissions[1:]),
-                        np.asarray(result[1].hmm.match_emissions[1:]),
-                    ),
-                    axis=1,
-                )
-            except IndexError:
-                # This will occur if the second iteration fails.
-                logger.warning(
-                    f"No second iteration result for {sequence_id} - skipping"
-                )
+    # Jackhmmer execution
+    results = pyhmmer.hmmer.jackhmmer(
+        queries,
+        sequences,
+        max_iterations=2,
+        E=1e-5,
+        domE=1e-5,
+        checkpoints=True,
+        cpus=threads,
+    ) # type: ignore
+
+    for result in results:
+        sequence_id = result[0].hmm.name
+        
+        if len(result) < 2:
+            logger.warning(f"No second iteration result for {sequence_id} - skipping")
+            continue
+
+        m1 = np.asarray(result[0].hmm.match_emissions[1:])
+        m2 = np.asarray(result[1].hmm.match_emissions[1:])
+        
+        emission_matrix = -np.log(np.concatenate((m1, m2), axis=1))
+
+        for motif_type, model in models.items():
+            span = MOTIF_SPAN_LENGTHS[motif_type]
+            window_size = 5 + span + 5 + 1
+            
+            if len(emission_matrix) < window_size:
                 continue
 
-            emission_matrix = -np.log(emission_matrix)
+            windows = sliding_window_view(emission_matrix, (window_size, 40))
+            
+            input_array = windows.reshape(-1, window_size * 40)
 
-            for motif_type, model in models.items():
-                logger.debug(f"Searching for {motif_type} in {sequence_id}")
-                input_rows = []
-                for i in range(
-                    5, len(emission_matrix) - MOTIF_SPAN_LENGTHS[motif_type] - 5
-                ):
-                    flattened = emission_matrix[
-                        i - 5 : i + MOTIF_SPAN_LENGTHS[motif_type] + 5 + 1
-                    ].flatten()
-                    input_rows.append(flattened)
+            predictions = model.predict_proba(input_array)
+            
+            hit_indices = np.where(predictions[:, 1] > 0.8)[0]
 
-                input_array = np.array(input_rows)
+            for idx in hit_indices:
+                score = predictions[idx, 1]
+                proteins[sequence_id].add_annotation(
+                    Annotation(
+                        name=motif_type,
+                        type="motif",
+                        start=int(idx + 1),
+                        end=int(idx + span),
+                        source="nlrexpress",
+                        score=float(score),
+                    )
+                )
 
-                predictions = model.predict_proba(input_array)
-
-                for i, prob in enumerate(predictions):
-                    if prob[1] > 0.8:
-                        proteins[sequence_id].add_annotation(
-                            Annotation(
-                                name=motif_type,
-                                type="motif",
-                                start=i + 1,
-                                end=i + MOTIF_SPAN_LENGTHS[motif_type],
-                                source="nlrexpress",
-                                score=prob[1],
-                            )
-                        )
+    return proteins

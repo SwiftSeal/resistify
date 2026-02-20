@@ -1,6 +1,5 @@
 import os
 import platform
-import torch
 import argparse
 from pathlib import Path
 import logging
@@ -9,22 +8,9 @@ from resistify.parse_fasta import parse_fasta
 from resistify.annotation import save_results
 from resistify.hmmer import hmmsearch
 from resistify.nlrexpress import nlrexpress
-from resistify.coconat import predict_coils
-from resistify.tmbed import tmbed
 from resistify.hmmer import NLR_HMM_DB, RLP_HMM_DB
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_DEVICE = str(
-    torch.device(
-        "mps"
-        if torch.backends.mps.is_built()
-        else "cuda"
-        if torch.cuda.is_available()
-        else "cpu"
-    )
-)
-
 
 def add_common_args(parser):
     """
@@ -32,52 +18,53 @@ def add_common_args(parser):
     """
     parser.add_argument(
         "input",
-        type=Path,
         help="Path to the input FASTA file containing sequences to be analysed",
+        type=Path,
     )
     parser.add_argument(
         "-o",
         "--outdir",
-        type=Path,
         help="Path to the output directory where results will be saved",
+        type=Path,
         default=Path(os.getcwd()),
     )
     parser.add_argument(
         "-t",
         "--threads",
+        help="Number of threads to use for HMMER searches.",
         type=int,
-        help="Number of threads to use for HMMER searches. Default is 0 (auto-detect)",
         default=0,
     )
     parser.add_argument(
         "--device",
+        help="Device to use for CoCoNat and TMbed predictions. Selects the best available device by default.",
         type=str,
-        default=DEFAULT_DEVICE,
+        default=None,
         choices=["cpu", "cuda", "mps"],
     )
     parser.add_argument(
+        "--batch_size",
+        help="Batch size for CoCoNat and TMbed predictions. Adjust based on available GPU memory.",
+        type=int,
+        default=4,
+    )
+    parser.add_argument(
         "--lrr_gap",
-        help="Minimum gap (in amino acids) between LRR motifs. Default is 75",
+        help="Minimum gap (in amino acids) between LRR motifs.",
         default=75,
         type=int,
     )
     parser.add_argument(
         "--lrr_length",
-        help="Minimum number of LRR motifs required to be considered an LRR domain. Default is 4",
+        help="Minimum number of LRR motifs required to be considered an LRR domain.",
         default=4,
         type=int,
     )
     parser.add_argument(
         "--duplicate_gap",
-        help="Gap size (in amino acids) to consider merging duplicate annotations. Default is 100",
+        help="Gap size (in amino acids) to consider merging duplicate annotations.",
         default=100,
         type=int,
-    )
-    parser.add_argument(
-        "--pfam",
-        type=Path,
-        default=None,
-        help="Path to the Pfam database file - by default a smaller task-specific database is used",
     )
 
 
@@ -139,15 +126,13 @@ def main():
 
     logger.info("Welcome to Resistify 2.0.0!")
     logger.info(f"Python version: {platform.python_version()}")
-    logger.info(f"PyTorch version: {torch.__version__}")
     logger.info(f"Using device: {args.device}")
     logger.info(f"OS: {platform.system()} {platform.machine()}")
 
     proteins = parse_fasta(args.input)
 
     if args.command == "nlr":
-        hmmer_db = args.pfam if args.pfam is not None else NLR_HMM_DB
-        proteins = hmmsearch(proteins, hmmer_db, threads=args.threads)
+        proteins = hmmsearch(proteins, NLR_HMM_DB, threads=args.threads)
 
         if not args.retain:
             proteins = {k: v for k, v in proteins.items() if v.is_nlr()}
@@ -155,7 +140,9 @@ def main():
         nlrexpress(proteins, threads=args.threads)
 
         if args.coconat:
-            predict_coils(proteins, args.device)
+            # lazy cus beeeeeg
+            from resistify.coconat import predict_coils
+            predict_coils(proteins, args.device, args.batch_size)
 
         for protein in proteins.values():
             protein.annotate_lrr(lrr_gap=args.lrr_gap, lrr_length=args.lrr_length)
@@ -163,9 +150,9 @@ def main():
             protein.classify_nlr()
 
     elif args.command == "prr":
-        hmmer_db = args.pfam if args.pfam is not None else RLP_HMM_DB
-        proteins = hmmsearch(proteins, hmmer_db, threads=args.threads)
-        tmbed(proteins, device=args.device)
+        from resistify.tmbed import tmbed
+        proteins = hmmsearch(proteins, RLP_HMM_DB, threads=args.threads)
+        tmbed(proteins, args.device, args.batch_size)
         proteins = {k: v for k, v in proteins.items() if v.is_rlp()}
 
         nlrexpress(proteins, search_type="lrr", threads=args.threads)
