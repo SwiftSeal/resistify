@@ -515,7 +515,6 @@ def save_results(proteins: dict[str, Protein], output_dir: Path, command: str):
                 "Classification",
                 "NBARC_motifs",
                 "MADA",
-                "MADAL",
                 "CJID",
             ]
         )
@@ -546,7 +545,6 @@ def save_results(proteins: dict[str, Protein], output_dir: Path, command: str):
                     protein.classification,
                     protein.nbarc_motif_count,
                     protein.has_annotation("MADA"),
-                    protein.has_annotation("MADA-like"),
                     protein.has_annotation("C-JID"),
                 ]
             )
