@@ -8,7 +8,6 @@ import warnings
 from tqdm.auto import tqdm
 from transformers import T5EncoderModel, T5Tokenizer
 from resistify.annotation import Protein, Annotation
-from resistify.device import get_device
 
 logger = logging.getLogger(__name__)
 
@@ -384,9 +383,8 @@ def predict_sequences(models, embedding, mask):
 
     return pred.detach()
 
-def tmbed(proteins: dict[str, Protein], device: str, batch_size: int):
-    if device is None:
-        device = get_device()
+def tmbed(proteins: dict[str, Protein], device: str, batch_size: int, threads: int):
+    torch.set_num_threads(threads)
     logger.info("Predicting transmembrane domains with TMBed")
 
     encoder = T5Encoder(device)
