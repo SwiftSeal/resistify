@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import logging
 import warnings
+from threadpoolctl import threadpool_limits
 from numpy.lib.stride_tricks import sliding_window_view
 from resistify.annotation import Protein, Annotation
 
@@ -100,7 +101,9 @@ def nlrexpress(proteins: dict[str, Protein], search_type: str = "all", threads: 
         sequence_id = result[0].hmm.name
         
         if len(result) < 2:
-            logger.warning(f"No second iteration result for {sequence_id} - skipping")
+            # skip sequence if it doesn't have a second iteration.
+            # in the OG NLRexpress the first is just used as the second here.
+            # but its unlikely to be useful.
             continue
 
         m1 = np.asarray(result[0].hmm.match_emissions[1:])
@@ -119,7 +122,8 @@ def nlrexpress(proteins: dict[str, Protein], search_type: str = "all", threads: 
             
             input_array = windows.reshape(-1, window_size * 40)
 
-            predictions = model.predict_proba(input_array)
+            with threadpool_limits(limits=threads):
+                predictions = model.predict_proba(input_array)
             
             hit_indices = np.where(predictions[:, 1] > 0.8)[0]
 
@@ -136,4 +140,5 @@ def nlrexpress(proteins: dict[str, Protein], search_type: str = "all", threads: 
                     )
                 )
 
+    logger.info("NLRexpress completed")
     return proteins
