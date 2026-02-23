@@ -5,7 +5,6 @@ import torch.nn as nn
 import logging
 from pathlib import Path
 from resistify.annotation import Protein
-from resistify.device import get_device
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +68,7 @@ class CoCoNatPredictor:
         self._load_models()
 
     def _load_models(self):
-        self.t5_tokenizer = T5Tokenizer.from_pretrained("Rostlab/prot_t5_xl_half_uniref50-enc", do_lower_case=False)
+        self.t5_tokenizer = T5Tokenizer.from_pretrained("Rostlab/prot_t5_xl_half_uniref50-enc", do_lower_case=False, legacy=True)
         self.t5_model = T5EncoderModel.from_pretrained("Rostlab/prot_t5_xl_half_uniref50-enc").to(self.device).eval()
 
         self.esm_model, self.esm_alphabet = esm.pretrained.esm2_t33_650M_UR50D()
@@ -105,10 +104,9 @@ class CoCoNatPredictor:
 
         return results
 
-def predict_coils(proteins: dict[str, Protein], device: str, batch_size: int):
-    if device is None:
-        device = get_device()
-    
+def predict_coils(proteins: dict[str, Protein], device: str, batch_size: int, threads: int):
+    logger.info("Running CoCoNat to predict coiled-coils")
+    torch.set_num_threads(threads)
     predictor = CoCoNatPredictor(device=device)
     
     to_process = []
@@ -124,4 +122,5 @@ def predict_coils(proteins: dict[str, Protein], device: str, batch_size: int):
         for p_id, cc_probs in batch_results.items():
             proteins[p_id].cc_probs = cc_probs
             proteins[p_id].annotate_cc()
+    logger.info("CoCoNat predictions completed")
             
