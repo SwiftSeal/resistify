@@ -1,3 +1,5 @@
+import os
+import multiprocessing
 import torch
 
 def get_device() -> str:
@@ -7,4 +9,13 @@ def get_device() -> str:
         return "mps"
     else:
         return "cpu"
+
+def get_threads() -> int:
+    if hasattr(os, "sched_getaffinity"):
+        try:
+            return len(os.sched_getaffinity(0))
+        except Exception:
+            pass
+    else:
+        return int(multiprocessing.cpu_count())
     

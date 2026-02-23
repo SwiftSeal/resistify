@@ -8,7 +8,10 @@ from resistify.parse_fasta import parse_fasta
 from resistify.annotation import save_results
 from resistify.hmmer import hmmsearch
 from resistify.nlrexpress import nlrexpress
+from resistify.coconat import predict_coils
+from resistify.tmbed import tmbed
 from resistify.hmmer import NLR_HMM_DB, RLP_HMM_DB
+from resistify.device import get_device, get_threads
 
 logger = logging.getLogger(__name__)
 
@@ -33,13 +36,13 @@ def add_common_args(parser):
         "--threads",
         help="Number of threads to use for HMMER searches.",
         type=int,
-        default=0,
+        default=get_threads(),
     )
     parser.add_argument(
         "--device",
         help="Device to use for CoCoNat and TMbed predictions. Selects the best available device by default.",
         type=str,
-        default=None,
+        default=get_device(),
         choices=["cpu", "cuda", "mps"],
     )
     parser.add_argument(
@@ -126,6 +129,7 @@ def main():
 
     logger.info("Welcome to Resistify 2.0.0!")
     logger.info(f"Python version: {platform.python_version()}")
+    logger.info(f"Using {args.threads} threads")
     logger.info(f"Using device: {args.device}")
     logger.info(f"OS: {platform.system()} {platform.machine()}")
 
@@ -140,9 +144,7 @@ def main():
         nlrexpress(proteins, threads=args.threads)
 
         if args.coconat:
-            # lazy cus beeeeeg
-            from resistify.coconat import predict_coils
-            predict_coils(proteins, args.device, args.batch_size)
+            predict_coils(proteins, args.device, args.batch_size, args.threads)
 
         for protein in proteins.values():
             protein.annotate_lrr(lrr_gap=args.lrr_gap, lrr_length=args.lrr_length)
@@ -150,9 +152,8 @@ def main():
             protein.classify_nlr()
 
     elif args.command == "prr":
-        from resistify.tmbed import tmbed
         proteins = hmmsearch(proteins, RLP_HMM_DB, threads=args.threads)
-        tmbed(proteins, args.device, args.batch_size)
+        tmbed(proteins, args.device, args.batch_size, args.threads)
         proteins = {k: v for k, v in proteins.items() if v.is_rlp()}
 
         nlrexpress(proteins, search_type="lrr", threads=args.threads)

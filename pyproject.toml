@@ -9,6 +9,7 @@ dependencies = [
     "fair-esm",
     "torch",
     "transformers",
+    "threadpoolctl>=3.6.0",
 ]
 authors = [
   { name="Moray Smith", email="moraysmith98@gmail.com" },
