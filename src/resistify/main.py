@@ -5,16 +5,16 @@ from pathlib import Path
 import logging
 from resistify.__version__ import __version__
 from resistify.parse_fasta import parse_fasta
-from resistify.annotation import save_results
+from resistify.output import save_results
 from resistify.hmmer import hmmsearch
 from resistify.nlrexpress import nlrexpress
-from resistify.ultrafaster import motif_classifier
 from resistify.coconat import predict_coils
 from resistify.tmbed import tmbed
 from resistify.hmmer import NLR_HMM_DB, RLP_HMM_DB
 from resistify.device import get_device, get_threads
 
 logger = logging.getLogger(__name__)
+
 
 def add_common_args(parser):
     """
@@ -142,8 +142,7 @@ def main():
         if not args.retain:
             proteins = {k: v for k, v in proteins.items() if v.is_nlr()}
 
-        # nlrexpress(proteins, threads=args.threads)
-        proteins = motif_classifier(proteins, models_dir=Path("models"))
+        proteins = nlrexpress(proteins, device=args.device, threads=args.threads)
 
         if args.coconat:
             predict_coils(proteins, args.device, args.batch_size, args.threads)

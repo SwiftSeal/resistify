@@ -2,6 +2,7 @@
 Convert .input files to per-motif .fasta and .labels files.
 Usage: python convert_input.py nbs_e5.input training/data/nbs
 """
+
 import sys
 from collections import defaultdict
 
@@ -9,19 +10,21 @@ input_file = sys.argv[1]
 out_prefix = sys.argv[2]
 
 LABEL_MAP = {
-    "GmGGvGKTT" : "P-loop",
-    "GLPLA"     : "GLPL",
-    "MHD"       : "MHD",
-    "KRhhhhDD"  : "Walker-B",
-    "hhGRE"     : "RNSB-A",
+    "rdhhhdhEDVID": "extEDVID",
+    "GmGGvGKTT": "P-loop",
+    "GLPLA": "GLPL",
+    "MHD": "MHD",
+    "KRhhhhDD": "Walker-B",
+    "hhGRE": "RNSB-A",
     "FDhrhWhshs": "RNSB-B",
     "LseeeSWeLF": "RNSB-C",
-    "KhhhTTR"   : "RNSB-D",
-    "CFLYCSLFP" : "VG",
+    "KhhhTTR": "RNSB-D",
+    "CFLYCSLFP": "VG",
+    "LxxLxL": "lrr",
 }
 
 sequences = defaultdict(list)
-labels    = defaultdict(lambda: defaultdict(list))
+labels = defaultdict(lambda: defaultdict(list))
 
 with open(input_file) as f:
     for line in f:

@@ -1,0 +1,12 @@
+{
+  "motif": "extEDVID",
+  "esm_model": "Synthyra/ESM2-8M",
+  "window_size": 22,
+  "threshold": 0.30739471316337585,
+  "val_metrics": {
+    "precision": 0.9883720930232558,
+    "recall": 0.9239130434782609,
+    "f1": 0.955056174780962,
+    "roc_auc": 0.9993822235360634
+  }
+}

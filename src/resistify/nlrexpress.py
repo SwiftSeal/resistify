@@ -1,144 +1,146 @@
-import pyhmmer
-import pickle
-import numpy as np
-import os
-from pathlib import Path
+import json
 import logging
-import warnings
-from threadpoolctl import threadpool_limits
-from numpy.lib.stride_tricks import sliding_window_view
+import numpy as np
+import torch
+from pathlib import Path
+from transformers import AutoModel, AutoTokenizer
+from xgboost import XGBClassifier
 from resistify.annotation import Protein, Annotation
 
 logger = logging.getLogger(__name__)
 
-try:
-    from sklearn.exceptions import InconsistentVersionWarning # type: ignore
-    warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
-except ImportError:
-    warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
+ESM_MODEL = "Synthyra/ESM2-8M"
+MODELS_DIR = Path(__file__).parent / "data" / "models"
 
 MOTIF_SPAN_LENGTHS = {
-    "extEDVID": 12,
-    "bA": 10,
-    "aA": 7,
-    "bC": 8,
-    "aC": 6,
-    "bDaD1": 16,
-    "aD3": 13,
+    "lrr": 6,
     "VG": 5,
     "P-loop": 9,
     "RNSB-A": 10,
-    "Walker-B": 8,
     "RNSB-B": 7,
     "RNSB-C": 10,
     "RNSB-D": 9,
+    "Walker-B": 8,
     "GLPL": 5,
     "MHD": 3,
-    "LxxLxL": 6,
+    "extEDVID": 12,
+    "aA": 7,
+    "aC": 6,
+    "aD3": 13,
+    "bA": 10,
+    "bC": 8,
+    "bDaD1": 16,
 }
 
-MOTIF_MODELS = {
-    "extEDVID": "MLP_CC_extEDVID.pkl",
-    "VG": "MLP_NBS_VG.pkl",
-    "P-loop": "MLP_NBS_P-loop.pkl",
-    "RNSB-A": "MLP_NBS_RNSB-A.pkl",
-    "RNSB-B": "MLP_NBS_RNSB-B.pkl",
-    "RNSB-C": "MLP_NBS_RNSB-C.pkl",
-    "RNSB-D": "MLP_NBS_RNSB-D.pkl",
-    "Walker-B": "MLP_NBS_Walker-B.pkl",
-    "GLPL": "MLP_NBS_GLPL.pkl",
-    "MHD": "MLP_NBS_MHD.pkl",
-    "LxxLxL": "MLP_LRR_LxxLxL.pkl",
-    "aA": "MLP_TIR_aA.pkl",
-    "aC": "MLP_TIR_aC.pkl",
-    "aD3": "MLP_TIR_aD3.pkl",
-    "bA": "MLP_TIR_bA.pkl",
-    "bC": "MLP_TIR_bC.pkl",
-    "bDaD1": "MLP_TIR_bD-aD1.pkl",
-}
 
-def load_models(search_type: str):
+# ── Model loading ─────────────────────────────────────────────────────────────
+
+
+def _load_models(models_dir: Path, search_type: str, threads: int):
     models = {}
-    base_path = Path(os.path.dirname(__file__)) / "data" / "nlrexpress_models"
-    
-    if search_type == "all":
-        for predictor, path in MOTIF_MODELS.items():
-            model_path = base_path / path
-            models[predictor] = pickle.load(open(model_path, "rb"))
-    elif search_type == "lrr":
-        model_path = base_path / MOTIF_MODELS["LxxLxL"]
-        models["LxxLxL"] = pickle.load(open(model_path, "rb"))
-    return models
+    motifs = list(MOTIF_SPAN_LENGTHS.keys()) if search_type == "all" else [search_type]
 
-def nlrexpress(proteins: dict[str, Protein], search_type: str = "all", threads: int = 0):
-    logger.info(f"Running NLRexpress to identify {search_type} motifs")
-    models = load_models(search_type)
-    db_path = Path(os.path.dirname(__file__)) / "data" / "nlrexpress.fa"
+    for motif in motifs:
+        model_path = models_dir / f"{motif}.ubj"
+        meta_path = models_dir / f"{motif}_meta.json"
 
-    alphabet = pyhmmer.easel.Alphabet.amino()
-    queries = [
-        pyhmmer.easel.DigitalSequence(
-            name=p.id.encode(),
-            sequence=alphabet.encode(p.sequence),
-            alphabet=alphabet,
-        ) for p in proteins.values()
-    ]
-
-    sequences = pyhmmer.easel.SequenceFile(db_path, digital=True, alphabet=alphabet)
-
-    # Jackhmmer execution
-    results = pyhmmer.hmmer.jackhmmer(
-        queries,
-        sequences,
-        max_iterations=2,
-        E=1e-5,
-        domE=1e-5,
-        checkpoints=True,
-        cpus=threads,
-    ) # type: ignore
-
-    for result in results:
-        sequence_id = result[0].hmm.name
-        
-        if len(result) < 2:
-            # skip sequence if it doesn't have a second iteration.
-            # in the OG NLRexpress the first is just used as the second here.
-            # but its unlikely to be useful.
+        if not model_path.exists():
+            logger.warning(f"No model found for motif {motif}, skipping")
             continue
 
-        m1 = np.asarray(result[0].hmm.match_emissions[1:])
-        m2 = np.asarray(result[1].hmm.match_emissions[1:])
-        
-        emission_matrix = -np.log(np.concatenate((m1, m2), axis=1))
+        clf = XGBClassifier()
+        clf.load_model(model_path)
+        clf.set_params(nthread=threads)
 
-        for motif_type, model in models.items():
-            span = MOTIF_SPAN_LENGTHS[motif_type]
-            window_size = 5 + span + 5 + 1
-            
-            if len(emission_matrix) < window_size:
+        with open(meta_path) as f:
+            meta = json.load(f)
+
+        models[motif] = {"model": clf, "meta": meta}
+        logger.debug(f"Loaded {motif} (threshold={meta['threshold']:.4f})")
+
+    return models
+
+
+# ── ESM embedding ─────────────────────────────────────────────────────────────
+
+
+def _load_esm(device: str) -> tuple[AutoModel, AutoTokenizer]:
+    logger.info(f"Loading {ESM_MODEL} on {device}...")
+    tokenizer = AutoTokenizer.from_pretrained(ESM_MODEL, trust_remote_code=True)
+    model = (
+        AutoModel.from_pretrained(
+            ESM_MODEL,
+            trust_remote_code=True,
+        )
+        .eval()
+        .to(device)
+    )
+    return model, tokenizer
+
+
+def _embed(model, tokenizer, sequence: str, device: str) -> np.ndarray:
+    inputs = tokenizer(sequence, return_tensors="pt").to(device)
+    with torch.no_grad():
+        outputs = model(**inputs)
+    return outputs.last_hidden_state[0, 1:-1].cpu().float().numpy()
+
+
+# ── Feature extraction ────────────────────────────────────────────────────────
+
+
+def _make_windows(matrix: np.ndarray, window_size: int) -> np.ndarray:
+    pad = window_size // 2
+    padded = np.pad(matrix, ((pad, pad), (0, 0)), mode="constant")
+    return np.stack([padded[i : i + window_size].flatten() for i in range(len(matrix))])
+
+
+# ── Main entry point ──────────────────────────────────────────────────────────
+
+
+def nlrexpress(
+    proteins: dict[str, Protein],
+    search_type: str = "all",
+    device: str = "cpu",
+    threads: int = 1,
+):
+    logger.info(f"Running motif classifier for '{search_type}' motifs")
+
+    models = _load_models(MODELS_DIR, search_type, threads)
+    if not models:
+        logger.warning("No models loaded, skipping")
+        return proteins
+
+    torch.set_num_threads(threads)
+    esm, tokenizer = _load_esm(device)
+
+    for seq_id, protein in proteins.items():
+        emb = _embed(esm, tokenizer, protein.sequence, device)
+
+        for motif, clf in models.items():
+            window_size = clf["meta"]["window_size"]
+            threshold = clf["meta"]["threshold"]
+            span = MOTIF_SPAN_LENGTHS[motif]
+
+            if len(emb) < window_size:
                 continue
 
-            windows = sliding_window_view(emission_matrix, (window_size, 40))
-            
-            input_array = windows.reshape(-1, window_size * 40)
+            windows = _make_windows(emb, window_size)
+            proba = clf["model"].predict_proba(windows)[:, 1]
 
-            with threadpool_limits(limits=threads):
-                predictions = model.predict_proba(input_array)
-            
-            hit_indices = np.where(predictions[:, 1] > 0.8)[0]
-
-            for idx in hit_indices:
-                score = predictions[idx, 1]
-                proteins[sequence_id].add_annotation(
+            for idx in np.where(proba >= threshold)[0]:
+                end = int(idx + span)
+                if end > protein.length:
+                    continue
+                protein.add_annotation(
                     Annotation(
-                        name=motif_type,
+                        name=motif,
                         type="motif",
                         start=int(idx + 1),
-                        end=int(idx + span),
-                        source="nlrexpress",
-                        score=float(score),
+                        end=end,
+                        source="motif_classifier",
+                        score=float(proba[idx]),
                     )
                 )
 
-    logger.info("NLRexpress completed")
+    logger.info("Motif classification completed")
     return proteins
