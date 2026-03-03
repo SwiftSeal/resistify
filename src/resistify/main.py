@@ -8,6 +8,7 @@ from resistify.parse_fasta import parse_fasta
 from resistify.annotation import save_results
 from resistify.hmmer import hmmsearch
 from resistify.nlrexpress import nlrexpress
+from resistify.ultrafaster import motif_classifier
 from resistify.coconat import predict_coils
 from resistify.tmbed import tmbed
 from resistify.hmmer import NLR_HMM_DB, RLP_HMM_DB
@@ -141,7 +142,8 @@ def main():
         if not args.retain:
             proteins = {k: v for k, v in proteins.items() if v.is_nlr()}
 
-        nlrexpress(proteins, threads=args.threads)
+        # nlrexpress(proteins, threads=args.threads)
+        proteins = motif_classifier(proteins, models_dir=Path("models"))
 
         if args.coconat:
             predict_coils(proteins, args.device, args.batch_size, args.threads)

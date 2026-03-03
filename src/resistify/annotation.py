@@ -496,13 +496,13 @@ class Protein:
         with open(output_path, "w") as f:
             f.write(str(canvas))
 
-
 def save_results(proteins: dict[str, Protein], output_dir: Path, command: str):
     logger.info("Saving results")
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "plots").mkdir(parents=True, exist_ok=True)
     results = csv.writer(open(output_dir / "results.tsv", "w"), delimiter="\t")
     annotations = csv.writer(open(output_dir / "annotations.tsv", "w"), delimiter="\t")
+    nbarc_fasta = open(output_dir / "nbarc.fa", "w")
 
     if command == "nlr":
         results.writerow(
@@ -574,6 +574,11 @@ def save_results(proteins: dict[str, Protein], output_dir: Path, command: str):
                     annotation.score,
                 ]
             )
+
+        nbarc_domains = [a for a in protein.annotations if a.name == "NBARC" and a.type == "domain" and a.source == "merged"]
+        for domain in nbarc_domains:
+            nbarc_fasta.write(f">{protein.id}_{domain.start}_{domain.end}\n")
+            nbarc_fasta.write(protein.sequence[domain.start - 1 : domain.end] + "\n")
 
         protein.draw_svg(output_dir / "plots" / f"{re.sub(r'[\\/*?:<>|]', '', protein.id)}.svg")
 
