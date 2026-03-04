@@ -119,10 +119,14 @@ def save_results(proteins: dict[str, Protein], output_dir: Path, command: str):
     with (
         open(output_dir / "results.tsv", "w", newline="") as results_file,
         open(output_dir / "annotations.tsv", "w", newline="") as annotations_file,
+        open(output_dir / "motifs.tsv", "w", newline="") as motifs_file,
+        open(output_dir / "domains.tsv", "w", newline="") as domains_file,
         open(output_dir / "nbarc.fa", "w") as nbarc_fasta,
     ):
         results = csv.writer(results_file, delimiter="\t")
         annotations = csv.writer(annotations_file, delimiter="\t")
+        motifs = csv.writer(motifs_file, delimiter="\t")
+        domains = csv.writer(domains_file, delimiter="\t")
 
         if command == "nlr":
             results.writerow(
@@ -152,8 +156,12 @@ def save_results(proteins: dict[str, Protein], output_dir: Path, command: str):
             )
 
         annotations.writerow(
-            ["id", "name", "start", "end", "type", "source", "accession", "score"]
+            ["Sequence", "Domain", "Start", "End", "E_value", "Score", "Source"]
         )
+        motifs.writerow(
+            ["Sequence", "Motif", "Position", "Probability", "Downstream_sequence", "Motif_sequence", "Upstream_sequence"]
+        )
+        domains.writerow(["Sequence", "Domain", "Start", "End"])
 
         for protein in proteins.values():
             if command == "nlr":
@@ -184,18 +192,40 @@ def save_results(proteins: dict[str, Protein], output_dir: Path, command: str):
                 )
 
             for annotation in protein.annotations:
-                annotations.writerow(
-                    [
-                        protein.id,
-                        annotation.name,
-                        annotation.start,
-                        annotation.end,
-                        annotation.type,
-                        annotation.source,
-                        annotation.accession,
-                        annotation.score,
-                    ]
-                )
+                if annotation.type == "domain" and annotation.source != "merged":
+                    annotations.writerow(
+                        [
+                            protein.id,
+                            annotation.name,
+                            annotation.start,
+                            annotation.end,
+                            annotation.accession,
+                            annotation.score,
+                            annotation.source,
+                        ]
+                    )
+                elif annotation.type == "domain" and annotation.source == "merged":
+                    domains.writerow(
+                        [
+                            protein.id,
+                            annotation.name,
+                            annotation.start,
+                            annotation.end,
+                        ]
+                    )
+                elif annotation.type == "motif":
+                    start, end = annotation.start, annotation.end
+                    motifs.writerow(
+                        [
+                            protein.id,
+                            annotation.name,
+                            start,
+                            annotation.score,
+                            protein.sequence[max(0, start - 6) : start - 1],
+                            protein.sequence[start - 1 : end],
+                            protein.sequence[end : end + 5],
+                        ]
+                    )
 
             nbarc_domains = [
                 a

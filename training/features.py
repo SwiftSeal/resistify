@@ -3,10 +3,8 @@ Feature extraction utilities for motif classifier training.
 """
 
 import sqlite3
-import tempfile
 import numpy as np
 import torch
-from pathlib import Path
 from transformers import AutoModel
 
 
@@ -24,15 +22,16 @@ def load_esm_model(model_path, device):
     return model
 
 
-def embed_sequences(sequences, model_path, device, batch_size=16):
+def embed_sequences(sequences, model_path, device, batch_size=1, model=None):
     """
     Embed a list of sequences using a frozen ESM2 model.
     Returns a list of np.arrays of shape (L, hidden_dim), one per sequence.
     Uses SQL mode (same as ultrafast.py) to avoid macOS multiprocessing issues.
     """
-    model = load_esm_model(model_path, device)
+    if model is None:
+        model = load_esm_model(model_path, device)
 
-    db_path = Path(tempfile.NamedTemporaryFile(suffix=".db", delete=False).name)
+    db_path = "training/embeddings.db"
     model.embed_dataset(
         sequences=sequences,
         tokenizer=model.tokenizer,
@@ -59,7 +58,6 @@ def embed_sequences(sequences, model_path, device, batch_size=16):
             emb = emb[1:-1]
         embeddings.append(emb)
     conn.close()
-    db_path.unlink(missing_ok=True)
 
     return embeddings
 

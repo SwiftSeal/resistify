@@ -12,14 +12,15 @@ logger = logging.getLogger(__name__)
 ESM_MODEL = "Synthyra/ESM2-8M"
 MODELS_DIR = Path(__file__).parent / "data" / "models"
 
+WINDOW_SIZE = 30
+
 MOTIF_SPAN_LENGTHS = {
-    "lrr": 6,
     "VG": 5,
     "P-loop": 9,
-    "RNSB-A": 10,
-    "RNSB-B": 7,
-    "RNSB-C": 10,
-    "RNSB-D": 9,
+    "RNBS-A": 10,
+    "RNBS-B": 7,
+    "RNBS-C": 10,
+    "RNBS-D": 9,
     "Walker-B": 8,
     "GLPL": 5,
     "MHD": 3,
@@ -30,6 +31,7 @@ MOTIF_SPAN_LENGTHS = {
     "bA": 10,
     "bC": 8,
     "bDaD1": 16,
+    "LxxLxL": 6,
 }
 
 
@@ -116,15 +118,15 @@ def nlrexpress(
     for seq_id, protein in proteins.items():
         emb = _embed(esm, tokenizer, protein.sequence, device)
 
+        if len(emb) < WINDOW_SIZE:
+            continue
+
+        windows = _make_windows(emb, WINDOW_SIZE)
+
         for motif, clf in models.items():
-            window_size = clf["meta"]["window_size"]
             threshold = clf["meta"]["threshold"]
             span = MOTIF_SPAN_LENGTHS[motif]
 
-            if len(emb) < window_size:
-                continue
-
-            windows = _make_windows(emb, window_size)
             proba = clf["model"].predict_proba(windows)[:, 1]
 
             for idx in np.where(proba >= threshold)[0]:

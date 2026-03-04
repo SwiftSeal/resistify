@@ -4,20 +4,6 @@ Data loading utilities for motif classifier training.
 from collections import defaultdict
 
 
-def parse_fasta(path):
-    """Parse a FASTA file into a dict of {seq_id: sequence}."""
-    seqs, current_id = {}, None
-    with open(path) as f:
-        for line in f:
-            line = line.strip()
-            if line.startswith(">"):
-                current_id = line[1:].split()[0]
-                seqs[current_id] = []
-            elif current_id:
-                seqs[current_id].append(line)
-    return {k: "".join(v) for k, v in seqs.items()}
-
-
 def parse_labels(path):
     """
     Parse a .labels file into a dict of {seq_id: [(pos, residue, label), ...]}.

@@ -1,55 +1,60 @@
 """
-Convert .input files to per-motif .fasta and .labels files.
-Usage: python convert_input.py nbs_e5.input training/data/nbs
+Convert NLRexpress .input files to per-motif .labels files.
+Reads training_sets/{cc,lrr,nbs}_e5.input and writes training/data/<motif>.labels
 """
 
-import sys
 from collections import defaultdict
+from pathlib import Path
 
-input_file = sys.argv[1]
-out_prefix = sys.argv[2]
+OUTPUT_DIR = Path("training/data")
 
-LABEL_MAP = {
-    "rdhhhdhEDVID": "extEDVID",
-    "GmGGvGKTT": "P-loop",
-    "GLPLA": "GLPL",
-    "MHD": "MHD",
-    "KRhhhhDD": "Walker-B",
-    "hhGRE": "RNSB-A",
-    "FDhrhWhshs": "RNSB-B",
-    "LseeeSWeLF": "RNSB-C",
-    "KhhhTTR": "RNSB-D",
-    "CFLYCSLFP": "VG",
-    "LxxLxL": "lrr",
+# Each input file has its own label map — files must be kept separate since
+# sequences from one domain class should not appear as negatives in another.
+FILE_CONFIGS = {
+    Path("training_sets/cc_e5.input"): {
+        "rdhhhdhEDVID": "extEDVID",
+    },
+    Path("training_sets/nbs_e5.input"): {
+        "GmGGvGKTT": "P-loop",
+        "GLPLA": "GLPL",
+        "MHD": "MHD",
+        "KRhhhhDD": "Walker-B",
+        "hhGRE": "VG",
+        "FDhrhWhshs": "RNBS-A",
+        "KhhhTTR": "RNBS-B",
+        "LseeeSWeLF": "RNBS-C",
+        "CFLYCSLFP": "RNBS-D",
+    },
+    Path("training_sets/lrr_e5.input"): {
+        "L": "LxxLxL",
+        "N": "LxxLxL",
+        "C": "LxxLxL",
+    },
 }
 
-sequences = defaultdict(list)
-labels = defaultdict(lambda: defaultdict(list))
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-with open(input_file) as f:
-    for line in f:
-        parts = line.strip().split("\t")
-        seq_id, pos, residue, raw_label = parts[0], parts[1], parts[2], parts[3]
-        sequences[seq_id].append(residue)
+for input_file, label_map in FILE_CONFIGS.items():
+    print(f"Reading {input_file}...")
+    motif_names = set(label_map.values())
 
-        for motif in LABEL_MAP.values():
-            is_positive = raw_label in LABEL_MAP and LABEL_MAP[raw_label] == motif
-            labels[motif][seq_id].append((pos, residue, 1 if is_positive else 0))
+    # labels[motif][seq_id] = [(pos, residue, label), ...]
+    labels = {motif: defaultdict(list) for motif in motif_names}
 
-# Shared FASTA
-fasta_path = f"{out_prefix}.fasta"
-with open(fasta_path, "w") as f:
-    for seq_id, residues in sequences.items():
-        f.write(f">{seq_id}\n{''.join(residues)}\n")
-print(f"Written {len(sequences)} sequences to {fasta_path}")
+    with open(input_file) as f:
+        for line in f:
+            parts = line.strip().split("\t")
+            seq_id, pos, residue, raw_label = parts[0], parts[1], parts[2], parts[3]
+            for motif in motif_names:
+                is_positive = raw_label in label_map and label_map[raw_label] == motif
+                labels[motif][seq_id].append((pos, residue, 1 if is_positive else 0))
 
-# Per-motif label files
-for motif, motif_labels in labels.items():
-    labels_path = f"{out_prefix}_{motif}.labels"
-    n_pos = sum(r[2] for rows in motif_labels.values() for r in rows)
-    with open(labels_path, "w") as f:
-        f.write("seq_id\tpos\tresidue\tlabel\n")
-        for seq_id, rows in motif_labels.items():
-            for pos, residue, label in rows:
-                f.write(f"{seq_id}\t{pos}\t{residue}\t{label}\n")
-    print(f"  {motif}: {n_pos} positive -> {labels_path}")
+    for motif, motif_labels in labels.items():
+        labels_path = OUTPUT_DIR / f"{motif}.labels"
+        n_pos = sum(r[2] for rows in motif_labels.values() for r in rows)
+        with open(labels_path, "w") as f:
+            f.write("seq_id\tpos\tresidue\tlabel\n")
+            for seq_id, rows in motif_labels.items():
+                for pos, residue, label in rows:
+                    f.write(f"{seq_id}\t{pos}\t{residue}\t{label}\n")
+        print(f"  {motif}: {n_pos} positive -> {labels_path}")

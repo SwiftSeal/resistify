@@ -1,0 +1,12 @@
+{
+  "motif": "P-loop",
+  "esm_model": "Synthyra/ESM2-8M",
+  "window_size": 30,
+  "threshold": 0.99,
+  "val_metrics": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 0.999999995,
+    "roc_auc": 1.0
+  }
+}

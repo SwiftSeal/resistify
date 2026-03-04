@@ -1,15 +1,12 @@
 """
 Train a motif classifier using frozen ESM2-8M embeddings + XGBoost.
-Usage: python training/train.py --motif lrr
-Expects: training/data/lrr.fasta, training/data/lrr.labels
-Outputs: models/lrr.ubj, models/lrr_meta.json
+Usage: python training/train.py --motif extEDVID
+Expects: training/data/<motif>.labels
+Outputs: src/resistify/data/models/<motif>.ubj, <motif>_meta.json
 """
 
+import gc
 import os
-
-os.environ.setdefault("OMP_NUM_THREADS", "1")
-os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
-os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 import argparse
 import json
 import numpy as np
@@ -17,32 +14,32 @@ from sklearn.model_selection import GroupShuffleSplit
 from sklearn.metrics import classification_report, roc_auc_score, precision_recall_curve
 from xgboost import XGBClassifier
 
-from data import parse_fasta, parse_labels
-from features import embed_sequences, make_windows
+from data import parse_labels
+from features import embed_sequences, load_esm_model, make_windows
 
 WINDOW_SIZE = 11
 DATA_DIR = "training/data"
-MODELS_DIR = "models"
+MODELS_DIR = "src/resistify/data/models"
 ESM_MODEL = "Synthyra/ESM2-8M"
 
 MOTIF_CONFIG = {
-    "extEDVID": ("cc.fasta", "cc_extEDVID.labels", 12 + 10),
-    "P-loop": ("nbs.fasta", "nbs_P-loop.labels", 9 + 10),
-    "GLPL": ("nbs.fasta", "nbs_GLPL.labels", 5 + 10),
-    "MHD": ("nbs.fasta", "nbs_MHD.labels", 3 + 10),
-    "Walker-B": ("nbs.fasta", "nbs_Walker-B.labels", 8 + 10),
-    "RNSB-A": ("nbs.fasta", "nbs_RNSB-A.labels", 10 + 10),
-    "RNSB-B": ("nbs.fasta", "nbs_RNSB-B.labels", 7 + 10),
-    "RNSB-C": ("nbs.fasta", "nbs_RNSB-C.labels", 10 + 10),
-    "RNSB-D": ("nbs.fasta", "nbs_RNSB-D.labels", 9 + 10),
-    "VG": ("nbs.fasta", "nbs_VG.labels", 5 + 10),
-    "aA": ("tir.fasta", "tir_aA.labels", 7 + 10),
-    "aC": ("tir.fasta", "tir_aC.labels", 6 + 10),
-    "aD3": ("tir.fasta", "tir_aD3.labels", 13 + 10),
-    "bA": ("tir.fasta", "tir_bA.labels", 10 + 10),
-    "bC": ("tir.fasta", "tir_bC.labels", 8 + 10),
-    "bDaD1": ("tir.fasta", "tir_bDaD1.labels", 16 + 10),
-    "LxxLxL": ("lrr.fasta", "lrr.labels", 6 + 10),
+    "extEDVID": ("extEDVID.labels", 30),
+    "P-loop":   ("P-loop.labels",   30),
+    "GLPL":     ("GLPL.labels",     30),
+    "MHD":      ("MHD.labels",      30),
+    "Walker-B": ("Walker-B.labels", 30),
+    "RNBS-A":   ("RNBS-A.labels",  30),
+    "RNBS-B":   ("RNBS-B.labels",   30),
+    "RNBS-C":   ("RNBS-C.labels",  30),
+    "RNBS-D":   ("RNBS-D.labels",   30),
+    "VG":       ("VG.labels",       30),
+    # "aA":    ("aA.labels",    7 + 10),
+    # "aC":    ("aC.labels",    6 + 10),
+    # "aD3":   ("aD3.labels",  13 + 10),
+    # "bA":    ("bA.labels",   10 + 10),
+    # "bC":    ("bC.labels",    8 + 10),
+    # "bDaD1": ("bDaD1.labels",16 + 10),
+    "LxxLxL":   ("LxxLxL.labels",   30),
 }
 
 
@@ -51,26 +48,25 @@ def best_f1_threshold(y_true, y_proba):
     f1_scores = 2 * (precisions * recalls) / (precisions + recalls + 1e-8)
     idx = np.argmax(f1_scores)
     return (
-        float(thresholds[idx]),
+        min(float(thresholds[idx]), 0.99),
         float(precisions[idx]),
         float(recalls[idx]),
         float(f1_scores[idx]),
     )
 
 
-def train(motif, fasta_path, labels_path, models_dir, window_size):
+def train(motif, labels_path, models_dir, window_size, esm_model=None):
     # ── Load data ────────────────────────────────────────────────────────────
     print(f"Loading data for motif: {motif}")
-    sequences_dict = parse_fasta(fasta_path)
     label_data = parse_labels(labels_path)
 
-    seq_ids = [s for s in label_data if s in sequences_dict]
-    sequences = [sequences_dict[s] for s in seq_ids]
+    seq_ids = list(label_data.keys())
+    sequences = ["".join(r for _, r, _ in label_data[s]) for s in seq_ids]
     print(f"  {len(seq_ids)} sequences loaded")
 
     # ── Embed ────────────────────────────────────────────────────────────────
     print(f"Embedding with {ESM_MODEL}...")
-    embeddings = embed_sequences(sequences, ESM_MODEL, device="cpu")
+    embeddings = embed_sequences(sequences, ESM_MODEL, device="cpu", model=esm_model)
 
     # ── Build feature matrix ─────────────────────────────────────────────────
     print("Building feature matrix...")
@@ -165,17 +161,25 @@ def train(motif, fasta_path, labels_path, models_dir, window_size):
     print(f"Model saved to {model_path}")
     print(f"Metadata saved to {meta_path}")
 
+    return {
+        "motif": motif,
+        "threshold": threshold,
+        "precision": precision,
+        "recall": recall,
+        "f1": f1,
+        "roc_auc": roc_auc,
+    }
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--motif", default=None, help="Single motif to train")
     parser.add_argument("--all", action="store_true", help="Train all motifs")
-    parser.add_argument("--fasta", default=None, help="Override FASTA path")
     parser.add_argument("--labels", default=None, help="Override labels path")
     parser.add_argument(
         "--data_dir",
         default=DATA_DIR,
-        help="Directory containing FASTA and label files",
+        help="Directory containing label files",
     )
     parser.add_argument(
         "--models_dir", default=MODELS_DIR, help="Directory to save trained models"
@@ -184,21 +188,32 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.all:
-        for motif, (fasta, labels, window_size) in MOTIF_CONFIG.items():
-            train(
+        esm_model = load_esm_model(ESM_MODEL, device="cpu")
+        results = []
+        for motif, (labels, window_size) in MOTIF_CONFIG.items():
+            result = train(
                 motif=motif,
-                fasta_path=os.path.join(args.data_dir, fasta),
                 labels_path=os.path.join(args.data_dir, labels),
                 models_dir=args.models_dir,
                 window_size=window_size,
+                esm_model=esm_model,
+            )
+            results.append(result)
+            gc.collect()
+
+        print("\n── All-motif summary ───────────────────────────────────")
+        print(f"{'Motif':<12}  {'Threshold':>9}  {'Precision':>9}  {'Recall':>9}  {'F1':>9}  {'ROC-AUC':>9}")
+        print("-" * 67)
+        for r in results:
+            print(
+                f"{r['motif']:<12}  {r['threshold']:>9.4f}  {r['precision']:>9.4f}"
+                f"  {r['recall']:>9.4f}  {r['f1']:>9.4f}  {r['roc_auc']:>9.4f}"
             )
     elif args.motif:
-        fasta_path = os.path.join(args.data_dir, MOTIF_CONFIG[args.motif][0])
-        labels_path = os.path.join(args.data_dir, MOTIF_CONFIG[args.motif][1])
-        window_size = MOTIF_CONFIG[args.motif][2]
+        labels_path = args.labels or os.path.join(args.data_dir, MOTIF_CONFIG[args.motif][0])
+        window_size = MOTIF_CONFIG[args.motif][1]
         train(
             motif=args.motif,
-            fasta_path=fasta_path,
             labels_path=labels_path,
             models_dir=args.models_dir,
             window_size=window_size,
