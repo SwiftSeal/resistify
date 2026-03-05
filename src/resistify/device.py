@@ -2,6 +2,7 @@ import os
 import multiprocessing
 import torch
 
+
 def get_device() -> str:
     if torch.cuda.is_available():
         return "cuda"
@@ -9,6 +10,7 @@ def get_device() -> str:
         return "mps"
     else:
         return "cpu"
+
 
 def get_threads() -> int:
     if hasattr(os, "sched_getaffinity"):
@@ -18,4 +20,3 @@ def get_threads() -> int:
             pass
     else:
         return int(multiprocessing.cpu_count())
-    

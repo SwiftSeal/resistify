@@ -3,7 +3,6 @@ import os
 import logging
 from pathlib import Path
 import pyhmmer
-from tqdm.auto import tqdm
 from pyhmmer.easel import DigitalSequence
 from resistify.annotation import Protein, Annotation
 
@@ -20,7 +19,7 @@ NLR_ACCESSION_DOMAINS = {
     "PF00931": "NBARC",
     "PF00560": "LRR",
     "PF07725": "LRR",
-    #"PF12061": "LRR", R1
+    # "PF12061": "LRR", R1
     "PF12799": "LRR",
     "PF13855": "LRR",
     "PF23211": "LRR",
@@ -89,7 +88,11 @@ def hmmsearch(proteins: dict[str, Protein], database: Path, threads: int = 0):
             Z=45638612,
             cpus=threads,
         ):
-            accession = tophit.query.accession.split(".")[0]
+            if tophit.query.accession is None:
+                raise ValueError(f"Hit {tophit.query.name} has no accession")
+            else:
+                accession = tophit.query.accession.split(".")[0]
+
             try:
                 name = ACCESSION_DOMAINS[accession]
             except KeyError:

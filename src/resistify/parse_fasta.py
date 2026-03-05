@@ -7,9 +7,9 @@ logger = logging.getLogger(__name__)
 
 def parse_fasta(file_path: Path, sort: bool = True) -> dict[str, Protein]:
     logger.info(f"Loading sequences from {file_path}")
-    
+
     def read_fasta(path):
-        with open(path, 'r') as f:
+        with open(path, "r") as f:
             header = None
             seq_parts = []
             for line in f:
@@ -27,7 +27,7 @@ def parse_fasta(file_path: Path, sort: bool = True) -> dict[str, Protein]:
                 yield header, "".join(seq_parts)
 
     proteins = {}
-    
+
     for id, seq in read_fasta(str(file_path)):
         seq = seq.strip("*")
         seq = seq.strip(".")

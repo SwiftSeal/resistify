@@ -26,6 +26,7 @@ STATES = {
     "o": "outside",
 }
 
+
 class Decoder(nn.Module):
     def __init__(self):
         super().__init__()
@@ -149,6 +150,7 @@ class Decoder(nn.Module):
 
         return best_tags_arr.transpose(0, 1)
 
+
 class T5Encoder:
     def __init__(self, device: str):
         self.device = torch.device(device)
@@ -160,28 +162,28 @@ class T5Encoder:
         self.tokenizer = T5Tokenizer.from_pretrained(
             "Rostlab/prot_t5_xl_half_uniref50-enc", do_lower_case=False
         )
-        self.encoder_model = T5EncoderModel.from_pretrained(
-            "Rostlab/prot_t5_xl_half_uniref50-enc", torch_dtype=dtype
-        ).to(self.device).eval()
+        self.encoder_model = (
+            T5EncoderModel.from_pretrained(
+                "Rostlab/prot_t5_xl_half_uniref50-enc", torch_dtype=dtype
+            )
+            .to(self.device)
+            .eval()
+        )
 
     @torch.inference_mode()
     def embed(self, sequences: list[str]):
         processed_seqs = [s.upper().translate(self.aa_map) for s in sequences]
         tokens = [" ".join(list(s)) for s in processed_seqs]
-        
+
         encoded = self.tokenizer.batch_encode_plus(
-            tokens, 
-            padding="longest", 
-            add_special_tokens=True, 
-            return_tensors="pt"
+            tokens, padding="longest", add_special_tokens=True, return_tensors="pt"
         )
 
         input_ids = encoded["input_ids"].to(self.device)
         attention_mask = encoded["attention_mask"].to(self.device)
 
         embeddings = self.encoder_model(
-            input_ids=input_ids, 
-            attention_mask=attention_mask
+            input_ids=input_ids, attention_mask=attention_mask
         )
 
         return embeddings.last_hidden_state.detach(), attention_mask
@@ -383,6 +385,7 @@ def predict_sequences(models, embedding, mask):
 
     return pred.detach()
 
+
 def tmbed(proteins: dict[str, Protein], device: str, batch_size: int, threads: int):
     torch.set_num_threads(threads)
     logger.info("Predicting transmembrane domains with TMBed")
@@ -392,33 +395,34 @@ def tmbed(proteins: dict[str, Protein], device: str, batch_size: int, threads: i
     models = load_models(device)
 
     protein_list = list(proteins.values())
-    
+
     for i in tqdm(range(0, len(protein_list), batch_size)):
         batch = protein_list[i : i + batch_size]
         batch_seqs = [p.sequence for p in batch]
-        
+
         try:
             embeddings, att_mask = encoder.embed(batch_seqs)
             embeddings = embeddings.to(device=device, dtype=torch.float32)
-            
+
             mask = make_mask(embeddings, att_mask)
             probabilities = predict_sequences(models, embeddings, mask)
-            
+
             predictions = decoder(probabilities.cpu(), mask.cpu()).byte()
-            
+
             for idx, protein in enumerate(batch):
                 seq_len = len(protein.sequence)
                 pred_seq = predictions[idx, :seq_len]
-                
+
                 protein.transmembrane_predictions = "".join(
                     PRED_MAP[int(x)] for x in pred_seq
                 )
-                
+
                 _annotate_protein(protein)
 
         except torch.cuda.OutOfMemoryError:
             logger.error("GPU OOM for batch - try reducing batch_size")
             raise
+
 
 def _annotate_protein(protein):
     """Extracted annotation logic for readability."""

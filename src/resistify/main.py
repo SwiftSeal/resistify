@@ -92,7 +92,6 @@ def parse_args():
         dest="command", required=True, help="Subcommands"
     )
 
-    # NLR subparser
     nlr_parser = subparsers.add_parser(
         "nlr",
         help="Identify and classify NLR resistance genes",
@@ -110,7 +109,6 @@ def parse_args():
     )
     add_common_args(nlr_parser)
 
-    # PRR subparser
     prr_parser = subparsers.add_parser(
         "prr",
         help="Identify and classify PRR resistance genes",

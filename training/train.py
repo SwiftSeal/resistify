@@ -24,22 +24,22 @@ ESM_MODEL = "Synthyra/ESM2-8M"
 
 MOTIF_CONFIG = {
     "extEDVID": ("extEDVID.labels", 30),
-    "P-loop":   ("P-loop.labels",   30),
-    "GLPL":     ("GLPL.labels",     30),
-    "MHD":      ("MHD.labels",      30),
+    "P-loop": ("P-loop.labels", 30),
+    "GLPL": ("GLPL.labels", 30),
+    "MHD": ("MHD.labels", 30),
     "Walker-B": ("Walker-B.labels", 30),
-    "RNBS-A":   ("RNBS-A.labels",  30),
-    "RNBS-B":   ("RNBS-B.labels",   30),
-    "RNBS-C":   ("RNBS-C.labels",  30),
-    "RNBS-D":   ("RNBS-D.labels",   30),
-    "VG":       ("VG.labels",       30),
+    "RNBS-A": ("RNBS-A.labels", 30),
+    "RNBS-B": ("RNBS-B.labels", 30),
+    "RNBS-C": ("RNBS-C.labels", 30),
+    "RNBS-D": ("RNBS-D.labels", 30),
+    "VG": ("VG.labels", 30),
     # "aA":    ("aA.labels",    7 + 10),
     # "aC":    ("aC.labels",    6 + 10),
     # "aD3":   ("aD3.labels",  13 + 10),
     # "bA":    ("bA.labels",   10 + 10),
     # "bC":    ("bC.labels",    8 + 10),
     # "bDaD1": ("bDaD1.labels",16 + 10),
-    "LxxLxL":   ("LxxLxL.labels",   30),
+    "LxxLxL": ("LxxLxL.labels", 30),
 }
 
 
@@ -202,7 +202,9 @@ if __name__ == "__main__":
             gc.collect()
 
         print("\n── All-motif summary ───────────────────────────────────")
-        print(f"{'Motif':<12}  {'Threshold':>9}  {'Precision':>9}  {'Recall':>9}  {'F1':>9}  {'ROC-AUC':>9}")
+        print(
+            f"{'Motif':<12}  {'Threshold':>9}  {'Precision':>9}  {'Recall':>9}  {'F1':>9}  {'ROC-AUC':>9}"
+        )
         print("-" * 67)
         for r in results:
             print(
@@ -210,7 +212,9 @@ if __name__ == "__main__":
                 f"  {r['recall']:>9.4f}  {r['f1']:>9.4f}  {r['roc_auc']:>9.4f}"
             )
     elif args.motif:
-        labels_path = args.labels or os.path.join(args.data_dir, MOTIF_CONFIG[args.motif][0])
+        labels_path = args.labels or os.path.join(
+            args.data_dir, MOTIF_CONFIG[args.motif][0]
+        )
         window_size = MOTIF_CONFIG[args.motif][1]
         train(
             motif=args.motif,

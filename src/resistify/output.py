@@ -159,7 +159,15 @@ def save_results(proteins: dict[str, Protein], output_dir: Path, command: str):
             ["Sequence", "Domain", "Start", "End", "E_value", "Score", "Source"]
         )
         motifs.writerow(
-            ["Sequence", "Motif", "Position", "Probability", "Downstream_sequence", "Motif_sequence", "Upstream_sequence"]
+            [
+                "Sequence",
+                "Motif",
+                "Position",
+                "Probability",
+                "Downstream_sequence",
+                "Motif_sequence",
+                "Upstream_sequence",
+            ]
         )
         domains.writerow(["Sequence", "Domain", "Start", "End"])
 
