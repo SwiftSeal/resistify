@@ -3,6 +3,9 @@ import platform
 import argparse
 from pathlib import Path
 import logging
+import resource
+import sys
+import time
 from resistify.__version__ import __version__
 from resistify.parse_fasta import parse_fasta
 from resistify.output import save_results
@@ -35,7 +38,7 @@ def add_common_args(parser):
     parser.add_argument(
         "-t",
         "--threads",
-        help="Number of threads to use for HMMER searches.",
+        help="Number of threads to use for parallel processing. Defaults to all available.",
         type=int,
         default=get_threads(),
     )
@@ -69,6 +72,12 @@ def add_common_args(parser):
         help="Gap size (in amino acids) to consider merging duplicate annotations.",
         default=100,
         type=int,
+    )
+    parser.add_argument(
+        "--no-draw",
+        help="Skip generating SVG plots.",
+        action="store_true",
+        dest="no_draw",
     )
 
 
@@ -120,6 +129,7 @@ def parse_args():
 
 
 def main():
+    _start = time.monotonic()
     args = parse_args()
 
     level = logging.DEBUG if args.debug else logging.INFO
@@ -139,6 +149,9 @@ def main():
 
         if not args.retain:
             proteins = {k: v for k, v in proteins.items() if v.is_nlr()}
+            if len(proteins) == 0:
+                logger.warning("No NLRs were identified. Try --retain?")
+                sys.exit(0)
 
         proteins = nlrexpress(proteins, device=args.device, threads=args.threads)
 
@@ -155,16 +168,21 @@ def main():
         tmbed(proteins, args.device, args.batch_size, args.threads)
         proteins = {k: v for k, v in proteins.items() if v.is_rlp()}
 
-        nlrexpress(proteins, search_type="lrr", threads=args.threads)
+        nlrexpress(proteins, search_type="LxxLxL", threads=args.threads)
         for protein in proteins.values():
             protein.annotate_lrr(lrr_gap=args.lrr_gap, lrr_length=args.lrr_length)
             protein.merge_domains()
             protein.classify_rlp()
     else:
-        return
+        logger.error("Invalid command. Use 'nlr' or 'prr'.")
+        sys.exit(1)
 
-    save_results(proteins, args.outdir, command=args.command)
+    save_results(proteins, args.outdir, command=args.command, draw=not args.no_draw)
 
+    _ru = resource.getrusage(resource.RUSAGE_SELF)
+    _elapsed = time.monotonic() - _start
+    logger.info(f"Time: {_elapsed:.1f}s total, {_ru.ru_utime:.1f}s CPU")
+    logger.info(f"Peak memory: {_ru.ru_maxrss / 1024:.0f} MB")
     logger.info("Thank you for using Resistify!")
     logger.info("If you used Resistify in your research, please cite the following:")
     logger.info(" - Resistify: https://doi.org/10.1177/11779322241308944")

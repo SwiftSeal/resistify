@@ -92,11 +92,15 @@ class Protein:
     @property
     def lrr_length(self) -> int:
         """
-        Calculate and return the total length of all LRR domain annotations.
+        Calculate and return the total length of the MERGED LRR domains.
         """
         total_length = 0
         for annotation in self.annotations:
-            if annotation.name == "LRR" and annotation.type == "domain":
+            if (
+                annotation.name == "LRR"
+                and annotation.type == "domain"
+                and annotation.source == "merged"
+            ):
                 total_length += annotation.end - annotation.start + 1
         return total_length
 
@@ -163,11 +167,11 @@ class Protein:
             if motif.name in [
                 "VG",
                 "P-loop",
-                "RNSB-A",
+                "RNBS-A",
                 "Walker-B",
-                "RNSB-B",
-                "RNSB-C",
-                "RNSB-D",
+                "RNBS-B",
+                "RNBS-C",
+                "RNBS-D",
                 "GLPL",
                 "MHD",
             ]:

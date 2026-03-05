@@ -28,48 +28,57 @@ COLOUR_PALETTE = {
     "aD3": "#DC267F",
     "VG": "#FE6100",
     "P-loop": "#FE6100",
-    "RNSB-A": "#FE6100",
+    "RNBS-A": "#FE6100",
     "Walker-B": "#FE6100",
-    "RNSB-B": "#FE6100",
-    "RNSB-C": "#FE6100",
-    "RNSB-D": "#FE6100",
+    "RNBS-B": "#FE6100",
+    "RNBS-C": "#FE6100",
+    "RNBS-D": "#FE6100",
     "GLPL": "#FE6100",
     "MHD": "#FE6100",
     "LxxLxL": "#FFB000",
 }
 
 
-def draw_svg(protein: Protein, output_path: Path):
+TOPOLOGY_ANNOTATIONS = {
+    "alpha_inwards",
+    "alpha_outwards",
+    "beta_inwards",
+    "beta_outwards",
+}
+
+
+def draw_svg(protein: Protein, output_path: Path, command: str):
     elements: list[Element]
 
     elements = [
-        svg.Rect(
-            x=0,
-            y=30,
-            width=protein.length,
-            height=40,
-            fill="lightgrey",
+        svg.Line(
+            x1=0,
+            x2=protein.length,
+            y1=60,
+            y2=60,
             stroke="black",
-            stroke_width=2,
+            stroke_width=6,
         ),
     ]
 
     motifs = [a for a in protein.annotations if a.type == "motif"]
+    if command == "prr":
+        motifs = [m for m in motifs if m.name not in TOPOLOGY_ANNOTATIONS]
     for motif in motifs:
         elements.append(
             svg.Line(
                 x1=motif.start,
                 x2=motif.start,
-                y1=10,
-                y2=30,
+                y1=32,
+                y2=60,
                 stroke="black",
                 stroke_width=2,
             ),
         )
         elements.append(
             svg.Text(
-                x=motif.start,
-                y=20,
+                x=motif.start - 8,  # gentle shift
+                y=28,
                 text=motif.name,
                 transform=[svg.Rotate(-45, motif.start, 20)],
                 font_size=8,
@@ -81,13 +90,17 @@ def draw_svg(protein: Protein, output_path: Path):
     domains = [
         a for a in protein.annotations if a.type == "domain" and a.source == "merged"
     ]
+    if command == "nlr":
+        domains = [d for d in domains if d.name != "MADA"]
+    if command == "prr":
+        domains = [d for d in domains if d.name not in TOPOLOGY_ANNOTATIONS]
     for domain in domains:
         elements.append(
             svg.Rect(
                 x=domain.start,
-                y=30,
+                y=45,
                 width=domain.end - domain.start + 1,
-                height=40,
+                height=30,
                 fill=COLOUR_PALETTE.get(domain.name, "grey"),
                 stroke="black",
                 stroke_width=2,
@@ -96,9 +109,9 @@ def draw_svg(protein: Protein, output_path: Path):
         elements.append(
             svg.Text(
                 x=domain.start + (domain.end - domain.start) / 2,
-                y=50,
+                y=60,
                 text=domain.name,
-                font_size=24,
+                font_size=14,
                 font_family="sans-serif",
                 text_anchor="middle",
                 dominant_baseline="middle",
@@ -111,10 +124,15 @@ def draw_svg(protein: Protein, output_path: Path):
         f.write(str(canvas))
 
 
-def save_results(proteins: dict[str, Protein], output_dir: Path, command: str):
+def save_results(
+    proteins: dict[str, Protein], output_dir: Path, command: str, draw: bool = True
+):
     logger.info("Saving results")
     output_dir.mkdir(parents=True, exist_ok=True)
-    (output_dir / "plots").mkdir(parents=True, exist_ok=True)
+    if draw:
+        (output_dir / "plots").mkdir(parents=True, exist_ok=True)
+
+    classified_fasta_path = output_dir / f"{command}.fa"
 
     with (
         open(output_dir / "results.tsv", "w", newline="") as results_file,
@@ -122,6 +140,7 @@ def save_results(proteins: dict[str, Protein], output_dir: Path, command: str):
         open(output_dir / "motifs.tsv", "w", newline="") as motifs_file,
         open(output_dir / "domains.tsv", "w", newline="") as domains_file,
         open(output_dir / "nbarc.fa", "w") as nbarc_fasta,
+        open(classified_fasta_path, "w") as classified_fasta,
     ):
         results = csv.writer(results_file, delimiter="\t")
         annotations = csv.writer(annotations_file, delimiter="\t")
@@ -156,7 +175,7 @@ def save_results(proteins: dict[str, Protein], output_dir: Path, command: str):
             )
 
         annotations.writerow(
-            ["Sequence", "Domain", "Start", "End", "E_value", "Score", "Source"]
+            ["Sequence", "Domain", "Start", "End", "Accession", "Score", "Source"]
         )
         motifs.writerow(
             [
@@ -208,7 +227,9 @@ def save_results(proteins: dict[str, Protein], output_dir: Path, command: str):
                             annotation.start,
                             annotation.end,
                             annotation.accession,
-                            annotation.score,
+                            round(annotation.score, 2)
+                            if isinstance(annotation.score, float)
+                            else annotation.score,
                             annotation.source,
                         ]
                     )
@@ -228,7 +249,9 @@ def save_results(proteins: dict[str, Protein], output_dir: Path, command: str):
                             protein.id,
                             annotation.name,
                             start,
-                            annotation.score,
+                            round(annotation.score, 2)
+                            if isinstance(annotation.score, float)
+                            else annotation.score,
                             protein.sequence[max(0, start - 6) : start - 1],
                             protein.sequence[start - 1 : end],
                             protein.sequence[end : end + 5],
@@ -246,7 +269,14 @@ def save_results(proteins: dict[str, Protein], output_dir: Path, command: str):
                     protein.sequence[domain.start - 1 : domain.end] + "\n"
                 )
 
-            draw_svg(
-                protein,
-                output_dir / "plots" / f"{re.sub(r'[\\/*?:<>|]', '', protein.id)}.svg",
-            )
+            if protein.classification is not None:
+                classified_fasta.write(f">{protein.id}\n{protein.sequence}\n")
+
+            if draw:
+                draw_svg(
+                    protein,
+                    output_dir
+                    / "plots"
+                    / f"{re.sub(r'[\\/*?:<>|]', '', protein.id)}.svg",
+                    command=command,
+                )

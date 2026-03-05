@@ -11,6 +11,7 @@ dependencies = [
     "transformers",
     "xgboost>=3.2.0",
     "einops>=0.8.2",
+    "sentencepiece>=0.2.1",
 ]
 authors = [
   { name="Moray Smith", email="moraysmith98@gmail.com" },
@@ -30,8 +31,3 @@ resistify = "resistify.main:main"
 [build-system]
 requires = ["uv_build>=0.8.9,<0.9.0"]
 build-backend = "uv_build"
-
-[tool.uv.workspace]
-members = [
-    "mmseqs",
-]

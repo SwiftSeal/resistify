@@ -1,5 +1,6 @@
 import torch
 import esm
+import tqdm.auto as tqdm
 from transformers import T5EncoderModel, T5Tokenizer
 import torch.nn as nn
 import logging
@@ -141,8 +142,10 @@ def predict_coils(
             seq = p.sequence[: p.nbarc_start - 1]
             to_process.append((p.id, seq))
 
-    for i in range(0, len(to_process), batch_size):
-        batch = to_process[i : i + batch_size]
+    batches = [
+        to_process[i : i + batch_size] for i in range(0, len(to_process), batch_size)
+    ]
+    for batch in tqdm.tqdm(batches, desc="CoCoNat", unit="batch"):
         batch_results = predictor.predict_batch(batch)
 
         for p_id, cc_probs in batch_results.items():

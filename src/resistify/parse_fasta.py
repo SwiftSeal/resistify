@@ -48,5 +48,8 @@ def parse_fasta(file_path: Path, sort: bool = True) -> dict[str, Protein]:
             )
         )
 
+    if len(proteins) == 0:
+        raise ValueError("No valid sequences were loaded.")
+
     logger.info(f"{len(proteins)} sequences have been loaded")
     return proteins
