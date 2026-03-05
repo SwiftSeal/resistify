@@ -1,9 +1,12 @@
 import json
 import logging
+import sqlite3
+import tempfile
 import numpy as np
 import torch
 from pathlib import Path
-from transformers import AutoModel, AutoTokenizer
+from tqdm.auto import tqdm
+from transformers import AutoModel
 from xgboost import XGBClassifier
 from resistify.annotation import Protein, Annotation
 
@@ -35,9 +38,6 @@ MOTIF_SPAN_LENGTHS = {
 }
 
 
-# ── Model loading ─────────────────────────────────────────────────────────────
-
-
 def _load_models(models_dir: Path, search_type: str, threads: int):
     models = {}
     motifs = list(MOTIF_SPAN_LENGTHS.keys()) if search_type == "all" else [search_type]
@@ -63,12 +63,8 @@ def _load_models(models_dir: Path, search_type: str, threads: int):
     return models
 
 
-# ── ESM embedding ─────────────────────────────────────────────────────────────
-
-
-def _load_esm(device: str) -> tuple[AutoModel, AutoTokenizer]:
+def _load_esm(device: str) -> AutoModel:
     logger.info(f"Loading {ESM_MODEL} on {device}...")
-    tokenizer = AutoTokenizer.from_pretrained(ESM_MODEL, trust_remote_code=True)
     model = (
         AutoModel.from_pretrained(
             ESM_MODEL,
@@ -77,26 +73,47 @@ def _load_esm(device: str) -> tuple[AutoModel, AutoTokenizer]:
         .eval()
         .to(device)
     )
-    return model, tokenizer
+    return model
 
 
-def _embed(model, tokenizer, sequence: str, device: str) -> np.ndarray:
-    inputs = tokenizer(sequence, return_tensors="pt").to(device)
-    with torch.no_grad():
-        outputs = model(**inputs)
-    return outputs.last_hidden_state[0, 1:-1].cpu().float().numpy()
+def _embed_all(model, sequences: list[str], db_path: str):
+    model.embed_dataset(
+        sequences=sequences,
+        tokenizer=model.tokenizer,
+        batch_size=1,  # Batching is broken but 1 is safe - revisit
+        max_len=None,
+        full_embeddings=True,
+        embed_dtype=torch.float32,
+        num_workers=0,
+        sql=True,
+        sql_db_path=db_path,
+        save=False,
+    )
 
 
-# ── Feature extraction ────────────────────────────────────────────────────────
+def _fetch_embedding(conn: sqlite3.Connection, sequence: str) -> np.ndarray | None:
+    row = conn.execute(
+        "SELECT embedding, shape, dtype FROM embeddings WHERE sequence = ?", (sequence,)
+    ).fetchone()
+    if row is None:
+        return None
+    blob, shape_str, dtype_str = row
+    shape = tuple(int(x) for x in shape_str.strip("()").split(",") if x.strip())
+    emb = np.frombuffer(blob, dtype=np.dtype(dtype_str)).reshape(shape).copy()
+    if emb.shape[0] == len(sequence) + 2:
+        emb = emb[1:-1]
+    if np.isnan(emb).any():
+        raise RuntimeError(f"Empty embeddings found for sequence {sequence}")
+    return emb
 
 
 def _make_windows(matrix: np.ndarray, window_size: int) -> np.ndarray:
     pad = window_size // 2
     padded = np.pad(matrix, ((pad, pad), (0, 0)), mode="constant")
-    return np.stack([padded[i : i + window_size].flatten() for i in range(len(matrix))])
-
-
-# ── Main entry point ──────────────────────────────────────────────────────────
+    windowed = np.lib.stride_tricks.sliding_window_view(padded, window_size, axis=0)[
+        : len(matrix)
+    ]
+    return windowed.transpose(0, 2, 1).reshape(len(matrix), -1)
 
 
 def nlrexpress(
@@ -113,36 +130,49 @@ def nlrexpress(
         return proteins
 
     torch.set_num_threads(threads)
-    esm, tokenizer = _load_esm(device)
+    esm = _load_esm(device)
 
-    for seq_id, protein in proteins.items():
-        emb = _embed(esm, tokenizer, protein.sequence, device)
+    sequences = [p.sequence for p in proteins.values() if p.length >= WINDOW_SIZE]
+    logger.info(f"Embedding {len(sequences)} sequences...")
 
-        if len(emb) < WINDOW_SIZE:
-            continue
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
+        db_path = f.name
+    try:
+        _embed_all(esm, sequences, db_path)
+        conn = sqlite3.connect(db_path)
 
-        windows = _make_windows(emb, WINDOW_SIZE)
+        for seq_id, protein in tqdm(proteins.items(), desc="Predicting motifs"):
+            if protein.length < WINDOW_SIZE:
+                continue
 
-        for motif, clf in models.items():
-            threshold = clf["meta"]["threshold"]
-            span = MOTIF_SPAN_LENGTHS[motif]
+            emb = _fetch_embedding(conn, protein.sequence)
 
-            proba = clf["model"].predict_proba(windows)[:, 1]
+            windows = _make_windows(emb, WINDOW_SIZE)
 
-            for idx in np.where(proba >= threshold)[0]:
-                end = int(idx + span)
-                if end > protein.length:
-                    continue
-                protein.add_annotation(
-                    Annotation(
-                        name=motif,
-                        type="motif",
-                        start=int(idx + 1),
-                        end=end,
-                        source="motif_classifier",
-                        score=float(proba[idx]),
+            for motif, clf in models.items():
+                threshold = clf["meta"]["threshold"]
+                span = MOTIF_SPAN_LENGTHS[motif]
+
+                proba = clf["model"].predict_proba(windows)[:, 1]
+
+                for idx in np.where(proba >= threshold)[0]:
+                    end = int(idx + span)
+                    if end > protein.length:
+                        continue
+                    protein.add_annotation(
+                        Annotation(
+                            name=motif,
+                            type="motif",
+                            start=int(idx + 1),
+                            end=end,
+                            source="motif_classifier",
+                            score=float(proba[idx]),
+                        )
                     )
-                )
+
+        conn.close()
+    finally:
+        Path(db_path).unlink(missing_ok=True)
 
     logger.info("Motif classification completed")
     return proteins
