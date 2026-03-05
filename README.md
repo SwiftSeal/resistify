@@ -7,11 +7,12 @@
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/swiftseal/resistify/blob/main/assets/resistify.ipynb)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 
-
 </div>
 
 Resistify is a program which rapidly identifies and classifies plant resistance genes from protein sequences.
 It is designed to be lightweight and easy to use.
+
+![A screenshot of the help interface of resistify](assets/terminal.png)
 
 ## What's new in two point two?
 
@@ -201,6 +202,13 @@ This file contains the coordinates of the domains identified by `Resistify`.
 | ZAR1     | LRR    | 676   | 808 | PF25019    | 31.39  | hmmer     |
 
 This file contains the raw annotations for each sequence, and the method which was used to identify them.
+
+### plots/
+
+By default, `Resistify` generates some rudimentary plots for each protein.
+You can disable these via `--no-draw` if ya want.
+
+![An SVG of ZAR1](assets/zar1.svg)
 
 ## Motif prediction accuracy
 
