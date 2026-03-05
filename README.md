@@ -247,7 +247,7 @@ False positives shouldn't interfere with the classification accuracy.
 
 The following are some quick benchmarks of the various `resistify` pipelines against the [DM potato genome](https://spuddb.uga.edu/data/DM_1-3_516_R44_potato.v6.1.hc_gene_models.pep.fa.gz) annotation, which contains 44,851 protein sequences.
 Benchmarking was conducted on an HPC node called ["buckbeak"](https://help.cropdiversity.ac.uk/system-overview.html) with 16 threads and 1 A100 GPU made available.
-CPU-only runtimes will be longer when `--coconat` is enabled, or on the PRR pipeline. 
+CPU-only runtimes will be longer when `--coconat` is enabled, or on the PRR pipeline.
 
 | Pipeline        | CPU time | Real time | MaxRSS  |
 | --------------- | -------- | --------- | ------- |
