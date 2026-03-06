@@ -273,10 +273,11 @@ def save_results(
                 classified_fasta.write(f">{protein.id}\n{protein.sequence}\n")
 
             if draw:
+                sanitised_id = re.sub(r'[\\/*?:<>|]', '', protein.id)
                 draw_svg(
                     protein,
                     output_dir
                     / "plots"
-                    / f"{re.sub(r'[\\/*?:<>|]', '', protein.id)}.svg",
+                    / f"{sanitised_id}.svg",
                     command=command,
                 )
