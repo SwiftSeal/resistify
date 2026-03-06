@@ -433,26 +433,28 @@ def _annotate_protein(protein):
             continue
 
         if state != previous_state:
-            protein.add_annotation(
-                Annotation(
-                    name=STATES[previous_state],
-                    start=state_start + 1,
-                    end=i,
-                    type="domain",
-                    source="tmbed",
+            if STATES[previous_state] not in ("inside", "outside"):
+                protein.add_annotation(
+                    Annotation(
+                        name=STATES[previous_state],
+                        start=state_start + 1,
+                        end=i,
+                        type="domain",
+                        source="tmbed",
+                    )
                 )
-            )
 
             state_start = i
             previous_state = state
 
     # Add final annotation
-    protein.add_annotation(
-        Annotation(
-            name=STATES[previous_state],
-            start=state_start + 1,
-            end=len(protein.sequence),
-            type="domain",
-            source="tmbed",
+    if STATES[previous_state] not in ("inside", "outside"):
+        protein.add_annotation(
+            Annotation(
+                name=STATES[previous_state],
+                start=state_start + 1,
+                end=len(protein.sequence),
+                type="domain",
+                source="tmbed",
+            )
         )
-    )
