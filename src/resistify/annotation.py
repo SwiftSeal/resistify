@@ -317,6 +317,11 @@ class Protein:
         """
         present_domains = {a.name for a in self.annotations if a.type == "domain"}
         if "NBARC" in present_domains:
+            nbarc_start = self.nbarc_start
+            has_upstream_edvid = any(
+                a.name == "extEDVID" and a.type == "motif" and a.start < nbarc_start
+                for a in self.annotations
+            )
             if "LRR" in present_domains:
                 if "RPW8" in present_domains:
                     self.classification = "RNL"
@@ -324,6 +329,8 @@ class Protein:
                     self.classification = "CNL"
                 elif "TIR" in present_domains:
                     self.classification = "TNL"
+                elif has_upstream_edvid:
+                    self.classification = "CNL"
                 else:
                     self.classification = "NL"
             else:
@@ -333,6 +340,8 @@ class Protein:
                     self.classification = "CN"
                 elif "TIR" in present_domains:
                     self.classification = "TN"
+                elif has_upstream_edvid:
+                    self.classification = "CN"
                 else:
                     self.classification = "N"
         else:

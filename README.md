@@ -14,7 +14,7 @@ It is designed to be lightweight and easy to use.
 
 ![A screenshot of the help interface of resistify](assets/terminal.png)
 
-## What's new in two point two?
+## What's new in version two?
 
 ### Speeeeed
 
