@@ -376,6 +376,7 @@ class Protein:
         if n_terminal_length < minimum_extracellular_length:
             return False
         else:
+            self.type = "RLP" # initially class as RLP, then reclass as RLK
             return True
 
     def classify_rlp(self):
