@@ -136,7 +136,7 @@ def main():
     FORMAT = "%(asctime)s %(levelname)s - %(message)s"
     logging.basicConfig(level=level, format=FORMAT, datefmt="[%X]")
 
-    logger.info("Welcome to Resistify 2.0.0!")
+    logger.info(f"Welcome to Resistify {__version__}!")
     logger.info(f"Python version: {platform.python_version()}")
     logger.info(f"Using {args.threads} threads")
     logger.info(f"Using device: {args.device}")

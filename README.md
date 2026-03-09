@@ -2,10 +2,9 @@
 
 # Resistify 🍃
 
-![Conda Version](https://img.shields.io/conda/vn/bioconda/resistify)
-![Conda Downloads](https://img.shields.io/conda/dn/bioconda/resistify)
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/swiftseal/resistify/blob/main/assets/resistify.ipynb)
-[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/resistify/badges/version.svg)](https://anaconda.org/bioconda/resistify)
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/resistify/badges/latest_release_date.svg)](https://anaconda.org/bioconda/resistify)
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/resistify/badges/downloads.svg)](https://anaconda.org/bioconda/resistify)
 
 </div>
 
@@ -69,8 +68,8 @@ To use these with `singularity`, simply run:
 
 To predict NLRs within a set of protein sequences, simply run:
 
-```
-resistify nlr <input.fa> -o $RESULTS_DIR
+```bash
+resistify nlr $PROTEIN_FASTA -o $RESULTS_DIR
 ```
 
 and `Resistify` will identify and classify NLRs, and return some files:
@@ -103,7 +102,7 @@ Together, this evidence is used to classify NLRs according to their domain archi
 To predict PRRs within a set of protein sequences, simply run:
 
 ```
-resistify prr <input.fa> -o $RESULTS_DIR
+resistify prr $PROTEIN_FASTA -o $RESULTS_DIR
 ```
 
 and `Resistify` will identify and classify PRRs, and return some files:
@@ -123,6 +122,24 @@ Then, a re-implementation of [`TMbed`](https://github.com/BernhoferM/TMbed) is u
 Finally, `NLRexpress` is used to identify LRR domains.
 
 Sequences are classified as being either RLPs or RLKs depending on the presence of an internal kinase domain, and are classified according to their extracellular domain.
+
+### Downloading model data
+
+By default, model will be automatically downloaded to `$HOME/.cache` or `$XDG_CACHE_HOME` if it is set.
+If you wish to download model data prior to running Resistify, this can be achieved by running:
+
+```python
+from huggingface_hub import snapshot_download
+import esm
+
+snapshot_download(repo_id="Synthyra/ESM2-8M", repo_type="model")
+
+# only for tmbed and coconat models
+snapshot_download(repo_id="Rostlab/prot_t5_xl_half_uniref50-enc", repo_type="model")
+esm.pretrained.esm2_t33_650M_UR50D()
+```
+
+Models can then be used as long as `$XDG_CACHE_HOME` points to the cache directory where models were downloaded.
 
 ## Results
 
