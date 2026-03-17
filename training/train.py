@@ -14,7 +14,7 @@ from sklearn.model_selection import GroupShuffleSplit
 from sklearn.metrics import classification_report, roc_auc_score, precision_recall_curve
 from xgboost import XGBClassifier
 
-from data import parse_labels
+from data import parse_labels, augment_label_data
 from features import embed_sequences, load_esm_model, make_windows
 
 WINDOW_SIZE = 11
@@ -55,14 +55,24 @@ def best_f1_threshold(y_true, y_proba):
     )
 
 
-def train(motif, labels_path, models_dir, window_size, esm_model=None):
+def train(motif, labels_path, models_dir, window_size, esm_model=None, augment=False):
     # ── Load data ────────────────────────────────────────────────────────────
     print(f"Loading data for motif: {motif}")
     label_data = parse_labels(labels_path)
 
+    if augment:
+        aug_data, group_map = augment_label_data(label_data)
+        n_aug = len(aug_data)
+        label_data = {**label_data, **aug_data}
+        print(f"  Augmentation: +{n_aug} synthetic sequences "
+              f"({sum(1 for k in aug_data if '__split' in k)} splits, "
+              f"{sum(1 for k in aug_data if '__cat__' in k)} concatenations)")
+    else:
+        group_map = None
+
     seq_ids = list(label_data.keys())
     sequences = ["".join(r for _, r, _ in label_data[s]) for s in seq_ids]
-    print(f"  {len(seq_ids)} sequences loaded")
+    print(f"  {len(seq_ids)} sequences loaded (including augmented)")
 
     # ── Embed ────────────────────────────────────────────────────────────────
     print(f"Embedding with {ESM_MODEL}...")
@@ -70,7 +80,7 @@ def train(motif, labels_path, models_dir, window_size, esm_model=None):
 
     # ── Build feature matrix ─────────────────────────────────────────────────
     print("Building feature matrix...")
-    X_all, y_all, groups = [], [], []
+    X_all, y_all, groups, pos_seq_ids = [], [], [], []
 
     for seq_id, seq, emb in zip(seq_ids, sequences, embeddings):
         labels = label_data[seq_id]
@@ -84,7 +94,9 @@ def train(motif, labels_path, models_dir, window_size, esm_model=None):
         y = np.array([label for _, _, label in labels], dtype=int)
         X_all.append(windows)
         y_all.append(y)
-        groups.extend([seq_id] * len(y))
+        group_id = group_map[seq_id] if group_map else seq_id
+        groups.extend([group_id] * len(y))
+        pos_seq_ids.extend([seq_id] * len(y))
 
     X = np.concatenate(X_all)
     y = np.concatenate(y_all)
@@ -136,6 +148,31 @@ def train(motif, labels_path, models_dir, window_size, esm_model=None):
         classification_report(y_val, y_pred, target_names=["background", motif.upper()])
     )
 
+    # ── Print sequences with prediction errors ───────────────────────────────
+    val_seq_ids = np.array(pos_seq_ids)[val_idx]
+    mismatches = y_val != y_pred
+    if mismatches.any():
+        failed_seqs: dict[str, dict[str, int]] = {}
+        for seq_id, true_label, pred_label in zip(
+            val_seq_ids[mismatches], y_val[mismatches], y_pred[mismatches]
+        ):
+            entry = failed_seqs.setdefault(seq_id, {"fn": 0, "fp": 0})
+            if true_label == 1:
+                entry["fn"] += 1
+            else:
+                entry["fp"] += 1
+        print(f"── Sequences with prediction errors ({len(failed_seqs)} sequences) ──")
+        for seq_id, counts in sorted(failed_seqs.items()):
+            parts = []
+            if counts["fn"]:
+                parts.append(f"FN={counts['fn']}")
+            if counts["fp"]:
+                parts.append(f"FP={counts['fp']}")
+            print(f"  {seq_id}  {', '.join(parts)}")
+        print()
+    else:
+        print("── No prediction errors in validation set ──\n")
+
     # ── Save model and metadata ──────────────────────────────────────────────
     os.makedirs(models_dir, exist_ok=True)
     model_path = os.path.join(models_dir, f"{motif}.ubj")
@@ -184,6 +221,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--models_dir", default=MODELS_DIR, help="Directory to save trained models"
     )
+    parser.add_argument(
+        "--augment",
+        action="store_true",
+        help="Enable data augmentation (random splits and concatenations)",
+    )
 
     args = parser.parse_args()
 
@@ -197,6 +239,7 @@ if __name__ == "__main__":
                 models_dir=args.models_dir,
                 window_size=window_size,
                 esm_model=esm_model,
+                augment=args.augment,
             )
             results.append(result)
             gc.collect()
@@ -221,6 +264,7 @@ if __name__ == "__main__":
             labels_path=labels_path,
             models_dir=args.models_dir,
             window_size=window_size,
+            augment=args.augment,
         )
     else:
         parser.error("Provide --motif or --all")
