@@ -41,7 +41,7 @@ Result formats have changed slightly, refer to the latest README.md (here!) for 
 *There might be some bugs!*
 *Please raise an issue if you spot a missing feature, or any unexpected problems.*
 
-## Getting started
+## Installation
 
 ### Conda
 
@@ -125,21 +125,20 @@ Sequences are classified as being either RLPs or RLKs depending on the presence 
 
 ### Downloading model data
 
-By default, model will be automatically downloaded to `$HOME/.cache` or `$XDG_CACHE_HOME` if it is set.
-If you wish to download model data prior to running Resistify, this can be achieved by running:
+Models are downloaded automatically at runtime.
+If you're going to run `Resistify` frequently, for example as part of a pipeline, you might want to pre-download models first.
+This can be done via:
 
-```python
-from huggingface_hub import snapshot_download
-import esm
-
-snapshot_download(repo_id="Synthyra/ESM2-8M", repo_type="model")
-
-# only for tmbed and coconat models
-snapshot_download(repo_id="Rostlab/prot_t5_xl_half_uniref50-enc", repo_type="model")
-esm.pretrained.esm2_t33_650M_UR50D()
+```bash
+resistify download
 ```
 
-Models can then be used as long as `$XDG_CACHE_HOME` points to the cache directory where models were downloaded.
+This downloads models to the default Hugging Face / PyTorch Hub cache (`$HOME/.cache`, or `$XDG_CACHE_HOME` if set).
+You can then set `$HF_HUB_OFFLINE=1` which will speed up `Resistify` slightly and prevents too many requests being sent:
+
+```bash
+HF_HUB_OFFLINE=1 resistify nlr $PROTEIN_FASTA -o $RESULTS_DIR
+```
 
 ## Results
 
