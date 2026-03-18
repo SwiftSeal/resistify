@@ -28,7 +28,9 @@ def parse_labels(path):
     return dict(data)
 
 
-def augment_label_data(label_data, rng=None, split_prob=0.5, n_concat_ratio=1.0, min_chunk=20):
+def augment_label_data(
+    label_data, rng=None, split_prob=0.5, n_concat_ratio=1.0, min_chunk=20
+):
     """
     Augment label_data with two strategies:
 

@@ -64,9 +64,11 @@ def train(motif, labels_path, models_dir, window_size, esm_model=None, augment=F
         aug_data, group_map = augment_label_data(label_data)
         n_aug = len(aug_data)
         label_data = {**label_data, **aug_data}
-        print(f"  Augmentation: +{n_aug} synthetic sequences "
-              f"({sum(1 for k in aug_data if '__split' in k)} splits, "
-              f"{sum(1 for k in aug_data if '__cat__' in k)} concatenations)")
+        print(
+            f"  Augmentation: +{n_aug} synthetic sequences "
+            f"({sum(1 for k in aug_data if '__split' in k)} splits, "
+            f"{sum(1 for k in aug_data if '__cat__' in k)} concatenations)"
+        )
     else:
         group_map = None
 
