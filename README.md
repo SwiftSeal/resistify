@@ -231,19 +231,19 @@ You can disable these via `--no-draw` if ya want.
 
 Below is the prediction accuracy of the current ESM2 8M NLRexpress models.
 
-| Motif    | Precision | Recall |     F1 |
-| -------- | --------- | -------| -------|
-| extEDVID |    0.94   | 0.96   | 0.95   |
-| P-loop   |    1.00   | 1.00   | 1.00   |
-| GLPL     |    1.00   | 1.00   | 1.00   |
-| MHD      |    0.98   | 0.99   | 0.98   |
-| Walker-B |    0.99   | 0.99   | 0.99   |
-| RNBS-A   |    0.99   | 0.93   | 0.96   |
-| RNBS-B   |    0.98   | 0.98   | 0.98   |
-| RNBS-C   |    1.00   | 1.00   | 1.00   |
-| RNBS-D   |    1.00   | 1.00   | 1.00   |
-| VG       |    0.96   | 0.94   | 0.95   |
-| LxxLxL   |    0.93   | 0.91   | 0.92   |
+| Motif | Precision | Recall | F1 |
+| ----- | --------- | ------ | -- |
+| GLPL | 1.00 | 1.00 | 1.00 |
+| LxxLxL | 0.96 | 0.91 | 0.94 |
+| MHD | 0.99 | 0.98 | 0.99 |
+| P-loop | 1.00 | 1.00 | 1.00 |
+| RNBS-A | 0.99 | 0.98 | 0.99 |
+| RNBS-B | 0.99 | 0.98 | 0.98 |
+| RNBS-C | 1.00 | 1.00 | 1.00 |
+| RNBS-D | 1.00 | 0.99 | 0.99 |
+| VG | 0.98 | 0.97 | 0.97 |
+| Walker-B | 1.00 | 0.99 | 1.00 |
+| extEDVID | 0.99 | 0.98 | 0.99 |
 
 ## Frequently asked questions
 
