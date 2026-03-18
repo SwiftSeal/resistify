@@ -1,6 +1,8 @@
 import csv
 import logging
 import re
+import shutil
+import tarfile
 from pathlib import Path
 
 import svg
@@ -278,3 +280,10 @@ def save_results(
                     / f"{sanitised_id}.svg",
                     command=command,
                 )
+
+    if draw:
+        plots_dir = output_dir / "plots"
+        tar_path = output_dir / "plots.tar.gz"
+        with tarfile.open(tar_path, "w:gz") as tar:
+            tar.add(plots_dir, arcname="plots")
+        shutil.rmtree(plots_dir)
