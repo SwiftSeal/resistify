@@ -220,9 +220,9 @@ This file contains the coordinates of the domains identified by `Resistify`.
 
 This file contains the raw annotations for each sequence, and the method which was used to identify them.
 
-### plots/
+### plots.tar.gz
 
-By default, `Resistify` generates some rudimentary plots for each protein.
+By default, `Resistify` generates some rudimentary plots for each protein, saved as a `plots.tar.gz` archive.
 You can disable these via `--no-draw` if ya want.
 
 ![An SVG of ZAR1](assets/zar1.svg)
