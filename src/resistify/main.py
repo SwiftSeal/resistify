@@ -6,7 +6,8 @@ import logging
 import resource
 import sys
 import time
-from resistify.__version__ import __version__
+from importlib.metadata import version as _version
+__version__ = _version("resistify")
 from resistify.parse_fasta import parse_fasta
 from resistify.output import save_results
 from resistify.hmmer import hmmsearch
