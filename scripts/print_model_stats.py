@@ -15,7 +15,7 @@ for meta_file in sorted(models_dir.glob("*_meta.json")):
     rows.append((motif, v["precision"], v["recall"], v["f1"]))
 
 header = "| Motif | Precision | Recall | F1 |"
-sep    = "| ----- | --------- | ------ | -- |"
+sep = "| ----- | --------- | ------ | -- |"
 print(header)
 print(sep)
 for motif, precision, recall, f1 in rows:
