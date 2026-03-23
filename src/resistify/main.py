@@ -115,7 +115,7 @@ def parse_args():
         "-v",
         "--version",
         action="version",
-        version=f"v{__version__}",
+        version=__version__,
         help="Show the version number and exit",
     )
     parser.add_argument(
