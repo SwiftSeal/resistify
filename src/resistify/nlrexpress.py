@@ -68,6 +68,7 @@ def _load_esm(device: str):
         AutoModel.from_pretrained(
             ESM_MODEL,
             trust_remote_code=True,
+            revision="f3c6441",
         )
         .eval()
         .to(device)

@@ -1,6 +1,8 @@
 import csv
 import logging
 import re
+import shutil
+import tarfile
 from pathlib import Path
 
 import svg
@@ -38,12 +40,10 @@ COLOUR_PALETTE = {
     "LxxLxL": "#FFB000",
 }
 
-
-TOPOLOGY_ANNOTATIONS = {
-    "alpha_inwards",
-    "alpha_outwards",
-    "beta_inwards",
-    "beta_outwards",
+DISPLAY_NAMES = {
+    "signal_peptide": "SP",
+    "alpha_inwards": "TM",
+    "alpha_outwards": "TM",
 }
 
 
@@ -62,8 +62,7 @@ def draw_svg(protein: Protein, output_path: Path, command: str):
     ]
 
     motifs = [a for a in protein.annotations if a.type == "motif"]
-    if command == "prr":
-        motifs = [m for m in motifs if m.name not in TOPOLOGY_ANNOTATIONS]
+
     for motif in motifs:
         elements.append(
             svg.Line(
@@ -93,7 +92,7 @@ def draw_svg(protein: Protein, output_path: Path, command: str):
     if command == "nlr":
         domains = [d for d in domains if d.name != "MADA"]
     if command == "prr":
-        domains = [d for d in domains if d.name not in TOPOLOGY_ANNOTATIONS]
+        domains = [d for d in domains if d.name]
     for domain in domains:
         elements.append(
             svg.Rect(
@@ -110,7 +109,7 @@ def draw_svg(protein: Protein, output_path: Path, command: str):
             svg.Text(
                 x=domain.start + (domain.end - domain.start) / 2,
                 y=60,
-                text=domain.name,
+                text=DISPLAY_NAMES.get(domain.name, domain.name),
                 font_size=14,
                 font_family="sans-serif",
                 text_anchor="middle",
@@ -279,3 +278,10 @@ def save_results(
                     output_dir / "plots" / f"{sanitised_id}.svg",
                     command=command,
                 )
+
+    if draw:
+        plots_dir = output_dir / "plots"
+        tar_path = output_dir / "plots.tar.gz"
+        with tarfile.open(tar_path, "w:gz") as tar:
+            tar.add(plots_dir, arcname="plots")
+        shutil.rmtree(plots_dir)

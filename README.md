@@ -2,10 +2,9 @@
 
 # Resistify 🍃
 
-![Conda Version](https://img.shields.io/conda/vn/bioconda/resistify)
-![Conda Downloads](https://img.shields.io/conda/dn/bioconda/resistify)
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/swiftseal/resistify/blob/main/assets/resistify.ipynb)
-[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/resistify/badges/version.svg)](https://anaconda.org/bioconda/resistify)
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/resistify/badges/latest_release_date.svg)](https://anaconda.org/bioconda/resistify)
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/resistify/badges/downloads.svg)](https://anaconda.org/bioconda/resistify)
 
 </div>
 
@@ -42,7 +41,7 @@ Result formats have changed slightly, refer to the latest README.md (here!) for 
 *There might be some bugs!*
 *Please raise an issue if you spot a missing feature, or any unexpected problems.*
 
-## Getting started
+## Installation
 
 ### Conda
 
@@ -69,8 +68,8 @@ To use these with `singularity`, simply run:
 
 To predict NLRs within a set of protein sequences, simply run:
 
-```
-resistify nlr <input.fa> -o $RESULTS_DIR
+```bash
+resistify nlr $PROTEIN_FASTA -o $RESULTS_DIR
 ```
 
 and `Resistify` will identify and classify NLRs, and return some files:
@@ -103,7 +102,7 @@ Together, this evidence is used to classify NLRs according to their domain archi
 To predict PRRs within a set of protein sequences, simply run:
 
 ```
-resistify prr <input.fa> -o $RESULTS_DIR
+resistify prr $PROTEIN_FASTA -o $RESULTS_DIR
 ```
 
 and `Resistify` will identify and classify PRRs, and return some files:
@@ -123,6 +122,23 @@ Then, a re-implementation of [`TMbed`](https://github.com/BernhoferM/TMbed) is u
 Finally, `NLRexpress` is used to identify LRR domains.
 
 Sequences are classified as being either RLPs or RLKs depending on the presence of an internal kinase domain, and are classified according to their extracellular domain.
+
+### Downloading model data
+
+Models are downloaded automatically at runtime.
+If you're going to run `Resistify` frequently, for example as part of a pipeline, you might want to pre-download models first.
+This can be done via:
+
+```bash
+resistify download
+```
+
+This downloads models to the default Hugging Face / PyTorch Hub cache (`$HOME/.cache`, or `$XDG_CACHE_HOME` if set).
+You can then set `$HF_HUB_OFFLINE=1` which will speed up `Resistify` slightly and prevents too many requests being sent:
+
+```bash
+HF_HUB_OFFLINE=1 resistify nlr $PROTEIN_FASTA -o $RESULTS_DIR
+```
 
 ## Results
 
@@ -203,9 +219,9 @@ This file contains the coordinates of the domains identified by `Resistify`.
 
 This file contains the raw annotations for each sequence, and the method which was used to identify them.
 
-### plots/
+### plots.tar.gz
 
-By default, `Resistify` generates some rudimentary plots for each protein.
+By default, `Resistify` generates some rudimentary plots for each protein, saved as a `plots.tar.gz` archive.
 You can disable these via `--no-draw` if ya want.
 
 ![An SVG of ZAR1](assets/zar1.svg)
@@ -214,19 +230,19 @@ You can disable these via `--no-draw` if ya want.
 
 Below is the prediction accuracy of the current ESM2 8M NLRexpress models.
 
-| Motif    | Precision | Recall |     F1 |
-| -------- | --------- | -------| -------|
-| extEDVID |    0.94   | 0.96   | 0.95   |
-| P-loop   |    1.00   | 1.00   | 1.00   |
-| GLPL     |    1.00   | 1.00   | 1.00   |
-| MHD      |    0.98   | 0.99   | 0.98   |
-| Walker-B |    0.99   | 0.99   | 0.99   |
-| RNBS-A   |    0.99   | 0.93   | 0.96   |
-| RNBS-B   |    0.98   | 0.98   | 0.98   |
-| RNBS-C   |    1.00   | 1.00   | 1.00   |
-| RNBS-D   |    1.00   | 1.00   | 1.00   |
-| VG       |    0.96   | 0.94   | 0.95   |
-| LxxLxL   |    0.93   | 0.91   | 0.92   |
+| Motif | Precision | Recall | F1 |
+| ----- | --------- | ------ | -- |
+| GLPL | 1.00 | 1.00 | 1.00 |
+| LxxLxL | 0.96 | 0.91 | 0.94 |
+| MHD | 0.99 | 0.98 | 0.99 |
+| P-loop | 1.00 | 1.00 | 1.00 |
+| RNBS-A | 0.99 | 0.98 | 0.99 |
+| RNBS-B | 0.99 | 0.98 | 0.98 |
+| RNBS-C | 1.00 | 1.00 | 1.00 |
+| RNBS-D | 1.00 | 0.99 | 0.99 |
+| VG | 0.98 | 0.97 | 0.97 |
+| Walker-B | 1.00 | 0.99 | 1.00 |
+| extEDVID | 0.99 | 0.98 | 0.99 |
 
 ## Frequently asked questions
 

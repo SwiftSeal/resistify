@@ -6,7 +6,9 @@ import logging
 import resource
 import sys
 import time
-from resistify.__version__ import __version__
+from importlib.metadata import version as _version
+
+__version__ = _version("resistify")
 from resistify.parse_fasta import parse_fasta
 from resistify.output import save_results
 from resistify.hmmer import hmmsearch
@@ -17,6 +19,29 @@ from resistify.hmmer import NLR_HMM_DB, RLP_HMM_DB
 from resistify.device import get_device, get_threads
 
 logger = logging.getLogger(__name__)
+
+
+def download_models():
+    from huggingface_hub import snapshot_download
+    import esm
+
+    logger.info("Downloading ESM2-8M (Synthyra/ESM2-8M @ f3c6441)...")
+    snapshot_download("Synthyra/ESM2-8M", revision="f3c6441")
+    logger.info("ESM2-8M downloaded.")
+
+    logger.info("Downloading ESM2 tokenizer (facebook/esm2_t6_8M_UR50D)...")
+    snapshot_download("facebook/esm2_t6_8M_UR50D")
+    logger.info("ESM2 tokenizer downloaded.")
+
+    logger.info("Downloading ProtT5 (Rostlab/prot_t5_xl_half_uniref50-enc)...")
+    snapshot_download("Rostlab/prot_t5_xl_half_uniref50-enc")
+    logger.info("ProtT5 downloaded.")
+
+    logger.info("Downloading ESM2-33M (esm2_t33_650M_UR50D via PyTorch Hub)...")
+    esm.pretrained.esm2_t33_650M_UR50D()
+    logger.info("ESM2-33M downloaded.")
+
+    logger.info("All models downloaded successfully.")
 
 
 def add_common_args(parser):
@@ -90,7 +115,7 @@ def parse_args():
         "-v",
         "--version",
         action="version",
-        version=f"v{__version__}",
+        version=__version__,
         help="Show the version number and exit",
     )
     parser.add_argument(
@@ -125,6 +150,12 @@ def parse_args():
     )
     add_common_args(prr_parser)
 
+    subparsers.add_parser(
+        "download",
+        help="Pre-download all required models to local cache",
+        formatter_class=parser.formatter_class,
+    )
+
     return parser.parse_args()
 
 
@@ -136,8 +167,13 @@ def main():
     FORMAT = "%(asctime)s %(levelname)s - %(message)s"
     logging.basicConfig(level=level, format=FORMAT, datefmt="[%X]")
 
-    logger.info("Welcome to Resistify 2.0.0!")
+    logger.info(f"Welcome to Resistify {__version__}!")
     logger.info(f"Python version: {platform.python_version()}")
+
+    if args.command == "download":
+        download_models()
+        sys.exit(0)
+
     logger.info(f"Using {args.threads} threads")
     logger.info(f"Using device: {args.device}")
     logger.info(f"OS: {platform.system()} {platform.machine()}")

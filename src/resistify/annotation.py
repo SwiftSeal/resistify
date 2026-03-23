@@ -200,10 +200,12 @@ class Protein:
         """
         motif_positions = [a.start - 1 for a in self.annotations if a.name == "LxxLxL"]
         if motif_positions:
-            start, end, count = 0, 0, 0
+            start, end, count = None, 0, 0
             for pos in motif_positions:
                 if pos - end < lrr_gap:
                     # Extend if still within gap limit
+                    if start is None:
+                        start = pos
                     end = pos
                     count += 1
                 else:
@@ -376,6 +378,7 @@ class Protein:
         if n_terminal_length < minimum_extracellular_length:
             return False
         else:
+            self.type = "RLP"  # initially class as RLP, then reclass as RLK
             return True
 
     def classify_rlp(self):

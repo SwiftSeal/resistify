@@ -2,11 +2,11 @@
   "motif": "RNBS-D",
   "esm_model": "Synthyra/ESM2-8M",
   "window_size": 30,
-  "threshold": 0.8194528818130493,
+  "threshold": 0.8236541748046875,
   "val_metrics": {
-    "precision": 1.0,
-    "recall": 1.0,
-    "f1": 0.999999995,
-    "roc_auc": 1.0
+    "precision": 0.9982547993019197,
+    "recall": 0.9913344887348353,
+    "f1": 0.9947826036957128,
+    "roc_auc": 0.999999418977605
   }
 }

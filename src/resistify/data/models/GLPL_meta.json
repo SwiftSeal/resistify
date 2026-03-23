@@ -2,11 +2,11 @@
   "motif": "GLPL",
   "esm_model": "Synthyra/ESM2-8M",
   "window_size": 30,
-  "threshold": 0.8099814653396606,
+  "threshold": 0.9718219637870789,
   "val_metrics": {
     "precision": 1.0,
-    "recall": 1.0,
-    "f1": 0.999999995,
-    "roc_auc": 0.9999999999999999
+    "recall": 0.9982668977469671,
+    "f1": 0.9991326923113655,
+    "roc_auc": 0.9999657117194828
   }
 }

@@ -18,5 +18,4 @@ def get_threads() -> int:
             return len(os.sched_getaffinity(0))
         except Exception:
             pass
-    else:
-        return int(multiprocessing.cpu_count())
+    return int(multiprocessing.cpu_count())
