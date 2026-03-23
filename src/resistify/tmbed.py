@@ -175,7 +175,7 @@ class T5Encoder:
         processed_seqs = [s.upper().translate(self.aa_map) for s in sequences]
         tokens = [" ".join(list(s)) for s in processed_seqs]
 
-        encoded = self.tokenizer.batch_encode_plus(
+        encoded = self.tokenizer(
             tokens, padding="longest", add_special_tokens=True, return_tensors="pt"
         )
 
