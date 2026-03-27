@@ -6,6 +6,8 @@
 [![Anaconda-Server Badge](https://anaconda.org/bioconda/resistify/badges/latest_release_date.svg)](https://anaconda.org/bioconda/resistify)
 [![Anaconda-Server Badge](https://anaconda.org/bioconda/resistify/badges/downloads.svg)](https://anaconda.org/bioconda/resistify)
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19187488.svg)](https://doi.org/10.5281/zenodo.19187488)
+
 </div>
 
 Resistify is a program which rapidly identifies and classifies plant resistance genes from protein sequences.
