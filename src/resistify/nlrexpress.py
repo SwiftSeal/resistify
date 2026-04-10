@@ -4,14 +4,13 @@ import numpy as np
 import torch
 from pathlib import Path
 from tqdm.auto import tqdm
-from transformers import AutoModel
 import xgboost as xgb
 from xgboost import XGBClassifier
 from resistify.annotation import Protein, Annotation
+from resistify.esm import ESM2Encoder
 
 logger = logging.getLogger(__name__)
 
-ESM_MODEL = "Synthyra/ESM2-8M"
 MODELS_DIR = Path(__file__).parent / "data" / "models"
 
 WINDOW_SIZE = 30
@@ -62,29 +61,6 @@ def _load_models(models_dir: Path, search_type: str, threads: int):
     return models
 
 
-def _load_esm(device: str):
-    logger.info(f"Loading {ESM_MODEL} on {device}...")
-    model = (
-        AutoModel.from_pretrained(
-            ESM_MODEL,
-            trust_remote_code=True,
-            revision="f3c6441",
-        )
-        .eval()
-        .to(device)
-    )
-    return model, model.tokenizer
-
-
-def _embed_sequence(model, tokenizer, sequence: str, device: str) -> np.ndarray:
-    tokenized = tokenizer(sequence, return_tensors="pt").to(device)
-    with torch.no_grad():
-        emb = model(**tokenized).last_hidden_state[0].cpu().float().numpy()
-    emb = emb[1:-1]  # strip BOS/EOS tokens
-    if np.isnan(emb).any():
-        raise RuntimeError(f"NaN embeddings found for sequence {sequence[:20]}...")
-    return emb
-
 
 def _make_windows(matrix: np.ndarray, window_size: int) -> xgb.DMatrix:
     pad = window_size // 2
@@ -102,6 +78,7 @@ def nlrexpress(
     search_type: str = "all",
     device: str = "cpu",
     threads: int = 1,
+    encoder: ESM2Encoder | None = None,
 ):
     logger.info(f"Running motif classifier for '{search_type}' motifs")
 
@@ -111,13 +88,17 @@ def nlrexpress(
         return proteins
 
     torch.set_num_threads(threads)
-    esm, tokenizer = _load_esm(device)
+    if encoder is None:
+        encoder = ESM2Encoder(device)
 
     for seq_id, protein in tqdm(proteins.items(), desc="Predicting motifs"):
         if protein.length < WINDOW_SIZE:
             continue
 
-        emb = _embed_sequence(esm, tokenizer, protein.sequence, device)
+        embeddings, _ = encoder.embed([protein.sequence])
+        emb = embeddings[0, :protein.length, :].cpu().float().numpy()
+        if np.isnan(emb).any():
+            raise RuntimeError(f"NaN embeddings found for sequence {seq_id}")
 
         windows = _make_windows(emb, WINDOW_SIZE)
 

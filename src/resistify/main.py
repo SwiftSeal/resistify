@@ -15,6 +15,7 @@ from resistify.hmmer import hmmsearch
 from resistify.nlrexpress import nlrexpress
 from resistify.coconat import predict_coils
 from resistify.tmbed import tmbed
+from resistify.esm import ESM2Encoder
 from resistify.hmmer import NLR_HMM_DB, RLP_HMM_DB
 from resistify.device import get_device, get_threads
 
@@ -201,10 +202,11 @@ def main():
 
     elif args.command == "prr":
         proteins = hmmsearch(proteins, RLP_HMM_DB, threads=args.threads)
-        tmbed(proteins, args.device, args.batch_size, args.threads)
+        encoder = ESM2Encoder(args.device)
+        tmbed(proteins, args.device, args.batch_size, args.threads, encoder=encoder)
         proteins = {k: v for k, v in proteins.items() if v.is_rlp()}
 
-        nlrexpress(proteins, search_type="LxxLxL", threads=args.threads)
+        nlrexpress(proteins, search_type="LxxLxL", threads=args.threads, encoder=encoder)
         for protein in proteins.values():
             protein.annotate_lrr(lrr_gap=args.lrr_gap, lrr_length=args.lrr_length)
             protein.merge_domains()

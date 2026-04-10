@@ -4,21 +4,15 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import logging
-import warnings
 from tqdm.auto import tqdm
-from transformers import T5EncoderModel, T5Tokenizer
 from resistify.annotation import Protein, Annotation
+from resistify.esm import ESM2Encoder, ESM_DIM
 
 logger = logging.getLogger(__name__)
 
-logging.getLogger("transformers").setLevel(logging.CRITICAL)
-warnings.filterwarnings("ignore", category=FutureWarning)
-
-PRED_MAP = {0: "B", 1: "b", 2: "H", 3: "h", 4: "S", 5: "i", 6: "o"}
+PRED_MAP = {0: "H", 1: "h", 2: "S", 3: "i", 4: "o"}
 
 STATES = {
-    "B": "beta_outwards",
-    "b": "beta_inwards",
     "H": "alpha_outwards",
     "h": "alpha_inwards",
     "S": "signal_peptide",
@@ -34,49 +28,43 @@ class Decoder(nn.Module):
         self._init_transitions()
 
     def _init_transitions(self):
-        num_tags = 27
+        num_tags = 17
 
         end_transitions = torch.full((num_tags,), -100)
         start_transitions = torch.full((num_tags,), -100)
 
         transitions = torch.full((num_tags, num_tags), -100)
 
-        for i in [0, 5, 10, 15, 20, -2, -1]:
-            start_transitions[i] = 0  # B1a, B1b, H1a, H1b, S1, i, o
+        for i in [0, 5, 10, 15, 16]:
+            start_transitions[i] = 0  # H1a, H1b, S1, i, o
 
         for i in range(4):
-            transitions[0 + i, 1 + i] = 0  # Bxa -> Bya
-            transitions[5 + i, 6 + i] = 0  # Bxb -> Byb
-            transitions[10 + i, 11 + i] = 0  # Hxa -> Hya
-            transitions[15 + i, 16 + i] = 0  # Hxb -> Hyb
-            transitions[20 + i, 21 + i] = 0  # Sx  -> Sy
+            transitions[0 + i, 1 + i] = 0   # Hxa -> Hya
+            transitions[5 + i, 6 + i] = 0   # Hxb -> Hyb
+            transitions[10 + i, 11 + i] = 0  # Sx -> Sy
 
-        for i in [4, 9, 14, 19, 24]:
+        for i in [4, 9, 14]:
             transitions[i, i] = 0  # X5 -> X5
 
-        transitions[4, -1] = 0  # B5a -> o
-        transitions[9, -2] = 0  # B5b -> i
-        transitions[14, -1] = 0  # H5a -> o
-        transitions[19, -2] = 0  # H5b -> i
-        transitions[24, -2:] = 0  # S5  -> (i, o)
+        transitions[4, 16] = 0    # H5a -> o
+        transitions[9, 15] = 0    # H5b -> i
+        transitions[14, 15:] = 0  # S5  -> (i, o)
 
-        transitions[-2, 0] = 0  # i -> B1a
-        transitions[-2, 10] = 0  # i -> H1a
-        transitions[-2, -2:] = 0  # i -> (i, o)
+        transitions[15, 0] = 0    # i -> H1a
+        transitions[15, 15:] = 0  # i -> (i, o)
 
-        transitions[-1, 5] = 0  # o -> B1b
-        transitions[-1, 15] = 0  # o -> H1b
-        transitions[-1, -2:] = 0  # o -> (i, o)
+        transitions[16, 5] = 0    # o -> H1b
+        transitions[16, 15:] = 0  # o -> (i, o)
 
-        for i in [4, 9, 14, 19, 24, -2, -1]:
-            end_transitions[i] = 0  # B5a, B5b, H5a, H5b, S5, i, o
+        for i in [4, 9, 14, 15, 16]:
+            end_transitions[i] = 0  # H5a, H5b, S5, i, o
 
-        repeats = torch.tensor([10, 10, 5, 1, 1], dtype=torch.int32)
+        repeats = torch.tensor([10, 5, 1, 1], dtype=torch.int32)
 
-        mapping = torch.arange(7, dtype=torch.int32)
+        mapping = torch.arange(5, dtype=torch.int32)
         mapping = mapping.repeat_interleave(
-            torch.tensor([5, 5, 5, 5, 5, 1, 1])  # B  # H  # S  # i
-        )  # o
+            torch.tensor([5, 5, 5, 1, 1])  # H  # h  # S  # i  # o
+        )
 
         assert repeats.sum() == num_tags
         assert mapping.shape == (num_tags,)
@@ -151,43 +139,6 @@ class Decoder(nn.Module):
         return best_tags_arr.transpose(0, 1)
 
 
-class T5Encoder:
-    def __init__(self, device: str):
-        self.device = torch.device(device)
-        self._load_models(torch.float16 if device == "cuda" else torch.float32)
-
-        self.aa_map = str.maketrans("BJOUZ", "XXXXX")
-
-    def _load_models(self, dtype):
-        self.tokenizer = T5Tokenizer.from_pretrained(
-            "Rostlab/prot_t5_xl_half_uniref50-enc", do_lower_case=False
-        )
-        self.encoder_model = (
-            T5EncoderModel.from_pretrained(
-                "Rostlab/prot_t5_xl_half_uniref50-enc", torch_dtype=dtype
-            )
-            .to(self.device)
-            .eval()
-        )
-
-    @torch.inference_mode()
-    def embed(self, sequences: list[str]):
-        processed_seqs = [s.upper().translate(self.aa_map) for s in sequences]
-        tokens = [" ".join(list(s)) for s in processed_seqs]
-
-        encoded = self.tokenizer(
-            tokens, padding="longest", add_special_tokens=True, return_tensors="pt"
-        )
-
-        input_ids = encoded["input_ids"].to(self.device)
-        attention_mask = encoded["attention_mask"].to(self.device)
-
-        embeddings = self.encoder_model(
-            input_ids=input_ids, attention_mask=attention_mask
-        )
-
-        return embeddings.last_hidden_state.detach(), attention_mask
-
 
 class SeqNorm(nn.Module):
     def __init__(self, channels, eps=1e-6, affine=True):
@@ -252,7 +203,6 @@ class Conv(nn.Module):
             padding_mode=padding_mode,
         )
 
-        # Init Conv Params
         nn.init.xavier_uniform_(self.conv.weight)
 
     def forward(self, x, mask):
@@ -265,16 +215,15 @@ class CNN(nn.Module):
     def __init__(self, channels):
         super().__init__()
 
-        self.input = Conv(1024, channels, 1, 1, 0)
+        self.input = Conv(ESM_DIM, channels, 1, 1, 0)
 
         self.dwc1 = Conv(channels, channels, 9, 1, 4, groups=channels)
         self.dwc2 = Conv(channels, channels, 21, 1, 10, groups=channels)
 
         self.dropout = nn.Dropout2d(p=0.50, inplace=True)
 
-        self.output = nn.Conv2d(3 * channels, 5, 1, 1, 0)
+        self.output = nn.Conv2d(3 * channels, 4, 1, 1, 0)
 
-        # Init Output Params
         nn.init.zeros_(self.output.bias)
         nn.init.xavier_uniform_(self.output.weight)
 
@@ -312,7 +261,7 @@ class Predictor(nn.Module):
 
         x = self.model(x, mask)
 
-        x = x.view(B, 5, N)
+        x = x.view(B, 4, N)
 
         x = F.pad(x, pad=(3, 3), mode="constant", value=0.0)
 
@@ -344,55 +293,33 @@ def make_mask(embeddings, attention_mask):
     return attention_mask.to(dtype=embeddings.dtype, device=embeddings.device)
 
 
-def load_models(device):
-    model_files = [
-        "cv_0.pt",
-        "cv_1.pt",
-        "cv_2.pt",
-        "cv_3.pt",
-        "cv_4.pt",
-    ]
-    models = []
-
-    for model_file in model_files:
-        model = Predictor()
-        file_path = os.path.join(
-            os.path.dirname(__file__), "data", "tmbed_models", model_file
-        )
-        logger.debug(f"Loading model {file_path}")
-        model.load_state_dict(torch.load(file_path)["model"])
-
-        model = model.eval().to(device)
-
-        models.append(model)
-
-    return models
+def load_model(device):
+    model = Predictor()
+    file_path = os.path.join(
+        os.path.dirname(__file__), "data", "tmbed_models", "tmbed_model.pt"
+    )
+    logger.debug(f"Loading model {file_path}")
+    model.load_state_dict(torch.load(file_path, weights_only=True)["model"])
+    return model.eval().to(device)
 
 
-def predict_sequences(models, embedding, mask):
+def predict_sequences(model, embedding, mask):
     B, N, _ = embedding.shape
 
-    num_models = len(models)
-
     with torch.no_grad():
-        pred = torch.zeros((B, 5, N), device=embedding.device)
-
-        for model in models:
-            y = model(embedding, mask)
-            pred = pred + torch.softmax(y, dim=1)
-
-        pred = pred / num_models
+        pred = torch.softmax(model(embedding, mask), dim=1)
 
     return pred.detach()
 
 
-def tmbed(proteins: dict[str, Protein], device: str, batch_size: int, threads: int):
+def tmbed(proteins: dict[str, Protein], device: str, batch_size: int, threads: int, encoder: ESM2Encoder | None = None):
     torch.set_num_threads(threads)
     logger.info("Predicting transmembrane domains with TMBed")
 
-    encoder = T5Encoder(device)
+    if encoder is None:
+        encoder = ESM2Encoder(device)
     decoder = Decoder()
-    models = load_models(device)
+    model = load_model(device)
 
     protein_list = list(proteins.values())
 
@@ -405,7 +332,7 @@ def tmbed(proteins: dict[str, Protein], device: str, batch_size: int, threads: i
             embeddings = embeddings.to(device=device, dtype=torch.float32)
 
             mask = make_mask(embeddings, att_mask)
-            probabilities = predict_sequences(models, embeddings, mask)
+            probabilities = predict_sequences(model, embeddings, mask)
 
             predictions = decoder(probabilities.cpu(), mask.cpu()).byte()
 
