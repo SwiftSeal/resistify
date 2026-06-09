@@ -15,34 +15,6 @@ It is designed to be lightweight and easy to use.
 
 ![A screenshot of the help interface of resistify](assets/terminal.png)
 
-## What's new in version two?
-
-### Speeeeed
-
-`v2.0.0` has introduced a full reimplementation of NLRexpress that uses [ESM2 8M](https://github.com/facebookresearch/esm) embeddings instead of `jackhmmer`.
-It is ~60x faster, uses ~10x less memory, and should be slightly more accurate - full benchmarks are available below.
-
-As part of this, I have (for now) removed the TIR motif predictors.
-I'll aim to reinclude these, but they were never critical for classification as they are so conserved.
-If you really need these, let me know and I'll add them back in...
-
-### New plotting method
-
-By default, `Resistify` now creates individual SVG plots of sequences in the results folder.
-I decided to replace the matplotlib method because it was a bit clunky, and SVG should be sufficient for most purposes.
-
-### More HMMs
-
-I pulled additional NLR-associated HMMs from Pfam-A into the `Resistify` database (e.g., more LRR HMMs), so you'll see more hits for these in `annotations.tsv`.
-This shouldn't affect classifications, but expect domain boundaries to change slightly.
-
-### General refactoring
-
-Result formats have changed slightly, refer to the latest README.md (here!) for up to date outputs.
-
-*There might be some bugs!*
-*Please raise an issue if you spot a missing feature, or any unexpected problems.*
-
 ## Installation
 
 ### Conda
@@ -228,24 +200,6 @@ You can disable these via `--no-draw` if ya want.
 
 ![An SVG of ZAR1](assets/zar1.svg)
 
-## Motif prediction accuracy
-
-Below is the prediction accuracy of the current ESM2 8M NLRexpress models.
-
-| Motif | Precision | Recall | F1 |
-| ----- | --------- | ------ | -- |
-| GLPL | 1.00 | 1.00 | 1.00 |
-| LxxLxL | 0.96 | 0.91 | 0.94 |
-| MHD | 0.99 | 0.98 | 0.99 |
-| P-loop | 1.00 | 1.00 | 1.00 |
-| RNBS-A | 0.99 | 0.98 | 0.99 |
-| RNBS-B | 0.99 | 0.98 | 0.98 |
-| RNBS-C | 1.00 | 1.00 | 1.00 |
-| RNBS-D | 1.00 | 0.99 | 0.99 |
-| VG | 0.98 | 0.97 | 0.97 |
-| Walker-B | 1.00 | 0.99 | 1.00 |
-| extEDVID | 0.99 | 0.98 | 0.99 |
-
 ## Frequently asked questions
 
 **Q: Can `Resistify` be used to predict resistance genes from genomic data?**
@@ -260,19 +214,6 @@ Currently, I find that `Helixer` tends to identify more NLRs than `ANNEVO` (in *
 
 **A:** False positives do occur for the motif predictions, and unexpected predictions such as a single CC motif in the LRR domain are unlikely to be representative of a true domain annotation.
 False positives shouldn't interfere with the classification accuracy.
-
-## Benchmarks
-
-The following are some quick benchmarks of the various `resistify` pipelines against the [DM potato genome](https://spuddb.uga.edu/data/DM_1-3_516_R44_potato.v6.1.hc_gene_models.pep.fa.gz) annotation, which contains 44,851 protein sequences.
-Benchmarking was conducted on an HPC node called ["buckbeak"](https://help.cropdiversity.ac.uk/system-overview.html) with 16 threads and 1 A100 GPU made available.
-CPU-only runtimes will be longer when `--coconat` is enabled, or on the PRR pipeline.
-
-| Pipeline        | CPU time | Real time | MaxRSS  |
-| --------------- | -------- | --------- | ------- |
-| `nlr`           | 339.1s   | 31.2s     | 1744 MB |
-| `nlr --retain`  | 15709.4s | 1072.7s   | 2246 MB |
-| `nlr --coconat` | 388.9s   | 75.9s     | 8339 MB |
-| `prr`           | 5827.7s  | 1401.4s   | 4101 MB |
 
 ## Contributing
 
