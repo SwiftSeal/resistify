@@ -78,7 +78,7 @@ def add_common_args(parser):
         "--batch_size",
         help="Batch size for CoCoNat and TMbed predictions. Adjust based on available GPU memory.",
         type=int,
-        default=4,
+        default=1,
     )
     parser.add_argument(
         "--lrr_gap",
@@ -160,7 +160,6 @@ def parse_args():
 
 
 def main():
-    _start = time.monotonic()
     args = parse_args()
 
     level = logging.DEBUG if args.debug else logging.INFO
@@ -189,7 +188,7 @@ def main():
                 logger.warning("No NLRs were identified. Try --retain?")
                 sys.exit(0)
 
-        proteins = nlrexpress(proteins, device=args.device, threads=args.threads)
+        proteins = nlrexpress(proteins, threads=args.threads)
 
         if args.coconat:
             predict_coils(proteins, args.device, args.batch_size, args.threads)
@@ -215,10 +214,6 @@ def main():
 
     save_results(proteins, args.outdir, command=args.command, draw=not args.no_draw)
 
-    _ru = resource.getrusage(resource.RUSAGE_SELF)
-    _elapsed = time.monotonic() - _start
-    logger.info(f"Time: {_elapsed:.1f}s total, {_ru.ru_utime:.1f}s CPU")
-    logger.info(f"Peak memory: {_ru.ru_maxrss / 1024:.0f} MB")
     logger.info("Thank you for using Resistify!")
     logger.info("If you used Resistify in your research, please cite the following:")
     logger.info(" - Resistify: https://doi.org/10.1177/11779322241308944")
