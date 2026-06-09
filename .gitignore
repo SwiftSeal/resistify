@@ -1,5 +1,1 @@
-results/*
-test/*
-__pycache__
-training_sets
-training/embeddings.db
+__pycache__/
