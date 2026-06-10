@@ -120,28 +120,30 @@ def nlrexpress(proteins: dict[str, Protein], threads: int, search_type: str = "a
 
     logger.info("Running NLRexpress...")
 
-    for iteration_results in pyhmmer.hmmer.jackhmmer(
-        queries,
-        database,
-        max_iterations=2,
-        checkpoints=True,
-        cpus=threads,
-        E=1e-5,
-        domE=1e-5,
-    ):
-        result1 = iteration_results[0]
-        seq_id = result1.hmm.name
-        if isinstance(seq_id, bytes):
-            seq_id = seq_id.decode()
+    # threadpool limit numpy to 1 to avoid overallocation
+    # jackhmmer is the slow bit so this is OK
+    with threadpoolctl.threadpool_limits(limits=1):
+        for iteration_results in pyhmmer.hmmer.jackhmmer(
+            queries,
+            database,
+            max_iterations=2,
+            checkpoints=True,
+            cpus=threads,
+            E=1e-5,
+            domE=1e-5,
+        ):
+            result1 = iteration_results[0]
+            seq_id = result1.hmm.name
+            if isinstance(seq_id, bytes):
+                seq_id = seq_id.decode()
 
-        mat1 = -np.log(np.array(result1.hmm.match_emissions) + 1e-8)
+            mat1 = -np.log(np.array(result1.hmm.match_emissions) + 1e-8)
 
-        if len(iteration_results) > 1:
-            mat2 = -np.log(np.array(iteration_results[1].hmm.match_emissions) + 1e-8)
-        else:
-            mat2 = mat1
+            if len(iteration_results) > 1:
+                mat2 = -np.log(np.array(iteration_results[1].hmm.match_emissions) + 1e-8)
+            else:
+                mat2 = mat1
 
-        with threadpoolctl.threadpool_limits(limits=threads):
-        _predict_motifs(proteins[seq_id], mat1, mat2, models)
+            _predict_motifs(proteins[seq_id], mat1, mat2, models)
 
     return proteins
