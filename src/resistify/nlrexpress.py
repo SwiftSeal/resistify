@@ -1,146 +1,161 @@
-import json
-import logging
+import warnings
 import numpy as np
-import torch
-from pathlib import Path
-from tqdm.auto import tqdm
-from transformers import AutoModel
-import xgboost as xgb
-from xgboost import XGBClassifier
-from resistify.annotation import Protein, Annotation
+import pickle
+import os
+import logging
+import pyhmmer
+import threadpoolctl
+from resistify.annotation import Annotation, Protein
+
+# Version 1.3 of sklearn introduced InconsistentVersionWarning, fall back to UserWarning if not available
+# Necessary to suppress pickle version warnings
+try:
+    from sklearn.exceptions import InconsistentVersionWarning  # type: ignore
+
+    warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
+except ImportError:
+    warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
 
 logger = logging.getLogger(__name__)
 
-ESM_MODEL = "Synthyra/ESM2-8M"
-MODELS_DIR = Path(__file__).parent / "data" / "models"
-
-WINDOW_SIZE = 30
-
 MOTIF_SPAN_LENGTHS = {
+    "extEDVID": 12,
+    "bA": 10,
+    "aA": 7,
+    "bC": 8,
+    "aC": 6,
+    "bDaD1": 16,
+    "aD3": 13,
     "VG": 5,
     "P-loop": 9,
     "RNBS-A": 10,
+    "Walker-B": 8,
     "RNBS-B": 7,
     "RNBS-C": 10,
     "RNBS-D": 9,
-    "Walker-B": 8,
     "GLPL": 5,
     "MHD": 3,
-    "extEDVID": 12,
-    #    "aA": 7,
-    #    "aC": 6,
-    #    "aD3": 13,
-    #    "bA": 10,
-    #    "bC": 8,
-    #    "bDaD1": 16,
     "LxxLxL": 6,
 }
 
+MOTIF_MODELS = {
+    "extEDVID": "MLP_CC_extEDVID.pkl",
+    "VG": "MLP_NBS_VG.pkl",
+    "P-loop": "MLP_NBS_P-loop.pkl",
+    "RNBS-A": "MLP_NBS_RNBS-A.pkl",
+    "RNBS-B": "MLP_NBS_RNBS-B.pkl",
+    "RNBS-C": "MLP_NBS_RNBS-C.pkl",
+    "RNBS-D": "MLP_NBS_RNBS-D.pkl",
+    "Walker-B": "MLP_NBS_Walker-B.pkl",
+    "GLPL": "MLP_NBS_GLPL.pkl",
+    "MHD": "MLP_NBS_MHD.pkl",
+    "LxxLxL": "MLP_LRR_LxxLxL.pkl",
+    "aA": "MLP_TIR_aA.pkl",
+    "aC": "MLP_TIR_aC.pkl",
+    "aD3": "MLP_TIR_aD3.pkl",
+    "bA": "MLP_TIR_bA.pkl",
+    "bC": "MLP_TIR_bC.pkl",
+    "bDaD1": "MLP_TIR_bD-aD1.pkl",
+}
 
-def _load_models(models_dir: Path, search_type: str, threads: int):
+
+def _load_models(search_type: str):
+    candidates = (
+        MOTIF_MODELS
+        if search_type == "all"
+        else {search_type: MOTIF_MODELS[search_type]}
+    )
     models = {}
-    motifs = list(MOTIF_SPAN_LENGTHS.keys()) if search_type == "all" else [search_type]
-
-    for motif in motifs:
-        model_path = models_dir / f"{motif}.ubj"
-        meta_path = models_dir / f"{motif}_meta.json"
-
-        if not model_path.exists():
-            logger.warning(f"No model found for motif {motif}, skipping")
-            continue
-
-        clf = XGBClassifier()
-        clf.load_model(model_path)
-        clf.set_params(nthread=threads)
-
-        with open(meta_path) as f:
-            meta = json.load(f)
-
-        models[motif] = {"model": clf, "meta": meta}
-        logger.debug(f"Loaded {motif} (threshold={meta['threshold']:.4f})")
-
+    for predictor, filename in candidates.items():
+        path = os.path.join(
+            os.path.dirname(__file__), "data", "nlrexpress_models", filename
+        )
+        with open(path, "rb") as f:
+            models[predictor] = pickle.load(f)
     return models
 
 
-def _load_esm(device: str):
-    logger.info(f"Loading {ESM_MODEL} on {device}...")
-    model = (
-        AutoModel.from_pretrained(
-            ESM_MODEL,
-            trust_remote_code=True,
-            revision="f3c6441",
-        )
-        .eval()
-        .to(device)
-    )
-    return model, model.tokenizer
-
-
-def _embed_sequence(model, tokenizer, sequence: str, device: str) -> np.ndarray:
-    tokenized = tokenizer(sequence, return_tensors="pt").to(device)
-    with torch.no_grad():
-        emb = model(**tokenized).last_hidden_state[0].cpu().float().numpy()
-    emb = emb[1:-1]  # strip BOS/EOS tokens
-    if np.isnan(emb).any():
-        raise RuntimeError(f"NaN embeddings found for sequence {sequence[:20]}...")
-    return emb
-
-
-def _make_windows(matrix: np.ndarray, window_size: int) -> xgb.DMatrix:
-    pad = window_size // 2
-    padded = np.pad(matrix, ((pad, pad), (0, 0)), mode="constant")
-    windowed = np.lib.stride_tricks.sliding_window_view(padded, window_size, axis=0)[
-        : len(matrix)
-    ]
-    windowed = windowed.transpose(0, 2, 1).reshape(len(matrix), -1)
-    # convert to dmatrix once for speeeeeed
-    return xgb.DMatrix(windowed)
-
-
-def nlrexpress(
-    proteins: dict[str, Protein],
-    search_type: str = "all",
-    device: str = "cpu",
-    threads: int = 1,
+def _predict_motifs(
+    protein: Protein, mat1: np.ndarray, mat2: np.ndarray, models: dict[str, object]
 ):
-    logger.info(f"Running motif classifier for '{search_type}' motifs")
+    seq_len = protein.length
+    mat_combined = np.concatenate([mat1[1:], mat2[1:]], axis=1)
 
-    models = _load_models(MODELS_DIR, search_type, threads)
-    if not models:
-        logger.warning("No models loaded, skipping")
-        return proteins
+    for predictor, model in models.items():
+        motif_size = MOTIF_SPAN_LENGTHS[predictor]
+        window_size = motif_size + 11
 
-    torch.set_num_threads(threads)
-    esm, tokenizer = _load_esm(device)
-
-    for seq_id, protein in tqdm(proteins.items(), desc="Predicting motifs"):
-        if protein.length < WINDOW_SIZE:
+        if seq_len < window_size:
             continue
 
-        emb = _embed_sequence(esm, tokenizer, protein.sequence, device)
+        windows = np.lib.stride_tricks.sliding_window_view(
+            mat_combined, window_size, axis=0
+        )
+        matrix = windows.transpose(0, 2, 1).reshape(windows.shape[0], -1)
 
-        windows = _make_windows(emb, WINDOW_SIZE)
+        proba = model.predict_proba(matrix)
 
-        for motif, clf in models.items():
-            threshold = clf["meta"]["threshold"]
-            span = MOTIF_SPAN_LENGTHS[motif]
-
-            proba = clf["model"].get_booster().predict(windows)
-
-            for idx in np.where(proba >= threshold)[0]:
-                end = int(idx + span)
-                if end > protein.length:
-                    continue
+        for k, prob in enumerate(proba):
+            value = round(float(prob[1]), 4)
+            if value > 0.8:
+                i = k + 5
                 protein.add_annotation(
                     Annotation(
-                        name=motif,
+                        name=predictor,
+                        start=i + 1,
+                        end=i + motif_size,
                         type="motif",
-                        start=int(idx + 1),
-                        end=end,
-                        source="motif_classifier",
-                        score=float(proba[idx]),
+                        source="nlrexpress",
+                        score=value,
                     )
                 )
 
-    logger.info("Motif classification completed")
+
+def nlrexpress(proteins: dict[str, Protein], threads: int, search_type: str = "all"):
+
+    models = _load_models(search_type)
+
+    alphabet = pyhmmer.easel.Alphabet.amino()
+    db_path = os.path.join(os.path.dirname(__file__), "data", "nlrexpress.fasta")
+
+    queries = [
+        pyhmmer.easel.TextSequence(
+            name=protein.id.encode(), sequence=protein.sequence
+        ).digitize(alphabet)
+        for protein in proteins.values()
+    ]
+
+    with pyhmmer.easel.SequenceFile(db_path, digital=True, alphabet=alphabet) as f:
+        database = f.read_block()
+
+    logger.info("Running NLRexpress...")
+
+    # threadpool limit numpy to 1 to avoid overallocation
+    # jackhmmer is the slow bit so this is OK
+    with threadpoolctl.threadpool_limits(limits=1):
+        for iteration_results in pyhmmer.hmmer.jackhmmer(
+            queries,
+            database,
+            max_iterations=2,
+            checkpoints=True,
+            cpus=threads,
+            E=1e-5,
+            domE=1e-5,
+        ):
+            result1 = iteration_results[0]
+            seq_id = result1.hmm.name
+            if isinstance(seq_id, bytes):
+                seq_id = seq_id.decode()
+
+            mat1 = -np.log(np.array(result1.hmm.match_emissions) + 1e-8)
+
+            if len(iteration_results) > 1:
+                mat2 = -np.log(
+                    np.array(iteration_results[1].hmm.match_emissions) + 1e-8
+                )
+            else:
+                mat2 = mat1
+
+            _predict_motifs(proteins[seq_id], mat1, mat2, models)
+
     return proteins

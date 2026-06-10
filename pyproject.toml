@@ -1,16 +1,16 @@
 [project]
 name = "resistify"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
     "pyhmmer",
     "svg-py",
     "scikit-learn",
+    "threadpoolctl",
     "tqdm",
     "numpy",
     "fair-esm",
     "torch",
     "transformers",
-    "xgboost",
     "einops",
     "sentencepiece",
     "tiktoken", # rostlab requires

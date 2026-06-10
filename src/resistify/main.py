@@ -3,9 +3,7 @@ import platform
 import argparse
 from pathlib import Path
 import logging
-import resource
 import sys
-import time
 from importlib.metadata import version as _version
 
 __version__ = _version("resistify")
@@ -24,14 +22,6 @@ logger = logging.getLogger(__name__)
 def download_models():
     from huggingface_hub import snapshot_download
     import esm
-
-    logger.info("Downloading ESM2-8M (Synthyra/ESM2-8M @ f3c6441)...")
-    snapshot_download("Synthyra/ESM2-8M", revision="f3c6441")
-    logger.info("ESM2-8M downloaded.")
-
-    logger.info("Downloading ESM2 tokenizer (facebook/esm2_t6_8M_UR50D)...")
-    snapshot_download("facebook/esm2_t6_8M_UR50D")
-    logger.info("ESM2 tokenizer downloaded.")
 
     logger.info("Downloading ProtT5 (Rostlab/prot_t5_xl_half_uniref50-enc)...")
     snapshot_download("Rostlab/prot_t5_xl_half_uniref50-enc")
@@ -78,7 +68,7 @@ def add_common_args(parser):
         "--batch_size",
         help="Batch size for CoCoNat and TMbed predictions. Adjust based on available GPU memory.",
         type=int,
-        default=4,
+        default=1,
     )
     parser.add_argument(
         "--lrr_gap",
@@ -160,7 +150,6 @@ def parse_args():
 
 
 def main():
-    _start = time.monotonic()
     args = parse_args()
 
     level = logging.DEBUG if args.debug else logging.INFO
@@ -189,7 +178,7 @@ def main():
                 logger.warning("No NLRs were identified. Try --retain?")
                 sys.exit(0)
 
-        proteins = nlrexpress(proteins, device=args.device, threads=args.threads)
+        proteins = nlrexpress(proteins, threads=args.threads)
 
         if args.coconat:
             predict_coils(proteins, args.device, args.batch_size, args.threads)
@@ -215,10 +204,6 @@ def main():
 
     save_results(proteins, args.outdir, command=args.command, draw=not args.no_draw)
 
-    _ru = resource.getrusage(resource.RUSAGE_SELF)
-    _elapsed = time.monotonic() - _start
-    logger.info(f"Time: {_elapsed:.1f}s total, {_ru.ru_utime:.1f}s CPU")
-    logger.info(f"Peak memory: {_ru.ru_maxrss / 1024:.0f} MB")
     logger.info("Thank you for using Resistify!")
     logger.info("If you used Resistify in your research, please cite the following:")
     logger.info(" - Resistify: https://doi.org/10.1177/11779322241308944")

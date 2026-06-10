@@ -36,6 +36,7 @@ NLR_ACCESSION_DOMAINS = {
 
 RLP_ACCESSION_DOMAINS = {
     "PF00069": "PKinase",
+    "PF07714": "PKinase",
     "PF01453": "G-LecRLK",
     "PF00954": "G-LecRLK",
     "PF08276": "G-LecRLK",
