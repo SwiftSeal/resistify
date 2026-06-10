@@ -10,7 +10,7 @@ from resistify.annotation import Annotation, Protein
 # Version 1.3 of sklearn introduced InconsistentVersionWarning, fall back to UserWarning if not available
 # Necessary to suppress pickle version warnings
 try:
-    from sklearn.exceptions import InconsistentVersionWarning # type: ignore
+    from sklearn.exceptions import InconsistentVersionWarning  # type: ignore
 
     warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
 except ImportError:
@@ -60,16 +60,24 @@ MOTIF_MODELS = {
 
 
 def _load_models(search_type: str):
-    candidates = MOTIF_MODELS if search_type == "all" else {search_type: MOTIF_MODELS[search_type]}
+    candidates = (
+        MOTIF_MODELS
+        if search_type == "all"
+        else {search_type: MOTIF_MODELS[search_type]}
+    )
     models = {}
     for predictor, filename in candidates.items():
-        path = os.path.join(os.path.dirname(__file__), "data", "nlrexpress_models", filename)
+        path = os.path.join(
+            os.path.dirname(__file__), "data", "nlrexpress_models", filename
+        )
         with open(path, "rb") as f:
             models[predictor] = pickle.load(f)
     return models
 
 
-def _predict_motifs(protein: Protein, mat1: np.ndarray, mat2: np.ndarray, models: dict[str, object]):
+def _predict_motifs(
+    protein: Protein, mat1: np.ndarray, mat2: np.ndarray, models: dict[str, object]
+):
     seq_len = protein.length
     mat_combined = np.concatenate([mat1[1:], mat2[1:]], axis=1)
 
@@ -80,7 +88,9 @@ def _predict_motifs(protein: Protein, mat1: np.ndarray, mat2: np.ndarray, models
         if seq_len < window_size:
             continue
 
-        windows = np.lib.stride_tricks.sliding_window_view(mat_combined, window_size, axis=0)
+        windows = np.lib.stride_tricks.sliding_window_view(
+            mat_combined, window_size, axis=0
+        )
         matrix = windows.transpose(0, 2, 1).reshape(windows.shape[0], -1)
 
         proba = model.predict_proba(matrix)
@@ -140,7 +150,9 @@ def nlrexpress(proteins: dict[str, Protein], threads: int, search_type: str = "a
             mat1 = -np.log(np.array(result1.hmm.match_emissions) + 1e-8)
 
             if len(iteration_results) > 1:
-                mat2 = -np.log(np.array(iteration_results[1].hmm.match_emissions) + 1e-8)
+                mat2 = -np.log(
+                    np.array(iteration_results[1].hmm.match_emissions) + 1e-8
+                )
             else:
                 mat2 = mat1
 
