@@ -3,9 +3,7 @@ import platform
 import argparse
 from pathlib import Path
 import logging
-import resource
 import sys
-import time
 from importlib.metadata import version as _version
 
 __version__ = _version("resistify")
@@ -24,14 +22,6 @@ logger = logging.getLogger(__name__)
 def download_models():
     from huggingface_hub import snapshot_download
     import esm
-
-    logger.info("Downloading ESM2-8M (Synthyra/ESM2-8M @ f3c6441)...")
-    snapshot_download("Synthyra/ESM2-8M", revision="f3c6441")
-    logger.info("ESM2-8M downloaded.")
-
-    logger.info("Downloading ESM2 tokenizer (facebook/esm2_t6_8M_UR50D)...")
-    snapshot_download("facebook/esm2_t6_8M_UR50D")
-    logger.info("ESM2 tokenizer downloaded.")
 
     logger.info("Downloading ProtT5 (Rostlab/prot_t5_xl_half_uniref50-enc)...")
     snapshot_download("Rostlab/prot_t5_xl_half_uniref50-enc")
