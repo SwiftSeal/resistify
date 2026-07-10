@@ -61,7 +61,7 @@ def add_common_args(parser):
         "--device",
         help="Device to use for CoCoNat and TMbed predictions. Selects the best available device by default.",
         type=str,
-        default=get_device(),
+        default=None,
         choices=["cpu", "cuda", "mps"],
     )
     parser.add_argument(
@@ -164,7 +164,6 @@ def main():
         sys.exit(0)
 
     logger.info(f"Using {args.threads} threads")
-    logger.info(f"Using device: {args.device}")
     logger.info(f"OS: {platform.system()} {platform.machine()}")
 
     proteins = parse_fasta(args.input)
@@ -181,7 +180,9 @@ def main():
         proteins = nlrexpress(proteins, threads=args.threads)
 
         if args.coconat:
-            predict_coils(proteins, args.device, args.batch_size, args.threads)
+            device = args.device or get_device()
+            logger.info(f"Using device: {device}")
+            predict_coils(proteins, device, args.batch_size, args.threads)
 
         for protein in proteins.values():
             protein.annotate_lrr(lrr_gap=args.lrr_gap, lrr_length=args.lrr_length)
@@ -190,7 +191,9 @@ def main():
 
     elif args.command == "prr":
         proteins = hmmsearch(proteins, RLP_HMM_DB, threads=args.threads)
-        tmbed(proteins, args.device, args.batch_size, args.threads)
+        device = args.device or get_device()
+        logger.info(f"Using device: {device}")
+        tmbed(proteins, device, args.batch_size, args.threads)
         proteins = {k: v for k, v in proteins.items() if v.is_rlp()}
 
         nlrexpress(proteins, search_type="LxxLxL", threads=args.threads)

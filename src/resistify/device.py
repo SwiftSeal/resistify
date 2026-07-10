@@ -1,9 +1,10 @@
 import os
 import multiprocessing
-import torch
 
 
 def get_device() -> str:
+    import torch
+
     if torch.cuda.is_available():
         return "cuda"
     elif torch.backends.mps.is_available():
