@@ -96,8 +96,7 @@ def _predict_motifs(
         proba = model.predict_proba(matrix)
 
         for k, prob in enumerate(proba):
-            value = round(float(prob[1]), 4)
-            if value > 0.8:
+            if prob[1] > 0.8:
                 i = k + 5
                 protein.add_annotation(
                     Annotation(
@@ -106,7 +105,7 @@ def _predict_motifs(
                         end=i + motif_size,
                         type="motif",
                         source="nlrexpress",
-                        score=value,
+                        score=round(float(prob[1]), 4),
                     )
                 )
 
@@ -130,9 +129,7 @@ def nlrexpress(proteins: dict[str, Protein], threads: int, search_type: str = "a
 
     logger.info("Running NLRexpress...")
 
-    # threadpool limit numpy to 1 to avoid overallocation
-    # jackhmmer is the slow bit so this is OK
-    with threadpoolctl.threadpool_limits(limits=1):
+    with threadpoolctl.threadpool_limits(limits=threads):
         for iteration_results in pyhmmer.hmmer.jackhmmer(
             queries,
             database,
@@ -142,19 +139,18 @@ def nlrexpress(proteins: dict[str, Protein], threads: int, search_type: str = "a
             E=1e-5,
             domE=1e-5,
         ):
-            result1 = iteration_results[0]
-            seq_id = result1.hmm.name
+            if len(iteration_results) != 2:
+                continue
+            
+            seq_id = iteration_results[0].hmm.name
             if isinstance(seq_id, bytes):
                 seq_id = seq_id.decode()
 
-            mat1 = -np.log(np.array(result1.hmm.match_emissions) + 1e-8)
+            mat1 = -np.log(np.array(iteration_results[0].hmm.match_emissions) + 1e-8)
 
-            if len(iteration_results) > 1:
-                mat2 = -np.log(
-                    np.array(iteration_results[1].hmm.match_emissions) + 1e-8
-                )
-            else:
-                mat2 = mat1
+            mat2 = -np.log(
+                np.array(iteration_results[1].hmm.match_emissions) + 1e-8
+            )
 
             _predict_motifs(proteins[seq_id], mat1, mat2, models)
 

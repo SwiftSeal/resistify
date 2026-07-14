@@ -13,25 +13,11 @@ from resistify.hmmer import hmmsearch
 from resistify.nlrexpress import nlrexpress
 from resistify.coconat import predict_coils
 from resistify.tmbed import tmbed
+from resistify.download import download_models
 from resistify.hmmer import NLR_HMM_DB, RLP_HMM_DB
-from resistify.device import get_device, get_threads
+from resistify.device import get_threads
 
 logger = logging.getLogger(__name__)
-
-
-def download_models():
-    from huggingface_hub import snapshot_download
-    import esm
-
-    logger.info("Downloading ProtT5 (Rostlab/prot_t5_xl_half_uniref50-enc)...")
-    snapshot_download("Rostlab/prot_t5_xl_half_uniref50-enc")
-    logger.info("ProtT5 downloaded.")
-
-    logger.info("Downloading ESM2-33M (esm2_t33_650M_UR50D via PyTorch Hub)...")
-    esm.pretrained.esm2_t33_650M_UR50D()
-    logger.info("ESM2-33M downloaded.")
-
-    logger.info("All models downloaded successfully.")
 
 
 def add_common_args(parser):
@@ -61,7 +47,7 @@ def add_common_args(parser):
         "--device",
         help="Device to use for CoCoNat and TMbed predictions. Selects the best available device by default.",
         type=str,
-        default=get_device(),
+        default=None,
         choices=["cpu", "cuda", "mps"],
     )
     parser.add_argument(
