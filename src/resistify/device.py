@@ -1,10 +1,18 @@
-import os
-import multiprocessing
+import logging
+import torch
 
-def get_threads() -> int:
-    if hasattr(os, "sched_getaffinity"):
-        try:
-            return len(os.sched_getaffinity(0))
-        except Exception:
-            pass
-    return int(multiprocessing.cpu_count())
+
+logger = logging.getLogger(__name__)
+
+
+def get_device() -> str:
+    device = ""
+    if torch.cuda.is_available():
+        device = "cuda"
+    elif torch.backends.mps.is_available():
+        device = "mps"
+    else:
+        device = "cpu"
+
+    logging.info(f"Device selected: {device}")
+    return device
