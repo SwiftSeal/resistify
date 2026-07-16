@@ -6,6 +6,7 @@ import torch.nn as nn
 import logging
 from pathlib import Path
 from resistify.annotation import Protein
+from resistify.device import get_device
 
 logger = logging.getLogger(__name__)
 
@@ -75,8 +76,11 @@ class CoCoNatPredictor:
         self.t5_tokenizer = T5Tokenizer.from_pretrained(
             "Rostlab/prot_t5_xl_half_uniref50-enc", do_lower_case=False, legacy=True
         )
+        t5_dtype = torch.float16 if self.device.type == "cuda" else torch.float32
         self.t5_model = (
-            T5EncoderModel.from_pretrained("Rostlab/prot_t5_xl_half_uniref50-enc")
+            T5EncoderModel.from_pretrained(
+                "Rostlab/prot_t5_xl_half_uniref50-enc", torch_dtype=t5_dtype
+            )
             .to(self.device)
             .eval()
         )
@@ -130,9 +134,13 @@ class CoCoNatPredictor:
 
 
 def predict_coils(
-    proteins: dict[str, Protein], device: str, batch_size: int, threads: int
+    proteins: dict[str, Protein], device: str | None, batch_size: int, threads: int
 ):
     logger.info("Running CoCoNat to predict coiled-coils")
+
+    if device is None:
+        device = get_device()
+    
     torch.set_num_threads(threads)
     predictor = CoCoNatPredictor(device=device)
 
