@@ -15,7 +15,7 @@ from resistify.coconat import predict_coils
 from resistify.tmbed import tmbed
 from resistify.download import download_models
 from resistify.hmmer import NLR_HMM_DB, RLP_HMM_DB
-from resistify.device import get_threads
+from resistify.threads import get_threads
 
 logger = logging.getLogger(__name__)
 
@@ -150,7 +150,6 @@ def main():
         sys.exit(0)
 
     logger.info(f"Using {args.threads} threads")
-    logger.info(f"Using device: {args.device}")
     logger.info(f"OS: {platform.system()} {platform.machine()}")
 
     proteins = parse_fasta(args.input)
