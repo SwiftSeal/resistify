@@ -5,6 +5,7 @@ import os
 import logging
 import pyhmmer
 import threadpoolctl
+from tqdm.auto import tqdm
 from resistify.annotation import Annotation, Protein
 
 # Version 1.3 of sklearn introduced InconsistentVersionWarning, fall back to UserWarning if not available
@@ -129,6 +130,11 @@ def nlrexpress(proteins: dict[str, Protein], threads: int, search_type: str = "a
 
     logger.info("Running NLRexpress...")
 
+    progress = tqdm(total=len(queries), desc="NLRexpress")
+
+    def _progress_callback(query, total):
+        progress.update(1)
+
     with threadpoolctl.threadpool_limits(limits=threads):
         for iteration_results in pyhmmer.hmmer.jackhmmer(
             queries,
@@ -136,12 +142,15 @@ def nlrexpress(proteins: dict[str, Protein], threads: int, search_type: str = "a
             max_iterations=2,
             checkpoints=True,
             cpus=threads,
+            callback=_progress_callback,
             E=1e-5,
             domE=1e-5,
         ):
+            # exit early if multiple iterations have not returned
+            # this deviates from OG nlrexpress but improves performance
             if len(iteration_results) != 2:
                 continue
-            
+
             seq_id = iteration_results[0].hmm.name
             if isinstance(seq_id, bytes):
                 seq_id = seq_id.decode()
@@ -153,5 +162,7 @@ def nlrexpress(proteins: dict[str, Protein], threads: int, search_type: str = "a
             )
 
             _predict_motifs(proteins[seq_id], mat1, mat2, models)
+
+    progress.close()
 
     return proteins
