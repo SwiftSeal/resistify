@@ -1,3 +1,4 @@
+import sys
 import torch
 import esm
 import tqdm.auto as tqdm
@@ -134,13 +135,12 @@ class CoCoNatPredictor:
 
 
 def predict_coils(
-    proteins: dict[str, Protein], device: str | None, batch_size: int, threads: int
+    proteins: dict[str, Protein], device: str, batch_size: int, threads: int
 ):
     logger.info("Running CoCoNat to predict coiled-coils")
 
-    if device is None:
-        device = get_device()
-    
+    device = get_device(device)
+
     torch.set_num_threads(threads)
     predictor = CoCoNatPredictor(device=device)
 
@@ -153,7 +153,9 @@ def predict_coils(
     batches = [
         to_process[i : i + batch_size] for i in range(0, len(to_process), batch_size)
     ]
-    for batch in tqdm.tqdm(batches, desc="CoCoNat", unit="batch"):
+    for batch in tqdm.tqdm(
+        batches, desc="CoCoNat", unit="batch", disable=not sys.stdout.isatty()
+    ):
         batch_results = predictor.predict_batch(batch)
 
         for p_id, cc_probs in batch_results.items():

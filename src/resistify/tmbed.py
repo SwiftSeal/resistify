@@ -1,3 +1,4 @@
+import sys
 import os
 import math
 import torch
@@ -387,11 +388,11 @@ def predict_sequences(models, embedding, mask):
     return pred.detach()
 
 
-def tmbed(proteins: dict[str, Protein], device: str | None, batch_size: int, threads: int):
+def tmbed(proteins: dict[str, Protein], device: str, batch_size: int, threads: int):
     logger.info("Predicting transmembrane domains with TMBed")
 
-    if device is None:
-        device = get_device()
+    device = get_device()
+
     torch.set_num_threads(threads)
 
     encoder = T5Encoder(device)
@@ -400,7 +401,9 @@ def tmbed(proteins: dict[str, Protein], device: str | None, batch_size: int, thr
 
     protein_list = list(proteins.values())
 
-    for i in tqdm(range(0, len(protein_list), batch_size)):
+    for i in tqdm(
+        range(0, len(protein_list), batch_size), disable=not sys.stdout.isatty()
+    ):
         batch = protein_list[i : i + batch_size]
         batch_seqs = [p.sequence for p in batch]
 
