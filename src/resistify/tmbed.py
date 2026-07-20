@@ -391,7 +391,7 @@ def predict_sequences(models, embedding, mask):
 def tmbed(proteins: dict[str, Protein], device: str, batch_size: int, threads: int):
     logger.info("Predicting transmembrane domains with TMBed")
 
-    device = get_device()
+    device = get_device(device)
 
     torch.set_num_threads(threads)
 
