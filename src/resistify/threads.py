@@ -1,6 +1,7 @@
 import os
 import multiprocessing
 
+
 def get_threads() -> int:
     if hasattr(os, "sched_getaffinity"):
         try:
