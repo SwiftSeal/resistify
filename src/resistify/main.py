@@ -47,8 +47,8 @@ def add_common_args(parser):
         "--device",
         help="Device to use for CoCoNat and TMbed predictions. Selects the best available device by default.",
         type=str,
-        default=None,
-        choices=["cpu", "cuda", "mps"],
+        default="auto",
+        choices=["auto", "cpu", "cuda", "mps"],
     )
     parser.add_argument(
         "--batch_size",
