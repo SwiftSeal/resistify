@@ -1,3 +1,4 @@
+import sys
 import warnings
 import numpy as np
 import pickle
@@ -130,7 +131,9 @@ def nlrexpress(proteins: dict[str, Protein], threads: int, search_type: str = "a
 
     logger.info("Running NLRexpress...")
 
-    progress = tqdm(total=len(queries), desc="NLRexpress")
+    progress = tqdm(
+        total=len(queries), desc="NLRexpress", disable=not sys.stdout.isatty()
+    )
 
     def _progress_callback(query, total):
         progress.update(1)
@@ -146,20 +149,18 @@ def nlrexpress(proteins: dict[str, Protein], threads: int, search_type: str = "a
             E=1e-5,
             domE=1e-5,
         ):
-            # exit early if multiple iterations have not returned
-            # this deviates from OG nlrexpress but improves performance
-            if len(iteration_results) != 2:
-                continue
-
             seq_id = iteration_results[0].hmm.name
             if isinstance(seq_id, bytes):
                 seq_id = seq_id.decode()
 
             mat1 = -np.log(np.array(iteration_results[0].hmm.match_emissions) + 1e-8)
 
-            mat2 = -np.log(
-                np.array(iteration_results[1].hmm.match_emissions) + 1e-8
-            )
+            if len(iteration_results) == 2:
+                mat2 = -np.log(
+                    np.array(iteration_results[1].hmm.match_emissions) + 1e-8
+                )
+            else:
+                mat2 = mat1
 
             _predict_motifs(proteins[seq_id], mat1, mat2, models)
 
