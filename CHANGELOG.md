@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented here.
 
+## [v2.4.0](https://github.com/SwiftSeal/resistify/releases/tag/v2.4.0) - 2026-07-22
+
+* Revert NLRexpress AGAIN back to jackhmmer subprocess calls. pyhmmer performance can't seem to match this method, so hmmer binary required as a dependency, again.
+
 ## [v2.3.0](https://github.com/SwiftSeal/resistify/releases/tag/v2.3.0) - 2026-07-20
 
 * Jackhmmer CPU saturation improved in `--retain` mode which previously impacted performance
